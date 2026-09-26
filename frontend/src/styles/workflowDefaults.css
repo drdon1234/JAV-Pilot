@@ -1,0 +1,97 @@
+.workflow-defaults-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.workflow-defaults-section {
+  display: grid;
+  gap: 14px;
+}
+
+.workflow-defaults-sources {
+  display: grid;
+  gap: 8px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.workflow-defaults-sources legend {
+  margin-bottom: 6px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.workflow-defaults-sources > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.toggle-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.workflow-defaults-toggles {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.workflow-defaults-toggles > span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+  .workflow-defaults-toggles {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .workflow-defaults-toggles > span {
+    margin-bottom: 8px;
+  }
+}
+
+.ai-translation-settings {
+  display: grid;
+  gap: 14px;
+}
+
+.ai-translation-intro {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.ai-translation-settings textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.ai-translation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ai-translation-key-note {
+  margin-right: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ai-translation-actions > .button-ghost:first-child {
+  margin-right: auto;
+}

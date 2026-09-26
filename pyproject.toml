@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools==75.6.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jav-pilot"
+dynamic = ["version"]
+description = "Local-first JAV search, qBittorrent download, and organization console."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+dependencies = [
+  "beautifulsoup4==4.13.3",
+  "soupsieve==2.8.4",
+  "playwright==1.61.0",
+  "yt-dlp==2026.7.4",
+  "curl-cffi==0.15.0",
+  "cryptography==50.0.0",
+  "Pillow==12.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.3.4",
+  "ruff==0.14.9",
+]
+
+[project.scripts]
+jav-pilot = "jav_pilot.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["test/python/tests"]
+addopts = ["--strict-markers", "-m", "not e2e and not load and not online"]
+markers = [
+  "e2e: independent Playwright browser tests",
+  "load: isolated load and fault-injection tests",
+  "online: real-site smoke tests that are never a PR gate",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "jav_pilot.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["jav_pilot*"]
+namespaces = false

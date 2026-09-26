@@ -1,0 +1,135 @@
+name: jav-pilot
+
+services:
+  jav-pilot:
+    platform: linux/amd64
+    build:
+      context: .
+      network: host
+      args:
+        VCS_REF: ${JAV_PILOT_REVISION:-unknown}
+        HTTPS_PROXY: ${JAV_PILOT_BUILD_PROXY-}
+        HTTP_PROXY: ${JAV_PILOT_BUILD_PROXY-}
+        ALL_PROXY: ${JAV_PILOT_BUILD_PROXY-}
+        https_proxy: ${JAV_PILOT_BUILD_PROXY-}
+        http_proxy: ${JAV_PILOT_BUILD_PROXY-}
+        all_proxy: ${JAV_PILOT_BUILD_PROXY-}
+    image: ${JAV_PILOT_IMAGE_REFERENCE:-${JAV_PILOT_IMAGE_REPOSITORY:-jav-pilot}:${JAV_PILOT_IMAGE_TAG:-dev}}
+    container_name: ${JAV_PILOT_COMPOSE_CONTAINER_NAME:-jav-pilot}
+    # The shared trusted MissAV browser is headful. Keep one virtual display
+    # for the service instead of spawning one Xvfb per request/worker.
+    command: ["xvfb-run", "-a", "python", "-m", "jav_pilot.cli", "serve", "--host", "0.0.0.0", "--port", "8766"]
+    # A deployment must deliberately choose its runtime identity. Existing
+    # mixed-owner NAS data may temporarily require 0:0; fresh deployments
+    # should use the reviewed non-root UID:GID described in docs/getting-started.md.
+    user: ${JAV_PILOT_CONTAINER_USER:?JAV_PILOT_CONTAINER_USER is required}
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 120s
+    pids_limit: ${JAV_PILOT_PIDS_LIMIT:-512}
+    shm_size: ${JAV_PILOT_SHM_SIZE:-1gb}
+    cpus: ${JAV_PILOT_CPU_LIMIT:-4.0}
+    mem_limit: ${JAV_PILOT_MEMORY_LIMIT:-4g}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Preserve an existing metadata file's ownership and attributes during
+    # atomic replacement across explicitly configured shared storage mounts.
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    logging:
+      driver: json-file
+      options:
+        max-size: ${JAV_PILOT_LOG_MAX_SIZE:-10m}
+        max-file: ${JAV_PILOT_LOG_MAX_FILES:-3}
+    ports:
+      - "${JAV_PILOT_COMPOSE_HOST_BIND:-127.0.0.1}:${JAV_PILOT_COMPOSE_HOST_PORT:-8766}:8766"
+      - "${JAV_PILOT_COMPOSE_LAN_BIND:-127.0.0.2}:${JAV_PILOT_COMPOSE_HOST_PORT:-8766}:8766"
+    networks:
+      - jav-pilot
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      JAV_PILOT_JAVDB_FETCHER: auto
+      JAV_PILOT_BROWSER_WAIT_MS: "3000"
+      JAV_PILOT_BROWSER_CHANNEL: ${JAV_PILOT_BROWSER_CHANNEL:-}
+      JAV_PILOT_PROXY: ${JAV_PILOT_PROXY:-}
+      HTTP_PROXY: ${JAV_PILOT_PROXY:-}
+      HTTPS_PROXY: ${JAV_PILOT_PROXY:-}
+      ALL_PROXY: ${JAV_PILOT_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-127.0.0.1,localhost,jav-pilot,host.docker.internal}
+      JAV_PILOT_ALLOW_FAKE_IP_DNS: ${JAV_PILOT_ALLOW_FAKE_IP_DNS:-0}
+      JAV_PILOT_DATA_DIR: /app/data
+      JAV_PILOT_QB_URL: ${JAV_PILOT_QB_URL:-}
+      JAV_PILOT_QB_USERNAME: ${JAV_PILOT_QB_USERNAME:-}
+      JAV_PILOT_QB_PASSWORD: ${JAV_PILOT_QB_PASSWORD:-}
+      JAV_PILOT_QB_CATEGORY: ${JAV_PILOT_QB_CATEGORY:-jav}
+      JAV_PILOT_QB_SAVE_PATH: ${JAV_PILOT_QB_SAVE_PATH:-/downloads/jav}
+      JAV_PILOT_QB_LIBRARY_PATH: ${JAV_PILOT_QB_LIBRARY_PATH:-/media/JAV}
+      JAV_PILOT_QB_APP_LIBRARY_PATH: /media/JAV
+      JAV_PILOT_QB_ORGANIZER_INTERVAL_SECONDS: ${JAV_PILOT_QB_ORGANIZER_INTERVAL_SECONDS:-30}
+      JAV_PILOT_QB_TAGS: ${JAV_PILOT_QB_TAGS:-jav-pilot}
+      JAV_PILOT_WEB_DOWNLOAD_ENABLED: ${JAV_PILOT_WEB_DOWNLOAD_ENABLED:-1}
+      JAV_PILOT_WEB_DOWNLOAD_DATABASE_PATH: /app/data/web_downloads.sqlite3
+      JAV_PILOT_WEB_DOWNLOAD_STAGING_PATH: /downloads/jav-web
+      JAV_PILOT_WEB_DOWNLOAD_LIBRARY_PATH: /media/JAV
+      JAV_PILOT_WEB_DOWNLOAD_MAX_CONCURRENCY: ${JAV_PILOT_WEB_DOWNLOAD_MAX_CONCURRENCY:-8}
+      JAV_PILOT_WEB_DOWNLOAD_BATCH_PAGE_BUDGET: ${JAV_PILOT_WEB_DOWNLOAD_BATCH_PAGE_BUDGET:-16}
+      JAV_PILOT_MISSAV_BROWSER_CONCURRENCY: ${JAV_PILOT_MISSAV_BROWSER_CONCURRENCY:-2}
+      JAV_PILOT_MISSAV_BROWSER_PROFILE_DIR: /app/browser-profile
+      JAV_PILOT_WEB_DOWNLOAD_MIN_FREE_BYTES: ${JAV_PILOT_WEB_DOWNLOAD_MIN_FREE_BYTES:-5368709120}
+      JAV_PILOT_WEB_DOWNLOAD_INITIAL_MEDIA_BYTES: ${JAV_PILOT_WEB_DOWNLOAD_INITIAL_MEDIA_BYTES:-536870912}
+      JAV_PILOT_WEB_DOWNLOAD_MAX_FILE_BYTES: ${JAV_PILOT_WEB_DOWNLOAD_MAX_FILE_BYTES:-68719476736}
+      JAV_PILOT_WEB_DOWNLOAD_CAPTURE_TIMEOUT_SECONDS: ${JAV_PILOT_WEB_DOWNLOAD_CAPTURE_TIMEOUT_SECONDS:-45}
+      JAV_PILOT_READINESS_MIN_FREE_BYTES: ${JAV_PILOT_READINESS_MIN_FREE_BYTES:-67108864}
+      JAV_PILOT_MEDIA_METADATA_ENABLED: ${JAV_PILOT_MEDIA_METADATA_ENABLED:-1}
+      JAV_PILOT_MEDIA_METADATA_DATABASE_PATH: /app/data/media_metadata.sqlite3
+      JAV_PILOT_MEDIA_METADATA_LIBRARY_PATH: /media/JAV
+      JAV_PILOT_MEDIA_METADATA_BACKUP_PATH: /app/data/media_metadata_nfo_backups
+      JAV_PILOT_MEDIA_LIBRARY_ENABLED: ${JAV_PILOT_MEDIA_LIBRARY_ENABLED:-1}
+      JAV_PILOT_MEDIA_LIBRARY_PATH: /media/JAV
+      JAV_PILOT_MEDIA_LIBRARY_DATABASE_PATH: /app/data/media_library.sqlite3
+      JAV_PILOT_MEDIA_LIBRARY_RECONCILE_SECONDS: ${JAV_PILOT_MEDIA_LIBRARY_RECONCILE_SECONDS:-300}
+      JAV_PILOT_MEDIA_LIBRARY_FULL_SCAN_SECONDS: ${JAV_PILOT_MEDIA_LIBRARY_FULL_SCAN_SECONDS:-86400}
+      JAV_PILOT_HISTORY_MAINTENANCE_MODE: ${JAV_PILOT_HISTORY_MAINTENANCE_MODE:-0}
+      JAV_PILOT_HISTORY_BACKUP_ROOT: /app/backups
+      JAV_PILOT_MAINTENANCE_LOCK_ROOT: /app/maintenance-locks
+      JAV_PILOT_HISTORY_BACKUP_PATH: ${JAV_PILOT_HISTORY_BACKUP_PATH:-}
+      JAV_PILOT_SITE_DIAGNOSTIC_DATABASE_PATH: /app/data/site_diagnostics.sqlite3
+      JAV_PILOT_METADATA_SEARCH_DATABASE_PATH: /app/data/metadata_search_sessions.sqlite3
+      JAV_PILOT_DETAIL_PREFETCH_DATABASE_PATH: /app/data/detail_prefetch.sqlite3
+      JAV_PILOT_SITE_DIAGNOSTIC_CODE: ${JAV_PILOT_SITE_DIAGNOSTIC_CODE:-}
+      JAV_PILOT_SITE_DIAGNOSTIC_INTERVAL_SECONDS: ${JAV_PILOT_SITE_DIAGNOSTIC_INTERVAL_SECONDS:-900}
+      JAV_PILOT_SITE_DIAGNOSTIC_MAX_INTERVAL_SECONDS: ${JAV_PILOT_SITE_DIAGNOSTIC_MAX_INTERVAL_SECONDS:-21600}
+      JAV_PILOT_SETTINGS_PATH: /app/data/settings.json
+      JAV_PILOT_APP_CONFIG_PATH: /app/data/app_config.json
+      JAV_PILOT_AUTH_ENABLED: ${JAV_PILOT_AUTH_ENABLED:-1}
+      JAV_PILOT_AUTH_USERNAME: ${JAV_PILOT_AUTH_USERNAME:-admin}
+      JAV_PILOT_AUTH_PASSWORD: ${JAV_PILOT_AUTH_PASSWORD:-}
+      JAV_PILOT_AUTH_SECRET: ${JAV_PILOT_AUTH_SECRET:-}
+      JAV_PILOT_ALLOW_INSECURE_REMOTE: ${JAV_PILOT_ALLOW_INSECURE_REMOTE:-0}
+      JAV_PILOT_TRUSTED_PROXY_CIDRS: ${JAV_PILOT_TRUSTED_PROXY_CIDRS:-}
+      JAV_PILOT_REVISION: ${JAV_PILOT_REVISION:-unknown}
+      HOME: ${JAV_PILOT_HOME:-/tmp}
+    volumes:
+      - ./data:/app/data
+      - ./runtime/maintenance-locks:/app/maintenance-locks
+      - jav-pilot-browser-profile:/app/browser-profile
+      - ${JAV_PILOT_HISTORY_BACKUP_HOST_PATH:-./runtime/backups}:/app/backups:ro
+      - ${JAV_PILOT_QB_STAGING_HOST_PATH:-./runtime/downloads/jav}:/downloads/jav
+      - ${JAV_PILOT_WEB_DOWNLOAD_HOST_PATH:-./runtime/downloads/jav-web}:/downloads/jav-web
+      - ${JAV_PILOT_LIBRARY_HOST_PATH:-./runtime/media/JAV}:/media/JAV
+    tmpfs:
+      - /run/jav-pilot-missav:rw,nosuid,nodev,noexec,mode=0700
+
+networks:
+  jav-pilot:
+    name: ${JAV_PILOT_COMPOSE_NETWORK:-jav-pilot}
+    driver: bridge
+
+volumes:
+  jav-pilot-browser-profile:
+    name: ${JAV_PILOT_COMPOSE_BROWSER_PROFILE_VOLUME:-jav-pilot-browser-profile}

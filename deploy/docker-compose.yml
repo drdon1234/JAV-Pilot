@@ -1,0 +1,174 @@
+# JAV Pilot from the published Docker Hub image.
+#
+# Put this file and .env (from .env.example next to it) in an empty directory,
+# set JAV_PILOT_AUTH_PASSWORD and JAV_PILOT_AUTH_SECRET in .env, then run
+# `docker compose up -d`. Data, downloads and the media library live next to
+# this file unless .env points them elsewhere.
+#
+# To run qBittorrent in the same project, use docker-compose.qbittorrent.yml
+# instead of this file.
+
+name: jav-pilot
+
+x-host-paths: &host-paths
+  - ${JAV_PILOT_DATA_HOST_PATH:-./data}:/app/data
+  - jav-pilot-browser-profile:/app/browser-profile
+  - ${JAV_PILOT_QB_STAGING_HOST_PATH:-./downloads/jav}:/downloads/jav
+  - ${JAV_PILOT_WEB_DOWNLOAD_HOST_PATH:-./downloads/jav-web}:/downloads/jav-web
+  - ${JAV_PILOT_LIBRARY_HOST_PATH:-./media/JAV}:/media/JAV
+
+services:
+  # One-shot step that hands directories Docker has just created (owned by
+  # root and empty) to the service user. It never changes directories that
+  # already hold files, so an existing media library keeps its ownership.
+  jav-pilot-init:
+    image: ${JAV_PILOT_IMAGE:-drdon1234/jav-pilot:latest}
+    user: "0:0"
+    network_mode: none
+    restart: "no"
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    volumes: *host-paths
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        owner="$$PUID:$$PGID"
+        claim() {
+          dir="$$1"; mode="$$2"
+          current="$$(stat -c %u:%g "$$dir")"
+          [ "$$current" = "$$owner" ] && return 0
+          if [ -z "$$(ls -A "$$dir")" ]; then
+            chown "$$owner" "$$dir" && chmod "$$mode" "$$dir"
+            echo "prepared $$dir for $$owner"
+          elif [ "$$3" = private ]; then
+            echo "$$dir belongs to $$current, not $$owner; fix its ownership or PUID/PGID" >&2
+            exit 1
+          else
+            echo "warning: $$dir already holds files owned by $$current; make sure $$owner can write to it" >&2
+          fi
+        }
+        claim /app/data 0700 private
+        claim /app/browser-profile 0700 private
+        claim /downloads/jav 0750 shared
+        claim /downloads/jav-web 0750 shared
+        claim /media/JAV 0755 shared
+
+  jav-pilot:
+    image: ${JAV_PILOT_IMAGE:-drdon1234/jav-pilot:latest}
+    container_name: jav-pilot
+    depends_on:
+      jav-pilot-init:
+        condition: service_completed_successfully
+    # The MissAV browser is headful; xvfb-run gives the service one virtual display.
+    command: ["xvfb-run", "-a", "python", "-m", "jav_pilot.cli", "serve", "--host", "0.0.0.0", "--port", "8766"]
+    user: "${PUID:-1000}:${PGID:-1000}"
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 120s
+    pids_limit: 512
+    shm_size: 1gb
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    # Preserve an existing file's ownership during atomic replacement on shared storage.
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    ports:
+      - "${JAV_PILOT_PORT:-8766}:8766"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # Login. Both values are required; see .env.example.
+      JAV_PILOT_AUTH_ENABLED: "1"
+      JAV_PILOT_AUTH_USERNAME: ${JAV_PILOT_AUTH_USERNAME:-admin}
+      JAV_PILOT_AUTH_PASSWORD: ${JAV_PILOT_AUTH_PASSWORD:?set JAV_PILOT_AUTH_PASSWORD in .env (at least 12 characters)}
+      JAV_PILOT_AUTH_SECRET: ${JAV_PILOT_AUTH_SECRET:?set JAV_PILOT_AUTH_SECRET in .env (at least 32 random characters)}
+      JAV_PILOT_ALLOW_INSECURE_REMOTE: "0"
+      JAV_PILOT_TRUSTED_PROXY_CIDRS: ${JAV_PILOT_TRUSTED_PROXY_CIDRS:-}
+      # Network.
+      JAV_PILOT_PROXY: ${JAV_PILOT_PROXY:-}
+      HTTP_PROXY: ${JAV_PILOT_PROXY:-}
+      HTTPS_PROXY: ${JAV_PILOT_PROXY:-}
+      ALL_PROXY: ${JAV_PILOT_PROXY:-}
+      NO_PROXY: 127.0.0.1,localhost,jav-pilot,host.docker.internal
+      JAV_PILOT_ALLOW_FAKE_IP_DNS: ${JAV_PILOT_ALLOW_FAKE_IP_DNS:-0}
+      JAV_PILOT_JAVDB_FETCHER: auto
+      JAV_PILOT_BROWSER_WAIT_MS: "3000"
+      JAV_PILOT_BROWSER_CHANNEL: ${JAV_PILOT_BROWSER_CHANNEL:-}
+      # qBittorrent defaults; values saved under Settings take precedence.
+      JAV_PILOT_QB_URL: ${JAV_PILOT_QB_URL:-}
+      JAV_PILOT_QB_USERNAME: ${JAV_PILOT_QB_USERNAME:-}
+      JAV_PILOT_QB_PASSWORD: ${JAV_PILOT_QB_PASSWORD:-}
+      JAV_PILOT_QB_CATEGORY: ${JAV_PILOT_QB_CATEGORY:-jav}
+      JAV_PILOT_QB_SAVE_PATH: ${JAV_PILOT_QB_SAVE_PATH:-/downloads/jav}
+      JAV_PILOT_QB_LIBRARY_PATH: ${JAV_PILOT_QB_LIBRARY_PATH:-/media/JAV}
+      JAV_PILOT_QB_APP_LIBRARY_PATH: /media/JAV
+      JAV_PILOT_QB_ORGANIZER_INTERVAL_SECONDS: ${JAV_PILOT_QB_ORGANIZER_INTERVAL_SECONDS:-30}
+      JAV_PILOT_QB_TAGS: ${JAV_PILOT_QB_TAGS:-jav-pilot}
+      # Web downloads.
+      JAV_PILOT_WEB_DOWNLOAD_ENABLED: ${JAV_PILOT_WEB_DOWNLOAD_ENABLED:-1}
+      JAV_PILOT_WEB_DOWNLOAD_DATABASE_PATH: /app/data/web_downloads.sqlite3
+      JAV_PILOT_WEB_DOWNLOAD_STAGING_PATH: /downloads/jav-web
+      JAV_PILOT_WEB_DOWNLOAD_LIBRARY_PATH: /media/JAV
+      JAV_PILOT_WEB_DOWNLOAD_MAX_CONCURRENCY: ${JAV_PILOT_WEB_DOWNLOAD_MAX_CONCURRENCY:-8}
+      JAV_PILOT_WEB_DOWNLOAD_BATCH_PAGE_BUDGET: ${JAV_PILOT_WEB_DOWNLOAD_BATCH_PAGE_BUDGET:-16}
+      JAV_PILOT_WEB_DOWNLOAD_MIN_FREE_BYTES: ${JAV_PILOT_WEB_DOWNLOAD_MIN_FREE_BYTES:-5368709120}
+      JAV_PILOT_WEB_DOWNLOAD_INITIAL_MEDIA_BYTES: ${JAV_PILOT_WEB_DOWNLOAD_INITIAL_MEDIA_BYTES:-536870912}
+      JAV_PILOT_WEB_DOWNLOAD_MAX_FILE_BYTES: ${JAV_PILOT_WEB_DOWNLOAD_MAX_FILE_BYTES:-68719476736}
+      JAV_PILOT_WEB_DOWNLOAD_CAPTURE_TIMEOUT_SECONDS: ${JAV_PILOT_WEB_DOWNLOAD_CAPTURE_TIMEOUT_SECONDS:-45}
+      JAV_PILOT_MISSAV_BROWSER_CONCURRENCY: ${JAV_PILOT_MISSAV_BROWSER_CONCURRENCY:-2}
+      JAV_PILOT_MISSAV_BROWSER_PROFILE_DIR: /app/browser-profile
+      # Media library and metadata.
+      JAV_PILOT_MEDIA_METADATA_ENABLED: ${JAV_PILOT_MEDIA_METADATA_ENABLED:-1}
+      JAV_PILOT_MEDIA_METADATA_DATABASE_PATH: /app/data/media_metadata.sqlite3
+      JAV_PILOT_MEDIA_METADATA_LIBRARY_PATH: /media/JAV
+      JAV_PILOT_MEDIA_METADATA_BACKUP_PATH: /app/data/media_metadata_nfo_backups
+      JAV_PILOT_MEDIA_LIBRARY_ENABLED: ${JAV_PILOT_MEDIA_LIBRARY_ENABLED:-1}
+      JAV_PILOT_MEDIA_LIBRARY_PATH: /media/JAV
+      JAV_PILOT_MEDIA_LIBRARY_DATABASE_PATH: /app/data/media_library.sqlite3
+      JAV_PILOT_MEDIA_LIBRARY_RECONCILE_SECONDS: ${JAV_PILOT_MEDIA_LIBRARY_RECONCILE_SECONDS:-300}
+      JAV_PILOT_MEDIA_LIBRARY_FULL_SCAN_SECONDS: ${JAV_PILOT_MEDIA_LIBRARY_FULL_SCAN_SECONDS:-86400}
+      # Site diagnostics.
+      JAV_PILOT_SITE_DIAGNOSTIC_CODE: ${JAV_PILOT_SITE_DIAGNOSTIC_CODE:-}
+      JAV_PILOT_SITE_DIAGNOSTIC_INTERVAL_SECONDS: ${JAV_PILOT_SITE_DIAGNOSTIC_INTERVAL_SECONDS:-900}
+      JAV_PILOT_SITE_DIAGNOSTIC_MAX_INTERVAL_SECONDS: ${JAV_PILOT_SITE_DIAGNOSTIC_MAX_INTERVAL_SECONDS:-21600}
+      # Storage locations inside the container.
+      JAV_PILOT_DATA_DIR: /app/data
+      JAV_PILOT_SETTINGS_PATH: /app/data/settings.json
+      JAV_PILOT_APP_CONFIG_PATH: /app/data/app_config.json
+      JAV_PILOT_SITE_DIAGNOSTIC_DATABASE_PATH: /app/data/site_diagnostics.sqlite3
+      JAV_PILOT_METADATA_SEARCH_DATABASE_PATH: /app/data/metadata_search_sessions.sqlite3
+      JAV_PILOT_DETAIL_PREFETCH_DATABASE_PATH: /app/data/detail_prefetch.sqlite3
+      JAV_PILOT_READINESS_MIN_FREE_BYTES: ${JAV_PILOT_READINESS_MIN_FREE_BYTES:-67108864}
+      JAV_PILOT_HISTORY_MAINTENANCE_MODE: "0"
+      HOME: /tmp
+    volumes: *host-paths
+    tmpfs:
+      - /run/jav-pilot-missav:rw,nosuid,nodev,noexec,mode=0700
+
+networks:
+  default:
+    # A fixed name lets optional companions such as ops/indexers.compose.yml join it.
+    name: jav-pilot
+
+volumes:
+  jav-pilot-browser-profile:
+    name: jav-pilot-browser-profile

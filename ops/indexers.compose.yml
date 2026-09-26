@@ -1,0 +1,45 @@
+name: jav-pilot-indexers
+
+services:
+  jackett:
+    image: lscr.io/linuxserver/jackett@sha256:621c778388a44df6b4c17d0069f7ffc1325433e067c5649bb6d9dca7045c910e
+    container_name: jav-pilot-indexers
+    restart: unless-stopped
+    environment:
+      PUID: '${JAV_PILOT_INDEXER_UID:-1000}'
+      PGID: '${JAV_PILOT_INDEXER_GID:-1001}'
+      TZ: Asia/Shanghai
+      AUTO_UPDATE: 'false'
+    volumes:
+      - '${JAV_PILOT_INDEXER_CONFIG:-./config}:/config'
+    tmpfs:
+      - /downloads:size=16m,mode=0700
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    networks:
+      app:
+        ipv4_address: '${JAV_PILOT_INDEXER_IP:-172.26.0.250}'
+        aliases:
+          - jav-pilot-indexers
+    cpus: 1.0
+    mem_limit: 512m
+    pids_limit: 256
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    healthcheck:
+      test: ['CMD', 'curl', '--fail', '--silent', '--max-time', '5', 'http://127.0.0.1:9117/UI/Dashboard']
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 45s
+
+networks:
+  app:
+    external: true
+    name: '${JAV_PILOT_INDEXER_NETWORK:-jav-pilot}'

@@ -1,0 +1,12 @@
+.organizer-preview > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.organizer-preview > summary::-webkit-details-marker {
+  display: none;
+}
+
+.organizer-preview[open] > summary {
+  margin-bottom: 12px;
+}
