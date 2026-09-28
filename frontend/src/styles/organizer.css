@@ -1,0 +1,19 @@
+.organizer-preview > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.organizer-preview > summary::-webkit-details-marker {
+  display: none;
+}
+
+.organizer-preview > summary > svg {
+  width: 17px;
+  height: 17px;
+  color: var(--muted);
+  transition: transform 140ms ease;
+}
+
+.organizer-preview[open] > summary > svg {
+  transform: rotate(180deg);
+}

@@ -1,0 +1,107 @@
+import { translateKnown } from './i18n'
+
+/**
+ * Chinese display texts that the server sends as data: ranking board labels
+ * and notes (search/rankings/__init__.py), security findings
+ * (security/posture.py), background discovery errors
+ * (web_download/batches/errors.py) and AI translation providers, fields and
+ * errors (translation/ai.py). `tools/i18n_catalog.py` adds this list to
+ * the translation catalogs, and serverText() shows the translation. Texts
+ * the list does not know are shown as sent.
+ */
+export const SERVER_TEXTS: readonly string[] = [
+  '日榜',
+  '周榜',
+  '月榜',
+  '实时',
+  '年榜',
+  '有码',
+  '无码',
+  '欧美',
+  '视频',
+  '素人',
+  '动画',
+  '无码厂商',
+  '无码厂商官网',
+  '一本道',
+  '加勒比',
+  '综合',
+  'MGS 单品',
+  '素人TV',
+  '当前',
+  'FC2 卖家',
+  '上月',
+  '年度',
+  '人气',
+  '销量',
+  '评价',
+  '无码、欧美和 FC2 榜单需要登录后的 JavDB 会话。',
+  'FANZA 官方销量榜，实时榜每半小时更新。',
+  'FC2 官方销量榜。',
+  '各厂商官网公布的人气榜。',
+  'MGStage 只允许日本 IP 访问，需要配置日本代理。',
+  '有码榜单，可在 JavDB 暂时无法访问时使用。',
+  'FANZA 官方女优月榜（按销量）。',
+  '加勒比官网的人气无码女优榜。',
+  'FC2 按卖家统计的销量榜。',
+  'FANZA 没有按周期统计的分类榜，这里按累计人气、销量或评价排序。',
+  '非本机监听尚未启用完整鉴权。',
+  '配置 WebUI 密码与独立会话密钥，或仅监听 127.0.0.1。',
+  '会话密钥未持久化，登录会话无法可靠验证。',
+  '设置独立且至少 32 字符的 JAV_PILOT_AUTH_SECRET。',
+  '环境变量中的 WebUI 密码不符合生产强度要求。',
+  '改用至少 12 字符且非示例值的密码，并通过设置页迁移为哈希。',
+  '运行配置可能被同机其他账号读取。',
+  '将配置文件权限限制为仅服务账号可读写。',
+  '服务当前以 root 身份运行。',
+  '完成 NAS 目录 ACL 审计后切换到专用非 root UID，不要递归修改媒体库所有权。',
+  '容器进程拥有超出 JAV Pilot 基线的 Linux capability。',
+  '保持 cap_drop=ALL，并只恢复 CHOWN、DAC_OVERRIDE 与 FOWNER。',
+  '服务正在非回环地址使用特权端口。',
+  '改用非特权容器端口，并由受控反向代理提供外部端口。',
+  '容器网络命名空间存在未纳入 JAV Pilot 基线的非回环监听端口。',
+  '检查容器进程与端口映射，只保留声明的 WebUI 监听端口。',
+  'MissAV 挑战仍在处理中，后台重试后仍未恢复',
+  'MissAV 请求受到频率限制，后台重试后仍未恢复',
+  'MissAV 上游暂时不可用，后台重试后仍未恢复',
+  'MissAV 页面加载超时，后台重试后仍未恢复',
+  'MissAV 浏览器访问暂时受限，后台重试后仍未恢复',
+  'MissAV 浏览器依赖当前不可用',
+  'MissAV 资源发现当前不可用',
+  'MissAV 资源发现任务异常结束',
+  'MissAV 后台发现请求无效',
+  'MissAV 资源发现超时',
+  'MissAV 资源发现进程异常退出',
+  'MissAV 资源发现进程返回了无效结果',
+  'MissAV 未找到对应作品',
+  'MissAV 页面结构暂时无法解析',
+  'MissAV 作品地址暂时无法确认',
+  'MissAV 资源未通过安全校验',
+  'MissAV 自动下载未能加入队列',
+  '自定义 OpenAI 兼容',
+  '阿里云百炼 / 通义千问',
+  '智谱 AI / GLM',
+  '火山引擎方舟 / 豆包',
+  '腾讯混元',
+  '百度千帆 / 文心',
+  '模型',
+  '模型拒绝翻译这些内容（服务商的内容安全策略）',
+  'AI 翻译配置格式无效',
+  'AI 翻译配置包含未知字段',
+  '不支持的 AI 服务商',
+  '“允许本机或局域网地址”必须是开关值',
+  'API 版本格式无效',
+  '附加要求必须是文本',
+  '每日请求上限必须是 0–100000 的整数',
+  'API Key 格式无效',
+  '翻译目标语言无效',
+  'AI 没有返回部分条目的译文',
+  'AI 返回的内容中没有译文',
+]
+
+/** A server-sent Chinese text in the interface language when it is known. */
+export function serverText(text: string): string
+export function serverText(text: string | null | undefined): string | null | undefined
+export function serverText(text: string | null | undefined): string | null | undefined {
+  return text ? translateKnown(text) : text
+}

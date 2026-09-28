@@ -1,0 +1,103 @@
+/* Web download embedded in the work overview (details → screenshots → magnets). */
+.work-web-download {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  padding: 10px 12px;
+}
+
+.work-web-download-head {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.work-web-download-head > svg {
+  width: 16px;
+  height: 16px;
+  color: var(--primary);
+}
+
+.work-web-download-head > strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.work-web-download-note {
+  flex: 1 1 220px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.work-web-download-progress {
+  display: grid;
+  gap: 4px;
+}
+
+.work-web-download-progress > span,
+.work-web-download-warning {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.work-web-download-warning {
+  color: var(--warning);
+}
+
+.work-web-download-confirm,
+.work-web-download-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.work-web-download-confirm {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  /* The overview content is display: contents on phones; span both columns. */
+  .work-overview-content > .work-web-download {
+    grid-column: 1 / -1;
+  }
+}
+
+.work-original-title {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.work-translate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  margin-top: 4px;
+}
+
+.work-ai-title {
+  font-size: 14px;
+}
+
+.work-translate-toggle {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.work-translate-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

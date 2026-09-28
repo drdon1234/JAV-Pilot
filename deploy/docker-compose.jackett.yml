@@ -1,0 +1,111 @@
+# JAV Pilot with Jackett, from published images.
+#
+# The companions are already connected:
+# - jav-pilot-jackett serves the Sukebei and Tokyo Toshokan torrent sources.
+#   JAV Pilot reads its API key, adds both indexers and passes it
+#   JAV_PILOT_PROXY; no setup is needed.
+# A companion still starting or not set up never stops JAV Pilot: it
+# retries in the background and skips what is not ready.
+#
+# Save this file as docker-compose.yml in an empty directory together with
+# .env (from .env.example), set JAV_PILOT_AUTH_PASSWORD and
+# JAV_PILOT_AUTH_SECRET, then run
+# `docker compose up -d`. Data, downloads and the media library live next to
+# this file unless .env points them elsewhere.
+#
+# Variants, all with the same .env.example:
+#   docker-compose.yml (repository root)  JAV Pilot only
+#   deploy/docker-compose.jackett.yml      JAV Pilot + Jackett
+#   deploy/docker-compose.qbittorrent.yml  JAV Pilot + qBittorrent
+#   deploy/docker-compose.full.yml         JAV Pilot + qBittorrent + Jackett
+# Every container is named jav-pilot*, so none clashes with an existing
+# qbittorrent or jackett container.
+
+name: jav-pilot
+
+services:
+  jav-pilot:
+    image: ${JAV_PILOT_IMAGE:-drdon1234/jav-pilot:latest}
+    container_name: jav-pilot
+    # Starts as root only to prepare new directories, then runs as PUID:PGID
+    # with no capabilities left.
+    user: "0:0"
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 120s
+    pids_limit: 512
+    # Chromium needs more shared memory than Docker's 64 MB default.
+    shm_size: 1gb
+    security_opt:
+      - no-new-privileges:true
+    # The start-up step above needs these; switching to PUID:PGID clears them
+    # for the service. The init process stays root and uses KILL to forward
+    # stop signals to it.
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - KILL
+      - SETGID
+      - SETUID
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    ports:
+      - "${JAV_PILOT_PORT:-8766}:8766"
+    # Lets JAV_PILOT_PROXY point at a proxy on the Docker host.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # Every setting in .env reaches the container; the image supplies the rest.
+    env_file: .env
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      JAV_PILOT_AUTH_PASSWORD: ${JAV_PILOT_AUTH_PASSWORD:?set JAV_PILOT_AUTH_PASSWORD in .env (at least 12 characters)}
+      JAV_PILOT_AUTH_SECRET: ${JAV_PILOT_AUTH_SECRET:?set JAV_PILOT_AUTH_SECRET in .env (at least 32 random characters)}
+      # Sukebei and Tokyo Toshokan with an empty Torznab address and API key
+      # under Sites use this Jackett.
+      JAV_PILOT_JACKETT_URL: http://jav-pilot-jackett:9117
+      JAV_PILOT_JACKETT_SERVER_CONFIG: /jackett/Jackett/ServerConfig.json
+    volumes:
+      - ${JAV_PILOT_DATA_HOST_PATH:-./data}:/app/data
+      - jav-pilot-browser-profile:/app/browser-profile
+      - ${JAV_PILOT_QB_STAGING_HOST_PATH:-./downloads/jav}:/downloads/jav
+      - ${JAV_PILOT_WEB_DOWNLOAD_HOST_PATH:-./downloads/jav-web}:/downloads/jav-web
+      - ${JAV_PILOT_LIBRARY_HOST_PATH:-./media/JAV}:/media/JAV
+      # Read-only: JAV Pilot only reads Jackett's API key from here.
+      - ${JACKETT_CONFIG_HOST_PATH:-./jackett}:/jackett:ro
+
+  jav-pilot-jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: jav-pilot-jackett
+    restart: unless-stopped
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-Etc/UTC}
+      AUTO_UPDATE: "false"
+    # JAV_PILOT_PROXY is handed to Jackett and may point at the host.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # No published port: until an admin password is set, anyone who can open
+    # the WebUI can read the API key. To use the WebUI, uncomment the port,
+    # run `docker compose up -d`, and set an admin password first thing (after
+    # that JAV Pilot leaves its indexers to you).
+    # ports:
+    #   - "${JACKETT_PORT:-9117}:9117"
+    volumes:
+      - ${JACKETT_CONFIG_HOST_PATH:-./jackett}:/config
+
+networks:
+  default:
+    # A fixed name lets optional companions such as ops/indexers.compose.yml join it.
+    name: jav-pilot
+
+volumes:
+  jav-pilot-browser-profile:
+    name: jav-pilot-browser-profile

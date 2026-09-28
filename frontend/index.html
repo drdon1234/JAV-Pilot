@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f5f7fa" />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <title>JAV Pilot</title>
+    <script>
+      (() => {
+        let theme = 'light'
+        try {
+          const stored = localStorage.getItem('jav-pilot-theme')
+          theme = stored === 'light' || stored === 'dark'
+            ? stored
+            : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        } catch {}
+
+        document.documentElement.dataset.theme = theme
+        document.documentElement.style.colorScheme = theme
+        document.querySelector('meta[name="theme-color"]').content = theme === 'dark'
+          ? '#10141b'
+          : '#f5f7fa'
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
