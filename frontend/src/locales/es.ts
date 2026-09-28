@@ -302,6 +302,7 @@ const messages: Record<string, string> = {
   "一次选择的作品过多，请分批提交": "Demasiadas obras seleccionadas a la vez. Envíalas por partes",
   "元数据站点暂时无法访问，稍后会自动重试": "Los sitios de metadatos no están accesibles por ahora; se reintentará automáticamente",
   "元数据功能未启用": "Los metadatos no están activados",
+  "同目录已有同名文件，可能是重复下载；删除或移走多余的文件后再重试": "Ya hay un archivo con el mismo nombre en esta carpeta, probablemente una descarga duplicada. Elimina o mueve el archivo sobrante y vuelve a intentarlo",
   "尚未配置 qBittorrent": "qBittorrent no está configurado",
   "同时进行的搜索过多，请稍后再试": "Hay demasiadas búsquedas en curso. Inténtalo más tarde",
   "所选搜索站点均未启用，请重新选择站点": "Ninguno de los sitios de búsqueda seleccionados está activado. Vuelve a seleccionar",

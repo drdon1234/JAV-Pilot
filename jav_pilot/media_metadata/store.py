@@ -281,6 +281,27 @@ class MediaMetadataStore:
             "failed": int(row["failed"] or 0),
         }
 
+    def media_path_jobs(self) -> dict[str, list[dict[str, str]]]:
+        """Map each bound media path to the jobs that point at it."""
+
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT job_id, kind, code_key, status, relative_media_path "
+                "FROM jobs WHERE relative_media_path IS NOT NULL "
+                "ORDER BY created_at, job_id"
+            ).fetchall()
+        jobs: dict[str, list[dict[str, str]]] = {}
+        for row in rows:
+            jobs.setdefault(str(row["relative_media_path"]), []).append(
+                {
+                    "job_id": str(row["job_id"]),
+                    "kind": str(row["kind"]),
+                    "code_key": str(row["code_key"]),
+                    "status": str(row["status"]),
+                }
+            )
+        return jobs
+
     def get(self, job_id: object) -> dict[str, object]:
         clean_job_id = _validate_job_id(job_id)
         with self._connect() as connection:

@@ -56,6 +56,7 @@ from ..config.paths import (
     default_library_path,
     default_nfo_backup_path,
 )
+from ..web_download.errors import WebDownloadError
 from ..web_download.variant import (
     DEFAULT_WEB_DOWNLOAD_VARIANT,
     MissavVariant,
@@ -72,6 +73,9 @@ MEDIA_WAIT_JITTER_SECONDS = 30
 QB_MISSING_GRACE_SECONDS = 60.0 * 60.0
 WEB_PATH_MISSING_GRACE_SECONDS = 15.0 * 60.0
 QB_TASK_MISSING_ERROR = "qBittorrent task was not found"
+# Another file already holds the archive name, usually a second download of
+# the same work. Renaming cannot succeed until someone removes one of them.
+ARCHIVE_TARGET_EXISTS_ERROR = "archive target already exists"
 MAX_SCAN_ENUM_ENTRIES = 100_000
 MAX_SCAN_CANDIDATES = 10_000
 MAX_SCAN_DEPTH = 8
@@ -109,6 +113,10 @@ class MediaMetadataDisabledError(MediaMetadataError):
 
 
 class MediaMetadataUnavailableError(MediaMetadataError):
+    pass
+
+
+class _ArchiveTargetExists(MetadataPublishConflict):
     pass
 
 
@@ -350,6 +358,11 @@ class MediaMetadataManager:
             for job in self.store.list(500, status_filter=status):
                 if str(job["job_id"]) in queued_ids:
                     continue
+                if job.get("error") == ARCHIVE_TARGET_EXISTS_ERROR:
+                    # Retrying cannot help until the duplicate file is gone;
+                    # the task's own retry button stays available for that.
+                    skipped += 1
+                    continue
                 try:
                     self.retry(job["job_id"])
                 except (MediaMetadataConflictError, MediaMetadataUnavailableError):
@@ -385,6 +398,7 @@ class MediaMetadataManager:
         )
 
         matched_media = len(candidates)
+        path_jobs = self.store.media_path_jobs()
         queued_candidates: list[tuple[str, str, str, MissavVariant | None]] = []
         for (entry_key, _, _), (
             _,
@@ -402,17 +416,45 @@ class MediaMetadataManager:
                 plan = None
             if plan is not None and plan.complete:
                 continue
+            if (
+                requested_key is None
+                and plan is not None
+                and not plan.needs_nfo
+                and not plan.needs_portrait
+                and any(
+                    job["status"] == "completed"
+                    for job in path_jobs.get(relative, ())
+                )
+            ):
+                # The worker completes a work with one image when no source
+                # has landscape art (FC2, many digital releases). Library-wide
+                # passes accept that result instead of re-running the work
+                # every time; a code-specific pass still retries it.
+                continue
             queued_candidates.append((entry_key, relative, display_code, variant))
 
         for entry_key, relative, display_code, variant in queued_candidates:
-            path_key = hashlib.sha256(relative.encode("utf-8")).hexdigest()[:24]
-            job = self.store.enqueue(
-                "manual",
-                f"{entry_key}:{path_key}",
-                display_code,
-                relative,
-                variant=variant,
+            # A file renamed by an earlier pass keeps its job; keying a new
+            # job by the new path would add a duplicate after every rename.
+            existing = next(
+                (
+                    job
+                    for job in path_jobs.get(relative, ())
+                    if job["kind"] == "manual" and job["code_key"] == entry_key
+                ),
+                None,
             )
+            if existing is not None:
+                job = self.store.get(existing["job_id"])
+            else:
+                path_key = hashlib.sha256(relative.encode("utf-8")).hexdigest()[:24]
+                job = self.store.enqueue(
+                    "manual",
+                    f"{entry_key}:{path_key}",
+                    display_code,
+                    relative,
+                    variant=variant,
+                )
             if str(job["status"]) in {"completed", "failed", "retry"}:
                 if not retry_existing:
                     # Automatic scans only add new media; they never restart
@@ -786,6 +828,7 @@ class MediaMetadataManager:
             MediaMetadataStoreError,
             MetadataPublishError,
             QbPathError,
+            WebDownloadError,
             OSError,
         ):
             self._retry_or_fail(job, "media file is not ready")
@@ -820,6 +863,8 @@ class MediaMetadataManager:
                         assets=assets,
                     )
                 self._notify_published(relative)
+            except _ArchiveTargetExists:
+                self.store.set_failed(job_id, ARCHIVE_TARGET_EXISTS_ERROR)
             except (MetadataPublishError, MediaMetadataStoreError, OSError):
                 self._retry_or_fail(job, "archive naming is temporarily unavailable")
             return
@@ -919,6 +964,8 @@ class MediaMetadataManager:
             return
         except MediaMetadataNotFound:
             self._retry_or_fail(job, "metadata was not found")
+        except _ArchiveTargetExists:
+            self.store.set_failed(job_id, ARCHIVE_TARGET_EXISTS_ERROR)
         except MetadataPublishConflict:
             self.store.set_failed(job_id, "metadata target is protected")
         except (MediaMetadataSourceError, MetadataPublishError, OSError):
@@ -1423,7 +1470,7 @@ def _require_archive_target_absent(path: Path, root: Path) -> None:
     if not path.parent.resolve(strict=True).is_relative_to(root):
         raise MetadataPublishError("archive target is unsafe")
     if path.exists() or path.is_symlink():
-        raise MetadataPublishConflict("archive target already exists")
+        raise _ArchiveTargetExists(ARCHIVE_TARGET_EXISTS_ERROR)
 
 
 def _move_archive_no_replace(
@@ -1732,7 +1779,14 @@ def _recover_canonical_media_path(
         or not resolved_directory.is_relative_to(root)
     ):
         raise MetadataPublishError("archive recovery directory is unsafe")
+    try:
+        expected_variant = (
+            normalize_web_download_variant(variant) if variant is not None else None
+        )
+    except ValueError:
+        return None
     candidates: list[Path] = []
+    same_work: list[Path] = []
     with os.scandir(resolved_directory) as entries:
         for entry in entries:
             if entry.name.startswith("."):
@@ -1747,7 +1801,11 @@ def _recover_canonical_media_path(
             ):
                 continue
             nfo = read_movie_nfo(candidate.with_suffix(".nfo"), root)
-            if nfo is None or nfo.title is None or nfo.code_key != expected_code_key:
+            if nfo is None or nfo.code_key != expected_code_key:
+                continue
+            if web_download_variant_from_stem(candidate.name) == expected_variant:
+                same_work.append(candidate.resolve(strict=True))
+            if nfo.title is None:
                 continue
             try:
                 layout = plan_archive_layout(
@@ -1763,7 +1821,14 @@ def _recover_canonical_media_path(
                 *layout.relative_media_path.parts
             ):
                 candidates.append(candidate.resolve(strict=True))
-    return candidates[0] if len(candidates) == 1 else None
+    if len(candidates) == 1:
+        return candidates[0]
+    # A file renamed outside this flow (an older release, or an NFO without a
+    # release date) has no canonical name to match. Fall back to the one video
+    # of the same work and variant, and never guess between several.
+    if not candidates and len(same_work) == 1:
+        return same_work[0]
+    return None
 
 
 def discover_optional_description(

@@ -302,6 +302,7 @@ const messages: Record<string, string> = {
   "一次选择的作品过多，请分批提交": "Too many works selected at once. Submit them in batches",
   "元数据站点暂时无法访问，稍后会自动重试": "Metadata sites are unreachable right now; will retry automatically",
   "元数据功能未启用": "Metadata is not enabled",
+  "同目录已有同名文件，可能是重复下载；删除或移走多余的文件后再重试": "A file with the same name is already in this folder, probably a duplicate download. Remove or move the extra file, then retry",
   "尚未配置 qBittorrent": "qBittorrent is not configured",
   "同时进行的搜索过多，请稍后再试": "Too many searches running. Try again later",
   "所选搜索站点均未启用，请重新选择站点": "None of the selected search sites are enabled. Select sites again",

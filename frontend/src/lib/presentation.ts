@@ -115,6 +115,7 @@ const SERVICE_MESSAGE_LABELS: Array<[RegExp, string]> = [
   [/^too many selected catalog codes$/i, t('一次选择的作品过多，请分批提交')],
   [/^metadata (?:sources|details) are temporarily unavailable$/i, t('元数据站点暂时无法访问，稍后会自动重试')],
   [/^media metadata is disabled$/i, t('元数据功能未启用')],
+  [/^archive target already exists$/i, t('同目录已有同名文件，可能是重复下载；删除或移走多余的文件后再重试')],
   [/^qbittorrent is not configured$/i, t('尚未配置 qBittorrent')],
   [/^too many active searches$/i, t('同时进行的搜索过多，请稍后再试')],
   [/^selected search sources are not enabled$/i, t('所选搜索站点均未启用，请重新选择站点')],
