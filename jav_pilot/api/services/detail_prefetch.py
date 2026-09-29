@@ -34,7 +34,6 @@ from .enrichment import JavDbFetcherPool, code_key, enrich_stream_work
 from .environment import app_revision, detail_prefetch_database_path
 from .history import require_operational_mode
 from .metadata_search import metadata_search_store
-from .search_capacity import acquire_search_capacity, release_search_capacity
 
 
 def _detail_prefetch_config_fingerprint() -> str:
@@ -80,7 +79,11 @@ def detail_prefetch_manager() -> DetailPrefetchManager:
                     detail_prefetch_database_path(),
                     _resolve_detail_prefetch,
                     _detail_prefetch_config_fingerprint,
-                    worker_count=1,
+                    # Measured against the live sites: two workers roughly halve
+                    # a ranking page's time; more mostly buys JavDB 429s. A
+                    # rate-limited item waits a few seconds before its retry.
+                    worker_count=2,
+                    retry_delays=(3.0, 10.0),
                 )
             return state.DETAIL_PREFETCH
 
@@ -443,9 +446,13 @@ def _resolve_detail_prefetch(
             match="exact",
             search_kind="code",
         ).normalized()
+        # A bare code also looks up the torrent indexers: most new works have no
+        # torrent yet, and an indexer that does not carry the work is dropped
+        # below instead of failing the whole prefetch.
         missing_sources = tuple(
             source.source_id for source in work.sources
-            if not source.detail_url and not isinstance(registry[source.source_id], TorznabIndexer)
+            if not source.detail_url
+            and (code_lookup or not isinstance(registry[source.source_id], TorznabIndexer))
         )
         if missing_sources:
             lookup_code = (
@@ -484,9 +491,15 @@ def _resolve_detail_prefetch(
                 None,
             )
             if recovered is None and response.errors:
-                raise _detail_prefetch_error_from_text(
+                error = _detail_prefetch_error_from_text(
                     " ".join(str(error) for error in response.errors.values())
                 )
+                # Sites that fail every lookup (region locks, blocked
+                # redirects) do not make a work missing from the sites that
+                # answered into a parse failure; a transient error still
+                # retries, since the work may be on the site that hit it.
+                if error.retryable or len(response.errors) >= len(missing_sources):
+                    raise error
             if recovered is None:
                 raise DetailPrefetchResolveError("work_not_found")
             recovered_sources = {
@@ -511,7 +524,10 @@ def _resolve_detail_prefetch(
                         source
                         for source in work.sources
                         if source.detail_url
-                        or isinstance(registry[source.source_id], TorznabIndexer)
+                        or (
+                            isinstance(registry[source.source_id], TorznabIndexer)
+                            and source.source_id in recovered_sources
+                        )
                     ),
                 )
                 if not any(source.detail_url for source in work.sources):
@@ -535,7 +551,7 @@ def _resolve_detail_prefetch(
             if javdb_pool is not None:
                 javdb_pool.close()
         finally:
-            release_search_capacity(state.DETAIL_SEARCH_SLOTS)
+            state.SEARCH_TOTAL_SLOTS.release()
     if cancel_event.is_set():
         return enriched.to_dict()
     errors = [
@@ -557,10 +573,11 @@ def _resolve_detail_prefetch(
 
 
 def _wait_for_detail_search_capacity(cancel_event: threading.Event) -> bool:
+    # Prefetch workers count against the global search cap but leave the
+    # detail lane to the details a user opens while a batch runs.
     while not cancel_event.is_set():
-        if acquire_search_capacity(state.DETAIL_SEARCH_SLOTS):
+        if state.SEARCH_TOTAL_SLOTS.acquire(timeout=0.1):
             return True
-        cancel_event.wait(0.1)
     return False
 
 
