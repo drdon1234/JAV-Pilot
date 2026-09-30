@@ -16,7 +16,7 @@ __all__ = [
 
 
 SCHEMA_COMPONENT = "media_library"
-CURRENT_SCHEMA_VERSION = 8
+CURRENT_SCHEMA_VERSION = 9
 MAX_NFO_BYTES = 2 * 1024 * 1024
 MAX_NFO_NODES = 4096
 MAX_NFO_DEPTH = 8
@@ -156,6 +156,7 @@ class FileRecord:
     nfo_json: str | None
     portrait_status: str
     landscape_status: str
+    subtitle_status: str
 
 
 @dataclass(slots=True)

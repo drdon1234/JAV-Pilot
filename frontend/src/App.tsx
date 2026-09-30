@@ -23,6 +23,7 @@ const WorkflowDefaultsPage = lazy(() => recoverableImport('src/pages/WorkflowDef
 const SearchHistoryPage = lazy(() => recoverableImport('src/pages/SearchHistoryPage.tsx', 'SearchHistoryPage', () => import('./pages/SearchHistoryPage')).then((module) => ({ default: module.SearchHistoryPage })))
 const RankingsPage = lazy(() => recoverableImport('src/pages/RankingsPage.tsx', 'RankingsPage', () => import('./pages/RankingsPage')).then((module) => ({ default: module.RankingsPage })))
 const SitesPage = lazy(() => recoverableImport('src/pages/SitesPage.tsx', 'SitesPage', () => import('./pages/SitesPage')).then((module) => ({ default: module.SitesPage })))
+const SubtitlesPage = lazy(() => recoverableImport('src/pages/SubtitlesPage.tsx', 'SubtitlesPage', () => import('./pages/SubtitlesPage')).then((module) => ({ default: module.SubtitlesPage })))
 
 function lazyRoute(element: ReactNode) {
   return <Suspense fallback={<div className="app-loading" role="status" aria-label={t('正在加载页面')} />}>{element}</Suspense>
@@ -121,6 +122,7 @@ export default function App() {
             <Route path="/downloads" element={lazyRoute(<DownloadsPage />)} />
             <Route path="/library" element={lazyRoute(<LibraryPage />)} />
             <Route path="/metadata" element={lazyRoute(<MetadataPage />)} />
+            <Route path="/subtitles" element={lazyRoute(<SubtitlesPage />)} />
             <Route path="/organizer" element={lazyRoute(<OrganizerPage />)} />
             <Route path="/history" element={lazyRoute(<HistoryPage />)} />
             <Route path="/sites" element={lazyRoute(<SitesPage />)} />

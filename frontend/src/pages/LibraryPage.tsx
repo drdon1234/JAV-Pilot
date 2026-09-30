@@ -2,6 +2,7 @@ import '../styles/library.css'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   AlertTriangle,
+  Captions,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -18,6 +19,7 @@ import {
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 
+import { SubtitleCandidatesDialog, type SubtitleDialogTarget } from '../components/SubtitleCandidatesDialog'
 import { Button, EmptyState, IconButton, InlineNotice, PageHeader, SkeletonRows, StatusBadge } from '../components/ui'
 import { ApiError, api } from '../lib/api'
 import { webDownloadVariantLabel } from '../lib/webDownloads'
@@ -80,6 +82,7 @@ const anomalyOptions = [
   { value: 'nfo', label: t('缺少或无效 NFO') },
   { value: 'portrait', label: t('缺少竖版海报') },
   { value: 'landscape', label: t('缺少横版海报') },
+  { value: 'subtitle', label: t('缺少字幕') },
 ]
 
 const qualityOptions = [
@@ -195,6 +198,7 @@ export function LibraryPage() {
   const applied = useMemo(() => appliedFilters(searchParams), [routeKey])
   const appliedDraft = useMemo(() => filtersFromParams(searchParams), [routeKey])
   const [draft, setDraft] = useState<FilterDraft>(appliedDraft)
+  const [subtitleDialog, setSubtitleDialog] = useState<SubtitleDialogTarget | null>(null)
 
   useEffect(() => {
     setDraft(appliedDraft)
@@ -465,7 +469,12 @@ export function LibraryPage() {
               <span role="columnheader">{t('操作')}</span>
             </div>
             {library.data.items.map((entry) => (
-              <LibraryRow entry={entry} returnPath={returnPath} key={entry.entry_id} />
+              <LibraryRow
+                entry={entry}
+                returnPath={returnPath}
+                key={entry.entry_id}
+                onOpenSubtitles={(item) => setSubtitleDialog({ kind: 'entry', entryId: item.entry_id, code: item.code || '' })}
+              />
             ))}
           </div>
         ) : null}
@@ -492,11 +501,20 @@ export function LibraryPage() {
           </nav>
         ) : null}
       </section>
+      <SubtitleCandidatesDialog target={subtitleDialog} onClose={() => setSubtitleDialog(null)} />
     </div>
   )
 }
 
-function LibraryRow({ entry, returnPath }: { entry: MediaLibraryEntry; returnPath: string }) {
+function LibraryRow({
+  entry,
+  returnPath,
+  onOpenSubtitles,
+}: {
+  entry: MediaLibraryEntry
+  returnPath: string
+  onOpenSubtitles: (entry: MediaLibraryEntry) => void
+}) {
   const metadataUrl = metadataTarget(entry, returnPath)
   const workLabel = entry.code || t('未识别番号')
   const incomplete = [entry.nfo_status, entry.portrait_status, entry.landscape_status]
@@ -532,6 +550,7 @@ function LibraryRow({ entry, returnPath }: { entry: MediaLibraryEntry; returnPat
         </StatusBadge>
         <StatusBadge tone={assetTone(entry.portrait_status)}>{assetLabel(t('竖图'), entry.portrait_status)}</StatusBadge>
         <StatusBadge tone={assetTone(entry.landscape_status)}>{assetLabel(t('横图'), entry.landscape_status)}</StatusBadge>
+        <StatusBadge tone={assetTone(entry.subtitle_status)}>{assetLabel(t('字幕'), entry.subtitle_status)}</StatusBadge>
       </div>
       <div className="library-file-cell" role="cell">
         <code title={entry.primary_media_path}>{entry.primary_media_path}</code>
@@ -557,6 +576,16 @@ function LibraryRow({ entry, returnPath }: { entry: MediaLibraryEntry; returnPat
             <FileImage aria-hidden="true" />
           </Link>
         ) : <span aria-hidden="true">-</span>}
+        <button
+          type="button"
+          className="library-subtitle-button"
+          onClick={() => onOpenSubtitles(entry)}
+          disabled={!entry.code || entry.presence !== 'present'}
+          aria-label={t('{workLabel} 的字幕', { workLabel })}
+          title={t('{workLabel} 的字幕', { workLabel })}
+        >
+          <Captions aria-hidden="true" />
+        </button>
       </div>
     </div>
   )

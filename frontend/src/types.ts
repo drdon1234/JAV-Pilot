@@ -90,6 +90,7 @@ export type SiteCapability =
   | 'resource_search'
   | 'web_download'
   | 'description'
+  | 'subtitle'
 
 export interface SiteSettings {
   id: string
@@ -114,7 +115,7 @@ export interface SiteSettings {
   }
 }
 
-export type SiteDiagnosticSite = 'javbus' | 'javdb' | 'fc2' | 'fanza' | 'mgs' | 'avbase' | 'fc2db' | 'javten' | 'jable' | 'supjav' | 'missav' | 'kissjav' | 'javnoni'
+export type SiteDiagnosticSite = 'javbus' | 'javdb' | 'fc2' | 'fanza' | 'mgs' | 'avbase' | 'fc2db' | 'javten' | 'jable' | 'supjav' | 'missav' | 'kissjav' | 'javnoni' | 'xunlei' | 'subtitlecat'
 
 export type SiteDiagnosticStage =
   | 'configuration'
@@ -247,6 +248,7 @@ export interface WorkflowDefaults {
   search: WorkflowSearchDefaults
   resource_search: WorkflowResourceSearchDefaults
   translation: WorkflowTranslationDefaults
+  subtitles: WorkflowSubtitleDefaults
   search_history_limit: number
   metadata_auto_fallback: boolean
   metadata_auto_complete: boolean
@@ -1765,6 +1767,7 @@ export interface MediaLibraryEntry {
   nfo_path: string | null
   portrait_status: MediaLibraryAssetStatus
   landscape_status: MediaLibraryAssetStatus
+  subtitle_status: MediaLibraryAssetStatus
   quality_height: number | null
   duplicate_count: number
   actors: string[]
@@ -1784,7 +1787,7 @@ export interface MediaLibraryListParams {
   source?: string
   presence?: MediaLibraryPresence
   completeness?: 'complete' | 'incomplete'
-  anomaly?: 'duplicate' | 'unidentified' | 'missing' | 'nfo' | 'portrait' | 'landscape'
+  anomaly?: 'duplicate' | 'unidentified' | 'missing' | 'nfo' | 'portrait' | 'landscape' | 'subtitle'
   min_height?: number
   max_height?: number
   limit?: number
@@ -2035,4 +2038,101 @@ export interface RankingPayload {
   /** Present on boards whose categories come from the source (FANZA genres). */
   categories?: RankingOption[]
   fetched_at: number
+}
+
+export type SubtitleScript = 'zh-CN' | 'zh-TW'
+export type SubtitleProviderId = 'xunlei' | 'subtitlecat'
+export type SubtitleJobStatus =
+  | 'queued'
+  | 'running'
+  | 'retry'
+  | 'completed'
+  | 'not_found'
+  | 'existing'
+  | 'skipped'
+  | 'failed'
+  | 'removed'
+
+export interface WorkflowSubtitleDefaults {
+  auto_fetch: boolean
+  script: SubtitleScript
+  allow_machine_translated: boolean
+}
+
+export interface SubtitleJob {
+  job_id: string
+  relative_media_path: string
+  code: string
+  variant: WebDownloadVariant | null
+  origin: 'auto' | 'manual' | 'batch'
+  status: SubtitleJobStatus
+  reason: string | null
+  attempts: number
+  next_attempt_at: number
+  selected_provider: SubtitleProviderId | null
+  selected_candidate_id: string | null
+  subtitle_path: string | null
+  subtitle_script: SubtitleScript | null
+  created_at: number
+  updated_at: number
+}
+
+export interface SubtitleSummary {
+  total: number
+  waiting: number
+  running: number
+  completed: number
+  not_found: number
+  skipped: number
+  failed: number
+}
+
+export interface SubtitleListPayload {
+  ok: boolean
+  enabled: boolean
+  jobs: SubtitleJob[]
+  count: number
+  offset: number
+  limit: number
+  has_more: boolean
+  summary: SubtitleSummary
+}
+
+export interface SubtitleCandidateView {
+  candidate_id: string
+  provider: SubtitleProviderId
+  file_name: string
+  format: 'srt' | 'ass' | 'ssa' | 'vtt' | null
+  declared_script: SubtitleScript | null
+  duration_ms: number | null
+  duration_delta_ms: number | null
+  machine_translated: boolean
+  score: number
+  rejected: string | null
+  selected: boolean
+}
+
+export interface SubtitleCandidatesPayload {
+  ok: boolean
+  job: SubtitleJob
+  searched_at: number | null
+  candidates: SubtitleCandidateView[]
+}
+
+export interface SubtitleEntryPayload {
+  ok: boolean
+  job: SubtitleJob | null
+  multipart: boolean
+}
+
+export type SubtitleActionRequest =
+  | { action: 'fetch'; entry_id: string }
+  | { action: 'batch_missing' }
+  | { action: 'retry' | 'remove' | 'forget'; job_id: string }
+  | { action: 'select'; job_id: string; candidate_id: string }
+
+export interface SubtitleActionPayload {
+  ok: boolean
+  job?: SubtitleJob
+  queued?: number
 }

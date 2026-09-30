@@ -17,6 +17,10 @@ WEB_CATALOG = {
     "kissjav": ("KissJAV", "https://kissjav.li"),
     "javnoni": ("JAV-NONI", "https://jav-noni.live"),
 }
+SUBTITLE_CATALOG = {
+    "xunlei": ("迅雷字幕", "https://api-shoulei-ssl.xunlei.com"),
+    "subtitlecat": ("SubtitleCat", "https://www.subtitlecat.com"),
+}
 METADATA_PROFILES = frozenset({"javbus", "javdb", "fc2", *METADATA_CATALOG})
 SEARCH_PROFILES = METADATA_PROFILES | {"torznab"}
 MAX_SEARCH_SOURCES = 128
@@ -47,5 +51,12 @@ def additional_sites() -> list[dict]:
             "id": source_id, "name": name, "base_url": origin,
             "parser_profile": source_id, "enabled": False,
             "capabilities": ["resource_search"],
+        })
+    for source_id, (name, origin) in SUBTITLE_CATALOG.items():
+        sites.append({
+            "id": source_id, "name": name, "base_url": origin,
+            "parser_profile": source_id, "enabled": True,
+            "capabilities": ["subtitle"],
+            "search": {"url_template": "{base_url}/"}, "filters": [],
         })
     return sites

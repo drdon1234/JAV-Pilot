@@ -15,6 +15,7 @@
 | `downloads/` | 种子与 Web 下载共用的失败替换、资源恢复和下载历史 |
 | `library/` | 本地媒体事实索引与只读查询 |
 | `media_metadata/` | 元数据来源、图片与 NFO 发布；`review/` 负责来源证据、人工值、锁定和原子发布 |
+| `subtitles/` | 外挂中文字幕：来源适配器、候选打分、文本校验与简繁转换、任务库和后台 worker |
 | `history/`、`notifications/` | 历史生命周期、保留策略与通知 Outbox |
 | `sites/` | 站点解析规则、诊断与冒烟检查 |
 | `config/`、`core/`、`net/`、`security/`、`translation/` | 配置与设置；模型、缓存、迁移、可观测性等通用基础；受限出站 HTTP；鉴权与安全基线；翻译 |
@@ -25,7 +26,7 @@
 
 ## 搜索和提交边界
 
-站点按能力集合组织：`metadata_search` 表示关键词资料发现，`metadata_detail` 表示精确番号详情，`torrent_search` 表示种子搜索，`resource_search` 表示 Web 资源发现。能力可以组合；详情专用来源不参与自由关键词发现。同一番号的资料跨站聚合，磁链按 info hash 合并并保留来源。具体来源及默认启用状态集中在 `config/source_catalog.py`。
+站点按能力集合组织：`metadata_search` 表示关键词资料发现，`metadata_detail` 表示精确番号详情，`torrent_search` 表示种子搜索，`resource_search` 表示 Web 资源发现，`subtitle` 表示按番号查找外挂字幕。能力可以组合；详情专用来源不参与自由关键词发现。同一番号的资料跨站聚合，磁链按 info hash 合并并保留来源。具体来源及默认启用状态集中在 `config/source_catalog.py`。
 
 资料与资源搜索的 `result_limit` 为 1-999。浏览器断开不抹除持久任务；资源搜索在同一 session 保存 revision、页游标及页内进度。失败页原位重试，达到上限或取消后才调整上限续搜，从 `next_page` 恢复，不重新扫描已访问页。
 
@@ -35,7 +36,7 @@
 
 ## 媒体与资产边界
 
-媒体库页面只读，查询 SQLite 事实索引；后台扫描负责文件系统访问。实际视频流通过受限 `ffprobe` 验证，不能仅凭文件名声称画质。元数据审校保存来源与锁定字段，发布前复核文件身份，执行最小必要备份与原子替换。
+媒体库页面只读，查询 SQLite 事实索引；后台扫描负责文件系统访问。字幕只写在影片旁的 `<影片名>.<字形>.<格式>`，只覆盖或删除本功能写入且内容未变的文件；影片改名时同名字幕随同移动。实际视频流通过受限 `ffprobe` 验证，不能仅凭文件名声称画质。元数据审校保存来源与锁定字段，发布前复核文件身份，执行最小必要备份与原子替换。
 
 qB 与 Web 下载使用分开的暂存根。归档限制在配置媒体根内，禁止路径穿越、符号链接逃逸和覆盖冲突。历史记录清理必须保留去重、provenance 与恢复所需事实。
 
@@ -46,7 +47,7 @@ qB 与 Web 下载使用分开的暂存根。归档限制在配置媒体根内，
 | 组件 | 当前 schema |
 | --- | ---: |
 | `app_config` | 8 |
-| `settings` | 12 |
+| `settings` | 13 |
 | `web_downloads` | 9 |
 | `web_download_batches` | 10 |
 | `download_replacements` | 6 |
@@ -58,7 +59,8 @@ qB 与 Web 下载使用分开的暂存根。归档限制在配置媒体根内，
 | `media_metadata_review` | 6 |
 | `notifications` | 3 |
 | `site_diagnostics` | 1 |
-| `media_library` | 8 |
+| `media_library` | 9 |
+| `subtitles` | 1 |
 
 SQLite 迁移在事务中校验 invariant 并记录 `schema_migrations`；失败回滚。JSON 迁移先在内存完成校验，再备份并原子替换。畸形或未来 schema 不被静默改写。降级必须从匹配目标版本的已验证快照恢复。
 

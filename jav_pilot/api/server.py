@@ -19,6 +19,8 @@ from ..library.worker import MediaLibraryConfig
 from ..media_metadata.manager import MediaMetadataConfig, MediaMetadataError
 from ..media_metadata.review.errors import MediaMetadataReviewError
 from ..media_metadata.store import MediaMetadataStoreError
+from ..subtitles.manager import SubtitleConfig, SubtitleError
+from ..subtitles.store import SubtitleStoreError
 from ..missav.browser_runtime import shutdown_missav_browser_runtime
 from ..notifications.errors import NotificationError
 from ..search.detail_prefetch import DetailPrefetchError
@@ -59,6 +61,7 @@ from .services.media import (
     synchronize_qb_media_library,
 )
 from .services.metadata_search import metadata_search_store
+from .services.subtitles import shutdown_subtitle_manager, subtitle_manager
 from .services.notifications import (
     ensure_notification_worker,
     refresh_notification_runtime,
@@ -245,6 +248,7 @@ def run_server(host: str, port: int) -> None:
             "missav_browser": shutdown_missav_browser_runtime,
             "media_library": shutdown_media_library_manager,
             "media_metadata": shutdown_media_metadata_manager,
+            "subtitles": shutdown_subtitle_manager,
             "magnet_selections": state.MAGNET_SELECTIONS.shutdown,
             "magnet_probes": state.MAGNET_PROBES.shutdown,
         }
@@ -348,6 +352,17 @@ def _start_background_services(organizer_stop: threading.Event) -> threading.Thr
     ):
         emit_json_log(
             "media_metadata",
+            "startup_unavailable",
+            level="error",
+            error_code="storage_unavailable",
+        )
+    try:
+        subtitle_config = SubtitleConfig.from_env()
+        if subtitle_config.enabled:
+            subtitle_manager(subtitle_config)
+    except (SubtitleError, SubtitleStoreError, OSError, sqlite3.Error):
+        emit_json_log(
+            "subtitles",
             "startup_unavailable",
             level="error",
             error_code="storage_unavailable",

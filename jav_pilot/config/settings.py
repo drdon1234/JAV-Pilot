@@ -25,7 +25,13 @@ from ..sites.parser_rules import (
 from ..core.storage import atomic_write_text, backup_file
 from .paths import runtime_data_dir
 from .bundled_jackett import JACKETT_INDEXERS, bundled_jackett_site
-from .source_catalog import METADATA_CATALOG, SEARCH_PROFILES, WEB_CATALOG, additional_sites
+from .source_catalog import (
+    METADATA_CATALOG,
+    SEARCH_PROFILES,
+    SUBTITLE_CATALOG,
+    WEB_CATALOG,
+    additional_sites,
+)
 from .workflow_defaults import (
     DEFAULT_WORKFLOW_DEFAULTS,
     WorkflowDefaultsError,
@@ -49,6 +55,7 @@ SITE_DIAGNOSTIC_SITE_IDS = (
     "fc2",
     *METADATA_CATALOG,
     *BUILTIN_WEB_RESOURCE_SITE_IDS,
+    *SUBTITLE_CATALOG,
 )
 METADATA_SEARCH_CAPABILITY = "metadata_search"
 METADATA_DETAIL_CAPABILITY = "metadata_detail"
@@ -56,6 +63,7 @@ TORRENT_SEARCH_CAPABILITY = "torrent_search"
 RESOURCE_SEARCH_CAPABILITY = "resource_search"
 WEB_DOWNLOAD_CAPABILITY = "web_download"
 DESCRIPTION_CAPABILITY = "description"
+SUBTITLE_CAPABILITY = "subtitle"
 SITE_CAPABILITY_ORDER = (
     METADATA_SEARCH_CAPABILITY,
     METADATA_DETAIL_CAPABILITY,
@@ -63,6 +71,7 @@ SITE_CAPABILITY_ORDER = (
     RESOURCE_SEARCH_CAPABILITY,
     WEB_DOWNLOAD_CAPABILITY,
     DESCRIPTION_CAPABILITY,
+    SUBTITLE_CAPABILITY,
 )
 SITE_CAPABILITIES = frozenset(SITE_CAPABILITY_ORDER)
 MISSAV_CAPABILITIES = (
@@ -516,6 +525,7 @@ def _settings_migrations() -> tuple[JSONMigration, ...]:
         JSONMigration(10, _migrate_settings_v10, _verify_settings_v10),
         JSONMigration(11, _add_catalog_sources),
         JSONMigration(12, _add_workflow_defaults),
+        JSONMigration(13, _add_catalog_sources),
     )
 
 
@@ -529,7 +539,7 @@ def _add_catalog_sources(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(sites, list):
         raise SettingsError("sites must be a list")
     for site in sites:
-        if (isinstance(site, dict) and site.get("id") in WEB_CATALOG
+        if (isinstance(site, dict) and site.get("id") in {*WEB_CATALOG, *SUBTITLE_CATALOG}
                 and site.get("parser_profile") != site.get("id")):
             raise SettingsError("新增内置来源 ID 与已有自定义站点冲突；原配置已保留，请先调整自定义站点 ID")
     existing = {site.get("id") for site in sites if isinstance(site, dict)}
@@ -1115,6 +1125,8 @@ def _normalize_sites(
                 [METADATA_SEARCH_CAPABILITY, METADATA_DETAIL_CAPABILITY]
                 if METADATA_CATALOG[parser_profile][2] else [METADATA_DETAIL_CAPABILITY]
             )
+        if parser_profile in SUBTITLE_CATALOG:
+            normalized_site["capabilities"] = [SUBTITLE_CAPABILITY]
         if parser_profile == "torznab":
             normalized_site["capabilities"] = [TORRENT_SEARCH_CAPABILITY]
             normalized_site["torznab"] = _normalize_torznab(site.get("torznab", {}))

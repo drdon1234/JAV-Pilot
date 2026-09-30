@@ -35,7 +35,7 @@ _SAFE_FIELD_NAMES = frozenset(
 )
 _SAFE_METHODS = frozenset({"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"})
 _SAFE_SOURCES = frozenset(
-    {"metadata_publish", "qb_organizer", "unknown", "web_archive"}
+    {"metadata_publish", "qb_organizer", "subtitle_publish", "unknown", "web_archive"}
 )
 _MAX_EXCEPTION_FRAMES = 8
 _correlation_id = contextvars.ContextVar(

@@ -17,6 +17,7 @@ dependencies = [
   "curl-cffi==0.15.0",
   "cryptography==50.0.0",
   "Pillow==12.3.0",
+  "opencc-python-reimplemented==0.1.7",
 ]
 
 [project.optional-dependencies]

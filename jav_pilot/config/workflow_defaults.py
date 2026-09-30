@@ -16,6 +16,7 @@ SEARCH_KINDS = ("keyword", "code", "actor", "tag", "series", "maker", "publisher
 PAGE_SIZES = (10, 20, 50, 100)
 QUALITY_HEIGHTS = (4320, 2160, 1440, 1080, 720, 480)
 EXISTING_POLICIES = ("higher_quality", "overwrite", "skip")
+SUBTITLE_SCRIPTS = ("zh-CN", "zh-TW")
 
 DEFAULT_WORKFLOW_DEFAULTS: dict[str, Any] = {
     "search": {
@@ -38,6 +39,11 @@ DEFAULT_WORKFLOW_DEFAULTS: dict[str, Any] = {
     "translation": {
         "enabled": True,
         "show_original": False,
+    },
+    "subtitles": {
+        "auto_fetch": True,
+        "script": "zh-CN",
+        "allow_machine_translated": True,
     },
     "search_history_limit": 100,
     "metadata_auto_fallback": True,
@@ -98,10 +104,18 @@ def normalize_workflow_defaults(value: object, site_ids: set[str]) -> dict[str, 
     translation["enabled"] = _bool(translation["enabled"], "默认翻译")
     translation["show_original"] = _bool(translation["show_original"], "显示原文")
 
+    subtitles = _section(value, "subtitles", defaults)
+    subtitles["auto_fetch"] = _bool(subtitles["auto_fetch"], "新入库作品自动获取字幕")
+    subtitles["script"] = _choice(subtitles["script"], SUBTITLE_SCRIPTS, "字幕字形")
+    subtitles["allow_machine_translated"] = _bool(
+        subtitles["allow_machine_translated"], "允许机器翻译字幕"
+    )
+
     return {
         "search": search,
         "resource_search": resource,
         "translation": translation,
+        "subtitles": subtitles,
         "search_history_limit": _int(
             value.get("search_history_limit", defaults["search_history_limit"]),
             10,

@@ -23,6 +23,7 @@ from ..search.detail_prefetch import DetailPrefetchManager
 from ..search.history import SearchHistoryStore
 from ..search.resources.manager import ResourceSearchManager
 from ..search.session_store import SQLiteMetadataSearchStore
+from ..subtitles.manager import SubtitleManager
 from ..security.login_rate_limit import LoginRateLimiter
 from ..sites.diagnostic_store import SQLiteSiteDiagnosticStore
 from ..sites.diagnostic_worker import SiteDiagnosticScheduler
@@ -118,6 +119,8 @@ MEDIA_METADATA_REVIEW_LOCK = threading.RLock()
 MEDIA_METADATA_REVIEW: MediaMetadataReviewManager | None = None
 MEDIA_LIBRARY_LOCK = threading.RLock()
 MEDIA_LIBRARY: MediaLibraryManager | None = None
+SUBTITLES_LOCK = threading.RLock()
+SUBTITLES: SubtitleManager | None = None
 DETAIL_PREFETCH_LOCK = threading.RLock()
 DETAIL_PREFETCH: DetailPrefetchManager | None = None
 HISTORY_LIFECYCLE_LOCK = threading.RLock()

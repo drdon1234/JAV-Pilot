@@ -50,6 +50,12 @@ from .store import (
     MediaMetadataStoreError,
 )
 from ..library.nfo import read_movie_nfo
+from ..subtitles.sidecars import (
+    is_generated_subtitle,
+    is_subtitle_sidecar,
+    renamed_sidecar,
+    subtitle_sidecars,
+)
 from ..config.qb_paths import QbPathError, is_at_or_below, normalize_qb_path
 from ..config.paths import (
     default_database_path,
@@ -134,7 +140,9 @@ _WAIT_QB_UNAVAILABLE = "qb_unavailable"
 _WAIT_WEB_PATH_MISSING = "web_path_missing"
 _WAIT_KNOWN_PATH_MISSING = "known_path_missing"
 _ARCHIVE_RELOCATION_DIRECTORY = "archive_relocations"
-_ARCHIVE_RELOCATION_REVISION = 1
+_ARCHIVE_RELOCATION_REVISION = 2
+_READABLE_ARCHIVE_RELOCATION_REVISIONS = frozenset({1, 2})
+_MAX_ARCHIVE_SUBTITLE_MOVES = 64
 _MAX_ARCHIVE_RELOCATION_BYTES = 64 * 1024
 
 
@@ -148,6 +156,7 @@ class _ArchiveRelocationIntent:
     media_identity: tuple[int, int, int, int]
     nfo_identity: tuple[int, int, int, int]
     phase: str = "prepared"
+    subtitle_moves: tuple[tuple[str, str, tuple[int, int, int, int]], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -1021,6 +1030,7 @@ class MediaMetadataManager:
         nfo_identity = _archive_file_identity(old_nfo, root)
         _require_archive_target_absent(target, root)
         _require_archive_target_absent(target_nfo, root)
+        subtitle_moves = _archive_subtitle_moves(media, target, root, kind=str(job["kind"]))
         intent = _ArchiveRelocationIntent(
             job_id=str(job["job_id"]),
             kind=str(job["kind"]),
@@ -1029,6 +1039,7 @@ class MediaMetadataManager:
             new_relative_path=new_relative,
             media_identity=media_identity,
             nfo_identity=nfo_identity,
+            subtitle_moves=subtitle_moves,
         )
         _write_archive_relocation_intent(self.config.database_path.parent, intent)
         try:
@@ -1095,6 +1106,13 @@ class MediaMetadataManager:
             intent.nfo_identity,
             root,
         )
+        for old_name, new_name, identity in intent.subtitle_moves:
+            _ensure_archive_target(
+                source.with_name(old_name),
+                target.with_name(new_name),
+                identity,
+                root,
+            )
         intent = replace(intent, phase="files_published")
         _write_archive_relocation_intent(self.config.database_path.parent, intent)
 
@@ -1144,6 +1162,16 @@ class MediaMetadataManager:
             )
         except MediaMetadataStoreError as exc:
             rollback_errors.append(exc)
+        for old_name, new_name, identity in reversed(intent.subtitle_moves):
+            try:
+                _restore_archive_source(
+                    source.with_name(old_name),
+                    target.with_name(new_name),
+                    identity,
+                    root,
+                )
+            except (MetadataPublishError, OSError) as exc:
+                rollback_errors.append(exc)
         try:
             _restore_archive_source(
                 source.with_suffix(".nfo"),
@@ -1626,6 +1654,10 @@ def _write_archive_relocation_intent(
         "media_identity": list(intent.media_identity),
         "nfo_identity": list(intent.nfo_identity),
         "phase": intent.phase,
+        "subtitle_moves": [
+            [old_name, new_name, list(identity)]
+            for old_name, new_name, identity in intent.subtitle_moves
+        ],
     }
     body = json.dumps(
         payload,
@@ -1693,7 +1725,7 @@ def _read_archive_relocation_intents(
 def _decode_archive_relocation_intent(
     payload: object,
 ) -> _ArchiveRelocationIntent:
-    expected_keys = {
+    base_keys = {
         "revision",
         "job_id",
         "kind",
@@ -1704,10 +1736,15 @@ def _decode_archive_relocation_intent(
         "nfo_identity",
         "phase",
     }
-    if not isinstance(payload, dict) or set(payload) != expected_keys:
+    if not isinstance(payload, dict):
         raise ValueError("archive relocation journal shape is invalid")
-    if payload["revision"] != _ARCHIVE_RELOCATION_REVISION:
+    revision = payload.get("revision")
+    if isinstance(revision, bool) or revision not in _READABLE_ARCHIVE_RELOCATION_REVISIONS:
         raise ValueError("archive relocation journal revision is invalid")
+    # Revision 1 journals predate subtitle moves; they still recover.
+    expected_keys = base_keys | ({"subtitle_moves"} if revision >= 2 else set())
+    if set(payload) != expected_keys:
+        raise ValueError("archive relocation journal shape is invalid")
     kind = str(payload["kind"])
     phase = str(payload["phase"])
     if kind not in {"qb", "web", "manual"} or phase not in {
@@ -1732,6 +1769,9 @@ def _decode_archive_relocation_intent(
         media_identity=_decode_archive_identity(payload["media_identity"]),
         nfo_identity=_decode_archive_identity(payload["nfo_identity"]),
         phase=phase,
+        subtitle_moves=_decode_subtitle_moves(
+            payload.get("subtitle_moves", []), old_path, new_path
+        ),
     )
 
 
@@ -1744,6 +1784,63 @@ def _decode_archive_identity(value: object) -> tuple[int, int, int, int]:
     if any(item < 0 for item in identity) or identity[2] <= 0:
         raise ValueError("archive relocation identity is invalid")
     return identity  # type: ignore[return-value]
+
+
+def _decode_subtitle_moves(
+    value: object,
+    old_path: str,
+    new_path: str,
+) -> tuple[tuple[str, str, tuple[int, int, int, int]], ...]:
+    if not isinstance(value, list) or len(value) > _MAX_ARCHIVE_SUBTITLE_MOVES:
+        raise ValueError("archive relocation subtitles are invalid")
+    old_stem = PurePosixPath(old_path).stem
+    new_stem = PurePosixPath(new_path).stem
+    moves: list[tuple[str, str, tuple[int, int, int, int]]] = []
+    for item in value:
+        if (
+            not isinstance(item, list)
+            or len(item) != 3
+            or not isinstance(item[0], str)
+            or not isinstance(item[1], str)
+            or not is_subtitle_sidecar(item[0], old_stem)
+            or renamed_sidecar(item[0], old_stem, new_stem) != item[1]
+        ):
+            raise ValueError("archive relocation subtitles are invalid")
+        moves.append((item[0], item[1], _decode_archive_identity(item[2])))
+    return tuple(moves)
+
+
+def _archive_subtitle_moves(
+    media: Path,
+    target: Path,
+    root: Path,
+    *,
+    kind: str,
+) -> tuple[tuple[str, str, tuple[int, int, int, int]], ...]:
+    """Subtitles that must follow a same-directory media rename.
+
+    qBittorrent may track subtitles shipped inside the torrent, and renaming
+    those behind its back breaks the torrent, so for qB downloads only the
+    subtitles this application wrote are moved.
+    """
+
+    try:
+        names = os.listdir(media.parent)
+    except OSError as exc:
+        raise MetadataPublishError("archive directory could not be read") from exc
+    moves: list[tuple[str, str, tuple[int, int, int, int]]] = []
+    for name in subtitle_sidecars(media.stem, names):
+        if kind == "qb" and not is_generated_subtitle(name, media.stem):
+            continue
+        identity = _archive_file_identity(media.with_name(name), root)
+        if identity[2] <= 0:
+            continue
+        new_name = renamed_sidecar(name, media.stem, target.stem)
+        _require_archive_target_absent(target.with_name(new_name), root)
+        moves.append((name, new_name, identity))
+        if len(moves) >= _MAX_ARCHIVE_SUBTITLE_MOVES:
+            break
+    return tuple(moves)
 
 
 def _remove_archive_relocation_intent(data_dir: Path, job_id: str) -> None:

@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
-import { Clapperboard, FileImage, History, Languages, RefreshCw, RotateCcw, Save, Search, Sparkles } from 'lucide-react'
+import { Captions, Clapperboard, FileImage, History, Languages, RefreshCw, RotateCcw, Save, Search, Sparkles } from 'lucide-react'
+import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 
 import { SettingsSaveError } from '../components/SettingsSaveError'
@@ -10,7 +11,7 @@ import { SEARCH_KIND_OPTIONS } from '../lib/searchPreferences'
 import { useSettingsDraft } from '../lib/settingsDraft'
 import { METADATA_PROFILES, SEARCH_CAPABILITIES, SEARCH_PARSER_PROFILES } from '../lib/sources'
 import { WEB_DOWNLOAD_QUALITY_LIMITS, WEB_DOWNLOAD_VARIANT_PRIORITIES, webDownloadVariantPriorityLabel } from '../lib/webDownloads'
-import type { AppSettings, SearchKind, WebDownloadExistingPolicy, WorkflowDefaults } from '../types'
+import type { AppSettings, SearchKind, SubtitleScript, WebDownloadExistingPolicy, WorkflowDefaults } from '../types'
 import { AiTranslationSettings } from './AiTranslationSettings'
 import { t } from '../lib/i18n'
 
@@ -58,6 +59,14 @@ export function WorkflowDefaultsPage() {
     },
     onError: (error) => toast.push((error as Error).message, 'error'),
   })
+
+  const ready = draft !== null
+  useEffect(() => {
+    // The 字幕设置 link on the subtitles page lands here.
+    if (ready && globalThis.location?.hash === '#subtitles') {
+      document.getElementById('subtitles')?.scrollIntoView({ block: 'start' })
+    }
+  }, [ready])
 
   async function discardChanges() {
     try {
@@ -240,6 +249,34 @@ export function WorkflowDefaultsPage() {
             <span>{t('媒体库发现新作品（包括你手动放入的文件夹）时，自动为缺少 NFO 或图片的作品创建补全任务。')}</span>
             <Toggle label={t('默认来源失败时自动换源')} checked={defaults.metadata_auto_fallback} onChange={(event) => update({ metadata_auto_fallback: event.target.checked })} />
             <span>{t('已启用的来源查不到资料或没有封面时，再尝试其他内置站点（JAV 用 FANZA、MGS、AVBase，FC2 用 FC2DB、JAVTEN）。')}</span>
+          </div>
+        </Section>
+
+        <Section id="subtitles" icon={<Captions aria-hidden="true" />} title={t('字幕')} description={t('新入库作品的外挂中文字幕')}>
+          <div className="settings-form-grid">
+            <Field label={t('字幕字形')} hint={t('来源字幕的字形不同时会自动转换')}>
+              <select
+                value={defaults.subtitles.script}
+                onChange={(event) => update({ subtitles: { ...defaults.subtitles, script: event.target.value as SubtitleScript } })}
+              >
+                <option value="zh-CN">{t('简体中文')}</option>
+                <option value="zh-TW">{t('繁體中文')}</option>
+              </select>
+            </Field>
+          </div>
+          <div className="workflow-defaults-toggles">
+            <Toggle
+              label={t('新入库作品自动获取字幕')}
+              checked={defaults.subtitles.auto_fetch}
+              onChange={(event) => update({ subtitles: { ...defaults.subtitles, auto_fetch: event.target.checked } })}
+            />
+            <span>{t('元数据补全完成后，按番号查询已启用的字幕来源（在“站点”页管理），把最合适的中文字幕保存在影片旁。已有字幕的影片和中文字幕版本会被跳过。')}</span>
+            <Toggle
+              label={t('允许机器翻译字幕')}
+              checked={defaults.subtitles.allow_machine_translated}
+              onChange={(event) => update({ subtitles: { ...defaults.subtitles, allow_machine_translated: event.target.checked } })}
+            />
+            <span>{t('SubtitleCat 的字幕由机器翻译生成，质量不稳定；只在找不到人工字幕时才会使用。')}</span>
           </div>
         </Section>
 

@@ -21,6 +21,7 @@ from .routes.search import SearchRoutes
 from .routes.search_history import SearchHistoryRoutes
 from .routes.settings import SettingsRoutes
 from .routes.sites import SiteDiagnosticRoutes
+from .routes.subtitles import SubtitleRoutes
 from .routes.system import SystemRoutes
 from .routes.translation import TranslationRoutes
 from .routes.web_download_batches import WebDownloadBatchRoutes
@@ -46,6 +47,7 @@ class JavPilotHandler(
     SearchRoutes,
     SettingsRoutes,
     SiteDiagnosticRoutes,
+    SubtitleRoutes,
     SystemRoutes,
     TranslationRoutes,
     WebDownloadBatchRoutes,

@@ -74,6 +74,9 @@ GET_ROUTES: dict[str, Route] = {
         "_handle_media_metadata_review", with_query=True
     ),
     "/api/library": Route("_handle_media_library", with_query=True),
+    "/api/subtitles": Route("_handle_subtitles", with_query=True),
+    "/api/subtitles/candidates": Route("_handle_subtitle_candidates", with_query=True),
+    "/api/subtitles/entry": Route("_handle_subtitle_entry", with_query=True),
     "/api/magnets/probe": Route("_handle_magnet_probe_get", with_query=True),
     "/api/magnets/select": Route("_handle_magnet_selection_get", with_query=True),
 }
@@ -141,6 +144,7 @@ POST_ROUTES: dict[str, Route] = {
         "_handle_media_metadata_migrate_titles"
     ),
     "/api/media-metadata/action": Route("_handle_media_metadata_action"),
+    "/api/subtitles/action": Route("_handle_subtitle_action"),
     "/api/media-metadata/review/open": Route("_handle_media_metadata_review_open"),
     "/api/media-metadata/review/draft": Route("_handle_media_metadata_review_draft"),
     "/api/media-metadata/review/abandon": Route(

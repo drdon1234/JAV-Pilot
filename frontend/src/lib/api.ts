@@ -68,6 +68,11 @@ import type {
   SiteDiagnosticsPayload,
   SiteDiagnosticSite,
   SiteSettings,
+  SubtitleActionPayload,
+  SubtitleActionRequest,
+  SubtitleCandidatesPayload,
+  SubtitleEntryPayload,
+  SubtitleListPayload,
   TorrentListPayload,
   WebDownloadBatchPayload,
   WebDownloadBatchChainActionPayload,
@@ -839,6 +844,26 @@ export const api = {
         action: acceptRootChange ? 'accept_root_change' : 'rebuild',
         expected_revision: expectedRevision,
       }),
+    }),
+  subtitles: (params: { filter?: string; query?: string; limit?: number; offset?: number } = {}) => {
+    const search = new URLSearchParams({
+      filter: params.filter || 'all',
+      limit: String(params.limit || 50),
+      offset: String(params.offset || 0),
+    })
+    if (params.query) search.set('q', params.query)
+    return requestJson<SubtitleListPayload>(`/api/subtitles?${search.toString()}`)
+  },
+  subtitleCandidates: (jobId: string) =>
+    requestJson<SubtitleCandidatesPayload>(`/api/subtitles/candidates?job_id=${encodeURIComponent(jobId)}`),
+  subtitleForEntry: (entryId: string) =>
+    requestJson<SubtitleEntryPayload>(`/api/subtitles/entry?entry_id=${encodeURIComponent(entryId)}`),
+  // Selecting a candidate downloads and validates it before answering.
+  subtitleAction: (body: SubtitleActionRequest) =>
+    requestJson<SubtitleActionPayload>('/api/subtitles/action', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      timeoutMs: 60_000,
     }),
   mediaMetadata: (params: { filter?: string; query?: string; limit?: number; offset?: number } = {}) => {
     const search = new URLSearchParams({

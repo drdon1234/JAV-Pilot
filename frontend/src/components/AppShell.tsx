@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Clapperboard, Compass, Download, FileImage, Film, FolderCog, Globe2, HardDriveDownload, History, Library, ListRestart, type LucideIcon, Search, Settings, SlidersHorizontal, Trophy, Wrench } from 'lucide-react'
+import { Captions, Clapperboard, Compass, Download, FileImage, Film, FolderCog, Globe2, HardDriveDownload, History, Library, ListRestart, type LucideIcon, Search, Settings, SlidersHorizontal, Trophy, Wrench } from 'lucide-react'
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigationType } from 'react-router-dom'
 
@@ -252,6 +252,7 @@ const navigationGroups: NavigationGroup[] = [
     items: [
       { to: '/library', label: t('媒体库'), icon: Library },
       { to: '/metadata', label: t('元数据'), icon: FileImage },
+      { to: '/subtitles', label: t('字幕'), icon: Captions },
       { to: '/organizer', label: t('整理'), icon: FolderCog },
     ],
   },

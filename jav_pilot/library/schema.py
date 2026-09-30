@@ -80,7 +80,12 @@ def initialize_media_library_schema(
                 SQLiteMigration(
                     8,
                     _migrate_media_library_v8,
-                    _verify_schema,
+                    _verify_schema_v8,
+                ),
+                SQLiteMigration(
+                    9,
+                    _migrate_media_library_v9,
+                    _verify_subtitle_status_schema,
                 ),
             ),
             clock=clock,
@@ -2128,9 +2133,38 @@ def _verify_copy_on_write_schema(connection: sqlite3.Connection) -> None:
         raise MediaLibraryError("media library copy-on-write schema is inconsistent")
 
 
-def _verify_schema(connection: sqlite3.Connection) -> None:
+def _verify_schema_v8(connection: sqlite3.Connection) -> None:
     _verify_copy_on_write_schema(connection)
     _verify_history_facts_schema(connection)
     _verify_history_cleanup_schema(connection)
     _verify_quality_cache_schema(connection)
     _verify_variant_schema(connection)
+
+
+_SUBTITLE_STATUS_TABLES = (
+    "media_library_files",
+    "media_library_entries",
+    "media_library_workspace_files",
+    "media_library_workspace_entries",
+)
+
+
+def _migrate_media_library_v9(connection: sqlite3.Connection) -> None:
+    for table in _SUBTITLE_STATUS_TABLES:
+        connection.execute(
+            f"ALTER TABLE {table} ADD COLUMN subtitle_status TEXT NOT NULL "
+            "DEFAULT 'unknown' CHECK (subtitle_status IN ('present', 'missing', 'unknown'))"
+        )
+    # Existing rows only know 'unknown'; the next full scan fills them in.
+    connection.execute("UPDATE media_library_roots SET last_full_scan_at = NULL")
+
+
+def _verify_subtitle_status_schema(connection: sqlite3.Connection) -> None:
+    for table in _SUBTITLE_STATUS_TABLES:
+        require_columns(connection, table, ("subtitle_status",))
+
+
+def _verify_schema(connection: sqlite3.Connection) -> None:
+    # Migration 8 keeps its own verifier: this one also checks later columns.
+    _verify_schema_v8(connection)
+    _verify_subtitle_status_schema(connection)

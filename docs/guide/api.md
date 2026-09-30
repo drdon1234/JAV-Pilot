@@ -38,6 +38,7 @@ Torznab 来源配置位于站点的 `torznab` 字段，含 `endpoint`、`pinned_
 | Web 批次 | `/api/web-downloads/batches`、`/api/web-downloads/batches/action`、`/api/web-downloads/batches/chains`、`/api/web-downloads/batches/chains/action`、`/api/web-downloads/batches/chains/export` |
 | 批量规则 | `/api/web-downloads/batches/rules`、`/api/web-downloads/batches/rules/action` |
 | 媒体库 | `/api/library`、`/api/library/action` |
+| 字幕 | `/api/subtitles`、`/api/subtitles/candidates`、`/api/subtitles/entry`、`/api/subtitles/action` |
 | 元数据审校 | `/api/media-metadata/review`、`/api/media-metadata/review/open`、`/api/media-metadata/review/draft`、`/api/media-metadata/review/refetch`、`/api/media-metadata/review/image`、`/api/media-metadata/review/preview`、`/api/media-metadata/review/publish`、`/api/media-metadata/review/abandon` |
 | 历史生命周期 | `/api/history/status`、`/api/history/preview`、`/api/history/execute`、`/api/history/export`、`/api/history/retention`、`/api/history/vacuum` |
 | 通知 | `/api/notifications`、`/api/notifications/config`、`/api/notifications/test`、`/api/notifications/retry` |
@@ -45,6 +46,8 @@ Torznab 来源配置位于站点的 `torznab` 字段，含 `endpoint`、`pinned_
 | 整理预览 | `/api/organizer/preview` |
 
 搜索流的 `base` 与 `done` 事件带 `skipped`（来源 ID → 原因），说明哪些已选来源不适用于本次查询，例如仅支持 FC2 番号或未开启解析磁链；它们不是错误。`/api/resource-searches` 创建时可带 `exact_match`，会话按输入番号前缀过滤后再计入结果上限。`POST /api/media-metadata/action` 接受 `{"action": "complete_all"}`（一键补全）。`/api/site-diagnostics/probe` 接受 `jav_code` 与 `fc2_code`，两者可留空，并会保存供定时诊断使用。
+
+`POST /api/subtitles/action` 的 `action` 取值：`fetch`（`entry_id`，为媒体库中的一部作品获取字幕）、`batch_missing`（为缺少字幕的作品批量入队，返回 `queued`）、`retry`、`remove`、`forget`（均需 `job_id`）、`select`（`job_id` 与 `candidate_id`，立即下载并换用该候选）。`GET /api/subtitles/candidates?job_id=` 只返回上次查找缓存的候选，不会在请求中联网。失败响应带 `code`（如 `subtitle_file_modified`、`subtitle_job_busy`、`subtitle_multipart_unsupported`），前端据此显示文案。
 
 AI 翻译的配置与站点设置分开保存：`GET /api/ai-translation` 返回配置、服务商列表与当日请求次数，其中只有 `api_key_configured`，从不返回 API Key；`POST /api/ai-translation/config` 省略 `api_key` 表示保留已保存的 Key，传空字符串表示清除。`POST /api/ai-translation/test` 可带尚未保存的 `config` 试译一句。`POST /api/ai-translate` 接受 `{"texts": [...], "target": "zh-CN"}`，返回与输入对齐的 `translations` 以及 `cached`、`refused`、`failed` 计数；全部失败时返回非 2xx 与中文 `error`。
 

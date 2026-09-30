@@ -41,6 +41,7 @@ from ...web_download.job_store import WebDownloadStore
 from .. import state
 from .history import require_operational_mode
 from .notifications import ensure_notification_outbox_registered
+from .subtitles import observe_subtitle_publication, relocate_subtitle_references
 
 
 def media_library_manager(
@@ -94,7 +95,7 @@ def synchronize_media_library(
 ) -> bool:
     clean_source = (
         source
-        if source in {"web_archive", "qb_organizer", "metadata_publish"}
+        if source in {"web_archive", "qb_organizer", "metadata_publish", "subtitle_publish"}
         else "unknown"
     )
     manager: MediaLibraryManager | None = None
@@ -217,9 +218,7 @@ def media_metadata_manager(
                 try:
                     state.MEDIA_METADATA = MediaMetadataManager(
                         active_config,
-                        on_published=lambda relative_path: synchronize_media_library(
-                            "metadata_publish", (relative_path,)
-                        ),
+                        on_published=_observe_metadata_publication,
                         on_archive_relocated=_synchronize_archive_reference,
                     )
                 except (OSError, sqlite3.Error, MediaMetadataStoreError) as exc:
@@ -235,12 +234,18 @@ def media_metadata_manager(
     return manager
 
 
+def _observe_metadata_publication(relative_path: str) -> None:
+    synchronize_media_library("metadata_publish", (relative_path,))
+    observe_subtitle_publication(relative_path)
+
+
 def _synchronize_archive_reference(
     kind: str,
     download_key: str,
     old_relative_path: str,
     new_relative_path: str,
 ) -> None:
+    relocate_subtitle_references(old_relative_path, new_relative_path)
     if kind != "web":
         return
     config = WebDownloadConfig.from_env()

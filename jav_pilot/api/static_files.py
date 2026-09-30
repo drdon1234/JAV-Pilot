@@ -18,6 +18,7 @@ APP_ROUTES = {
     "/metadata",
     "/organizer",
     "/sites",
+    "/subtitles",
     "/settings",
     "/workflow-defaults",
 }

@@ -12,6 +12,7 @@ import time
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from pathlib import Path, PurePosixPath
 
+from ..subtitles.sidecars import is_subtitle_sidecar
 from ..web_download.variant import web_download_variant_from_stem
 from .media_probe import (
     LocalFileIdentity,
@@ -614,6 +615,16 @@ class MediaLibraryIndex:
             regular_asset_status(siblings, name) == "present"
             for name in landscape_names
         )
+        subtitle_status = (
+            "present"
+            if any(
+                is_subtitle_sidecar(name, media.stem)
+                and not is_linklike(item[1])
+                and stat.S_ISREG(item[1].st_mode)
+                for name, item in siblings.items()
+            )
+            else "missing"
+        )
         part_match = PART_SUFFIX_RE.search(media.stem)
         file_identity = LocalFileIdentity(
             device=int(file_stat.st_dev),
@@ -667,6 +678,7 @@ class MediaLibraryIndex:
             nfo_json=nfo_metadata.to_json() if nfo_metadata is not None else None,
             portrait_status=portrait,
             landscape_status="present" if landscape_count >= 2 else "missing",
+            subtitle_status=subtitle_status,
         )
 
     def _verify_root_identity(

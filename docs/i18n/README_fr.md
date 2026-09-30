@@ -48,12 +48,13 @@ JAV Pilot est une application auto-hébergée de recherche, de téléchargement 
 3. ⬇️ **Deux canaux de téléchargement** : les liens magnet sont transmis à qBittorrent ; les téléchargements web choisissent automatiquement la qualité et privilégient, dans cet ordre, la version originale, sous-titrée en chinois puis non censurée.
 4. 🔁 **Détection des doublons** : avant de créer une tâche, les tâches qBittorrent, les téléchargements web et la médiathèque sont vérifiés afin d’éviter les téléchargements en double.
 5. 🗂️ **Classement automatique** : les téléchargements terminés sont classés par code catalogue, avec génération des affiches, des images de fond et des métadonnées NFO.
-6. 📚 **Gestion de la médiathèque** : analyse le dossier des vidéos, y compris les fichiers ajoutés manuellement, et complète les affiches et métadonnées manquantes.
-7. 🏆 **Classements** : classements des œuvres, des actrices et des catégories issus de JavDB, FANZA, FC2, MGStage et d’autres sources, avec analyse groupée des fiches en arrière-plan.
-8. 🌐 **Traduction des titres** : service de traduction public intégré, avec prise en charge de services d’IA tels que les API compatibles OpenAI, Claude, Gemini et Ollama ; les traductions utilisent par défaut la langue de l’interface.
-9. 🩺 **Diagnostic des sites** : vérifie périodiquement la disponibilité des sites et distingue les échecs DNS, de connexion, TLS, de vérification anti-robot et de changement de structure des pages.
-10. 🔔 **Notifications** : envoie des notifications via Webhook, Gotify, Telegram ou le système de notification du NAS lorsqu’un téléchargement se termine ou échoue, que l’espace disque est insuffisant ou qu’un site est défaillant.
-11. 📱 **Interface multilingue et adaptative** : disponible en 简体中文, 繁體中文, English, 日本語, Français, Español, Русский et العربية, en suivant par défaut la langue du navigateur et du système ; fonctionne sur ordinateur et sur mobile, avec thèmes clair et sombre.
+6. 💬 **Sous-titres chinois** : une fois la vidéo classée et ses métadonnées complétées, des sous-titres chinois externes sont récupérés depuis Xunlei et SubtitleCat ; le meilleur choix selon le code catalogue, la durée et la langue est enregistré à côté de la vidéo et peut être converti en chinois simplifié ou traditionnel. La médiathèque permet une récupération en lot ou le choix d'un autre candidat.
+7. 📚 **Gestion de la médiathèque** : analyse le dossier des vidéos, y compris les fichiers ajoutés manuellement, et complète les affiches et métadonnées manquantes.
+8. 🏆 **Classements** : classements des œuvres, des actrices et des catégories issus de JavDB, FANZA, FC2, MGStage et d’autres sources, avec analyse groupée des fiches en arrière-plan.
+9. 🌐 **Traduction des titres** : service de traduction public intégré, avec prise en charge de services d’IA tels que les API compatibles OpenAI, Claude, Gemini et Ollama ; les traductions utilisent par défaut la langue de l’interface.
+10. 🩺 **Diagnostic des sites** : vérifie périodiquement la disponibilité des sites et distingue les échecs DNS, de connexion, TLS, de vérification anti-robot et de changement de structure des pages.
+11. 🔔 **Notifications** : envoie des notifications via Webhook, Gotify, Telegram ou le système de notification du NAS lorsqu’un téléchargement se termine ou échoue, que l’espace disque est insuffisant ou qu’un site est défaillant.
+12. 📱 **Interface multilingue et adaptative** : disponible en 简体中文, 繁體中文, English, 日本語, Français, Español, Русский et العربية, en suivant par défaut la langue du navigateur et du système ; fonctionne sur ordinateur et sur mobile, avec thèmes clair et sombre.
 
 ## 🚀 Démarrage rapide
 

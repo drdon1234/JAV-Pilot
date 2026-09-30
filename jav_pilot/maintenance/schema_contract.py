@@ -15,6 +15,10 @@ from ..downloads.replacements import SCHEMA_VERSION as DOWNLOAD_REPLACEMENT_SCHE
 from ..media_metadata.store import (
     CURRENT_SCHEMA_VERSION as MEDIA_METADATA_SCHEMA_VERSION,
 )
+from ..subtitles.store import (
+    CURRENT_SCHEMA_VERSION as SUBTITLE_SCHEMA_VERSION,
+    SCHEMA_COMPONENT as SUBTITLE_SCHEMA_COMPONENT,
+)
 from ..media_metadata.review.models import (
     CURRENT_SCHEMA_VERSION as MEDIA_METADATA_REVIEW_SCHEMA_VERSION,
 )
@@ -149,6 +153,15 @@ SCHEMA_COMPONENTS = (
         MEDIA_LIBRARY_SCHEMA_VERSION,
         MEDIA_LIBRARY_SCHEMA_VERSION,
         True,
+    ),
+    # Versions without subtitles never read this database, so a downgrade
+    # does not need a restore.
+    SchemaComponent(
+        SUBTITLE_SCHEMA_COMPONENT,
+        "sqlite",
+        SUBTITLE_SCHEMA_VERSION,
+        SUBTITLE_SCHEMA_VERSION,
+        False,
     ),
 )
 

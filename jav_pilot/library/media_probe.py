@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import stat
 import subprocess
@@ -107,6 +108,62 @@ def probe_local_video_height(
         return validate_quality_height(min(width, height))
     except QualityHeightError:
         return None
+
+
+MAX_PROBED_DURATION_SECONDS = 24 * 3600
+
+
+def probe_local_video_duration_ms(path: Path, allowed_root: Path) -> int | None:
+    root = _regular_root(allowed_root)
+    target = Path(path)
+    if not target.is_absolute():
+        raise LocalMediaProbeSafetyError("local media path must be absolute")
+    identity = _file_identity(target, root)
+    command = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-protocol_whitelist",
+        "file",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "json",
+        str(target),
+    ]
+    try:
+        result = subprocess.run(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=FFPROBE_TIMEOUT_SECONDS,
+            shell=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        _require_unchanged(target, root, identity)
+        return None
+    _require_unchanged(target, root, identity)
+    if (
+        result.returncode != 0
+        or not isinstance(result.stdout, bytes)
+        or len(result.stdout) > MAX_FFPROBE_OUTPUT_BYTES
+    ):
+        return None
+    try:
+        payload = json.loads(result.stdout.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    media_format = payload.get("format") if isinstance(payload, dict) else None
+    raw = media_format.get("duration") if isinstance(media_format, dict) else None
+    try:
+        seconds = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(seconds) or not 1.0 <= seconds <= MAX_PROBED_DURATION_SECONDS:
+        return None
+    return int(round(seconds * 1000))
 
 
 def _regular_root(path: Path) -> Path:
@@ -222,5 +279,6 @@ __all__ = [
     "LocalFileIdentity",
     "LocalMediaProbeSafetyError",
     "MAX_FFPROBE_OUTPUT_BYTES",
+    "probe_local_video_duration_ms",
     "probe_local_video_height",
 ]

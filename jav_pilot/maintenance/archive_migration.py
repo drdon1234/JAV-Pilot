@@ -19,6 +19,7 @@ from ..core.storage import fsync_directory
 from ..library.archive import plan_archive_layout
 from ..library.models import VIDEO_SUFFIXES
 from ..library.nfo import parse_movie_nfo
+from ..subtitles.sidecars import renamed_sidecar, subtitle_sidecars
 from .lock import MaintenanceLockError, MaintenanceLocks
 from ..web_download.variant import web_download_variant_from_stem
 
@@ -633,6 +634,12 @@ def _scan_archive(
             media,
             layout.relative_media_path.parent,
         )
+        subtitle_moves = _archive_subtitle_moves(
+            root,
+            root_stat,
+            media,
+            layout.relative_media_path,
+        )
         entry = {
             "display_code": layout.display_code,
             "source_media_path": source_media,
@@ -645,6 +652,7 @@ def _scan_archive(
             "nfo_identity": _file_identity(stable_nfo_stat),
             "nfo_sha256": hashlib.sha256(body).hexdigest(),
             "image_moves": image_moves,
+            "subtitle_moves": subtitle_moves,
         }
         path_pairs = [
             (source_media, target_media),
@@ -653,6 +661,10 @@ def _scan_archive(
         path_pairs.extend(
             (str(image["source_path"]), str(image["target_path"]))
             for image in image_moves
+        )
+        path_pairs.extend(
+            (str(subtitle["source_path"]), str(subtitle["target_path"]))
+            for subtitle in subtitle_moves
         )
         for source, target in path_pairs:
             if source in source_paths:
@@ -682,6 +694,14 @@ def _scan_archive(
                     str(image["source_path"]),
                     str(image["target_path"]),
                     str(image["staging_path"]),
+                )
+            )
+        for subtitle in _entry_subtitle_moves(entry):
+            planned_paths.append(
+                (
+                    str(subtitle["source_path"]),
+                    str(subtitle["target_path"]),
+                    str(subtitle["staging_path"]),
                 )
             )
         for source, target, stage in planned_paths:
@@ -738,6 +758,60 @@ def _archive_image_moves(
     return moves
 
 
+def _archive_subtitle_moves(
+    root: Path,
+    root_stat: os.stat_result,
+    media: Path,
+    target_media: PurePosixPath,
+) -> list[dict[str, object]]:
+    try:
+        names = os.listdir(media.parent)
+    except OSError as exc:
+        raise ArchiveMigrationError("archive subtitles could not be inspected") from exc
+    moves: list[dict[str, object]] = []
+    for name in subtitle_sidecars(media.stem, names):
+        source = media.parent / name
+        try:
+            source_stat = source.lstat()
+        except OSError as exc:
+            raise ArchiveMigrationError("archive subtitle could not be inspected") from exc
+        if _path_is_linklike(source) or not stat.S_ISREG(source_stat.st_mode):
+            raise ArchiveMigrationConflict("archive subtitle must be a regular file")
+        if source_stat.st_size <= 0:
+            continue
+        if os.name != "nt" and source_stat.st_dev != root_stat.st_dev:
+            raise ArchiveMigrationConflict("archive subtitle crosses filesystems")
+        digest, stable_stat = _read_regular_digest(source, source_stat)
+        source_path = source.relative_to(root).as_posix()
+        target_path = (
+            target_media.parent / renamed_sidecar(name, media.stem, target_media.stem)
+        ).as_posix()
+        if source_path == target_path:
+            continue
+        moves.append(
+            {
+                "source_path": source_path,
+                "target_path": target_path,
+                "staging_path": _staging_path(source_path, "subtitle"),
+                "identity": _file_identity(stable_stat),
+                "sha256": digest,
+            }
+        )
+    return moves
+
+
+def _entry_subtitle_moves(
+    entry: Mapping[str, object],
+) -> list[Mapping[str, object]]:
+    values = entry.get("subtitle_moves", [])
+    required = {"source_path", "target_path", "staging_path", "identity", "sha256"}
+    if not isinstance(values, list) or not all(
+        isinstance(value, dict) and required.issubset(value) for value in values
+    ):
+        raise ArchiveMigrationError("migration journal subtitle moves are invalid")
+    return values
+
+
 def _read_regular_file(
     path: Path, expected: os.stat_result
 ) -> tuple[bytes, os.stat_result]:
@@ -781,7 +855,7 @@ def _read_regular_digest(
     expected: os.stat_result,
 ) -> tuple[str, os.stat_result]:
     if expected.st_size <= 0 or expected.st_size > MAX_ARCHIVE_IMAGE_BYTES:
-        raise ArchiveMigrationConflict("archive image size is invalid")
+        raise ArchiveMigrationConflict("archive file size is invalid")
     flags = os.O_RDONLY | getattr(os, "O_BINARY", 0)
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
@@ -1638,6 +1712,17 @@ def _file_moves(entries: Sequence[Mapping[str, object]]) -> list[dict[str, objec
                     "stage": image["staging_path"],
                     "identity": image["identity"],
                     "sha256": image["sha256"],
+                }
+            )
+        for subtitle in _entry_subtitle_moves(entry):
+            moves.append(
+                {
+                    "kind": "subtitle",
+                    "source": subtitle["source_path"],
+                    "target": subtitle["target_path"],
+                    "stage": subtitle["staging_path"],
+                    "identity": subtitle["identity"],
+                    "sha256": subtitle["sha256"],
                 }
             )
     return moves

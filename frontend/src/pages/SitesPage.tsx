@@ -27,6 +27,7 @@ import type {
 import { t } from '../lib/i18n'
 
 const BUILTIN_WEB_SITE_IDS = ['jable', 'supjav', 'missav', 'kissjav', 'javnoni'] as const
+const BUILTIN_SUBTITLE_SITE_IDS = ['xunlei', 'subtitlecat'] as const
 const DEFAULT_METADATA_SEARCH_PRIORITY = ['javdb', 'javbus', 'fc2'] as const
 const DEFAULT_METADATA_SCRAPER_PRIORITY = ['javbus', 'javdb', 'fc2'] as const
 const METADATA_SEARCH_CAPABILITY: SiteCapability = 'metadata_search'
@@ -42,6 +43,7 @@ const CAPABILITY_LABELS: Record<SiteCapability, string> = {
   resource_search: t('资源搜索'),
   web_download: t('Web 下载'),
   description: t('简介'),
+  subtitle: t('字幕'),
 }
 
 const DIAGNOSTIC_SITES: Array<{ id: SiteDiagnosticSite; label: string; stages: SiteDiagnosticStage[] }> = [
@@ -56,6 +58,8 @@ const DIAGNOSTIC_SITES: Array<{ id: SiteDiagnosticSite; label: string; stages: S
   { id: 'missav', label: 'MissAV', stages: ['configuration', 'dns', 'connection', 'quality', 'manifest'] },
   { id: 'kissjav', label: 'KissJAV', stages: ['configuration', 'dns', 'connection', 'search'] },
   { id: 'javnoni', label: 'JAV-NONI', stages: ['configuration', 'dns', 'connection', 'search'] },
+  { id: 'xunlei', label: t('迅雷字幕'), stages: ['configuration', 'dns', 'connection', 'search'] },
+  { id: 'subtitlecat', label: 'SubtitleCat', stages: ['configuration', 'dns', 'connection', 'search'] },
 ]
 
 const DIAGNOSTIC_STAGE_LABELS: Record<SiteDiagnosticStage, string> = {
@@ -130,6 +134,10 @@ function createFilter(index: number): SiteFilter {
 
 function isBuiltInWebSite(site: SiteSettings | undefined): boolean {
   return Boolean(site && BUILTIN_WEB_SITE_IDS.includes(site.id as typeof BUILTIN_WEB_SITE_IDS[number]) && site.parser_profile === site.id)
+}
+
+function isBuiltInSubtitleSite(site: SiteSettings | undefined): boolean {
+  return Boolean(site && BUILTIN_SUBTITLE_SITE_IDS.includes(site.id as typeof BUILTIN_SUBTITLE_SITE_IDS[number]) && site.parser_profile === site.id)
 }
 
 function orderedSitePriority(
@@ -393,7 +401,8 @@ export function SitesPage() {
   }
 
   function removeSite(index: number) {
-    if (isBuiltInWebSite(draft?.sites[index])) return
+    const site = draft?.sites[index]
+    if (isBuiltInWebSite(site) || isBuiltInSubtitleSite(site)) return
     setSaveError('')
     setSiteEditorKeys((current) => current.filter((_key, itemIndex) => itemIndex !== index))
     setDraft((current) => {
@@ -767,7 +776,8 @@ function DiagnosticStageBadge({ label, status }: { label: string; status?: SiteD
 }
 
 function SiteEditor({ site, onChange, onRemove }: { site: SiteSettings; onChange: (site: SiteSettings) => void; onRemove: () => void }) {
-  const special = isBuiltInWebSite(site)
+  const subtitleSource = isBuiltInSubtitleSite(site)
+  const special = isBuiltInWebSite(site) || subtitleSource
   const supportsMetadataSearch = site.capabilities.includes(METADATA_SEARCH_CAPABILITY)
   const ruleBased = ['javbus', 'javdb'].includes(site.parser_profile)
   const torznab = site.torznab ?? { endpoint: '', pinned_addresses: [], categories: [] }
@@ -802,7 +812,11 @@ function SiteEditor({ site, onChange, onRemove }: { site: SiteSettings; onChange
           ) : <StatusBadge>{site.parser_profile}</StatusBadge>}
         </div>
         <IconButton
-          label={special ? t('{name} 是内置 Web 下载站点，不能删除', { name: site.name }) : t('删除站点')}
+          label={special
+            ? subtitleSource
+              ? t('{name} 是内置字幕来源，不能删除', { name: site.name })
+              : t('{name} 是内置 Web 下载站点，不能删除', { name: site.name })
+            : t('删除站点')}
           className="danger-icon"
           onClick={onRemove}
           disabled={special}
@@ -887,6 +901,12 @@ function SiteEditor({ site, onChange, onRemove }: { site: SiteSettings; onChange
       </div>
       {site.parser_profile === 'torznab' && torznab.bundled_jackett ? (
         <InlineNotice>{t('地址和 API 密钥都留空时使用内置 Jackett：自动读取密钥、添加索引，就绪前搜索会跳过此来源。')}</InlineNotice>
+      ) : null}
+      {site.id === 'subtitlecat' && subtitleSource ? (
+        <InlineNotice>{t('SubtitleCat 的字幕由机器翻译生成，只在找不到人工字幕时使用。')}</InlineNotice>
+      ) : null}
+      {site.id === 'xunlei' && subtitleSource ? (
+        <InlineNotice>{t('字幕文件从迅雷的下载服务器获取。')}</InlineNotice>
       ) : null}
       {site.id === 'kissjav' || site.id === 'javnoni' ? (
         <InlineNotice>{t('此来源提供资源发现。完整片源与版本尚未验收，暂不用于自动下载。')}</InlineNotice>

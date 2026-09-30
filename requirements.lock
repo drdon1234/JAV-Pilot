@@ -2,7 +2,7 @@
 # Regenerate from pyproject.toml, then run tools/verify_python_lock.py and a
 # Docker build. Every package, including transitive dependencies, is pinned to
 # the exact wheel accepted by the production platform.
-# direct-dependencies-sha256: 6286077a80e7f1f0b7661f96725517670866944cc4b2f4c9d2e813ab972a06fa
+# direct-dependencies-sha256: 17e7aa724dd6a57fcb988b6bb0925c4af4209a717431d176b2929550ae969377
 --only-binary=:all:
 
 beautifulsoup4==4.13.3 \
@@ -21,6 +21,8 @@ markdown-it-py==4.2.0 \
     --hash=sha256:9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a
 mdurl==0.1.2 \
     --hash=sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8
+opencc-python-reimplemented==0.1.7 \
+    --hash=sha256:41b3b92943c7bed291f448e9c7fad4b577c8c2eae30fcfe5a74edf8818493aa6
 pillow==12.3.0 \
     --hash=sha256:78cb2c6865a35ab8ff8b75fd122f6033b92a62c82801110e48ddd6c936a45d91
 playwright==1.61.0 \

@@ -16,7 +16,9 @@ from ..net.http_client import FetchError, fetch_text
 from ..core.models import SearchBounds, SearchResult
 from ..net.network_guard import PublicHostResolver
 from ..config.settings import site_by_id
-from ..config.source_catalog import METADATA_CATALOG, WEB_CATALOG
+from ..config.source_catalog import METADATA_CATALOG, SUBTITLE_CATALOG, WEB_CATALOG
+from ..subtitles.providers import build_providers
+from ..subtitles.providers.base import ProviderError
 from ..search.engine import default_indexers
 from .diagnostic_codes import SiteDiagnosticCodes
 from .diagnostics import FunctionalProbeAdapter, SiteDiagnosticError
@@ -321,6 +323,45 @@ class _WebDownloadSiteProbe(_ConfiguredProbe):
         return manifest
 
 
+# A syntactically valid code no work uses: the connection stage only needs the
+# source to answer a lookup, and a real code would leak diagnostics data.
+_SUBTITLE_PROBE_CODE = "PROBE-000"
+_SUBTITLE_ERROR_CODES = {
+    "parse": "parse_drift",
+    "blocked": "challenge_detected",
+    "network": "connection_failed",
+}
+
+
+class _SubtitleSiteProbe(_ConfiguredProbe):
+    def stage(self, stage: str) -> None:
+        if stage in {"configuration", "dns"}:
+            getattr(self, stage)()
+            return
+        if stage == "connection":
+            # The API root of some sources answers 403 by design, so a lookup
+            # proves the connection instead of fetching the base URL.
+            self.dns()
+            self._search(_SUBTITLE_PROBE_CODE)
+            return
+        if stage == "search":
+            self.configuration()
+            # Most works have no subtitles yet, so an empty result still
+            # proves the source answered and its format parsed.
+            self._search(self.code)
+            return
+        raise SiteDiagnosticError("invalid_config")
+
+    def _search(self, code: str) -> None:
+        providers = build_providers([self.site] if self.site else [])
+        if not providers:
+            raise SiteDiagnosticError("invalid_config")
+        try:
+            providers[0].search(code, timeout=10.0)
+        except ProviderError as exc:
+            raise SiteDiagnosticError(_SUBTITLE_ERROR_CODES[exc.kind]) from exc
+
+
 def build_site_probe_adapters(
     settings: dict[str, object],
     codes: SiteDiagnosticCodes | str | None,
@@ -380,6 +421,16 @@ def build_site_probe_adapters(
         adapters.append(FunctionalProbeAdapter(
             site_id,
             ("configuration", "dns", "connection", "search") if code else ("configuration", "dns"),
+            probe.stage,
+        ))
+    for site_id in SUBTITLE_CATALOG:
+        if site_by_id(site_id, settings) is None:
+            continue
+        code = codes.for_site(site_id)
+        probe = _SubtitleSiteProbe(site_id, code, settings)
+        adapters.append(FunctionalProbeAdapter(
+            site_id,
+            ("configuration", "dns", "connection", "search") if code else ("configuration", "dns", "connection"),
             probe.stage,
         ))
     return tuple(adapters)

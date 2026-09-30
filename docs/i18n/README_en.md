@@ -48,12 +48,13 @@ JAV Pilot is a self-hosted application for searching, downloading and organizing
 3. ⬇️ **Two download channels**: magnet tasks are sent to qBittorrent; web downloads select the quality automatically and prefer the original, Chinese-subtitled and uncensored versions in that order.
 4. 🔁 **Duplicate check**: before a task is created, qBittorrent tasks, web download tasks and the media library are checked to avoid downloading a work twice.
 5. 🗂️ **Automatic organization**: completed downloads are filed by catalog code, with posters, fanart and NFO metadata generated.
-6. 📚 **Media library**: scans the video directory, including manually added files, and fills in missing posters and metadata.
-7. 🏆 **Rankings**: work, actress and genre rankings from JavDB, FANZA, FC2, MGStage and other sources, with batch detail parsing in the background.
-8. 🌐 **Title translation**: a built-in public translation service, plus support for AI services such as OpenAI-compatible APIs, Claude, Gemini and Ollama; translations use the interface language by default.
-9. 🩺 **Site diagnostics**: checks site availability periodically and distinguishes DNS, connection, TLS, anti-bot challenge and page-structure failures.
-10. 🔔 **Notifications**: notifies through Webhook, Gotify, Telegram or NAS notifications when a download completes or fails, disk space runs low, or a site fails.
-11. 📱 **Multilingual, responsive interface**: available in 简体中文, 繁體中文, English, 日本語, Français, Español, Русский and العربية, following the browser and system language by default; works on desktop and mobile, with light and dark themes.
+6. 💬 **Chinese subtitles**: after a download is filed and its metadata completed, external Chinese subtitles are fetched from Xunlei and SubtitleCat; the best match by catalog code, duration and language is saved next to the video and can be converted to Simplified or Traditional Chinese. The library can fetch missing subtitles in bulk or switch to another candidate.
+7. 📚 **Media library**: scans the video directory, including manually added files, and fills in missing posters and metadata.
+8. 🏆 **Rankings**: work, actress and genre rankings from JavDB, FANZA, FC2, MGStage and other sources, with batch detail parsing in the background.
+9. 🌐 **Title translation**: a built-in public translation service, plus support for AI services such as OpenAI-compatible APIs, Claude, Gemini and Ollama; translations use the interface language by default.
+10. 🩺 **Site diagnostics**: checks site availability periodically and distinguishes DNS, connection, TLS, anti-bot challenge and page-structure failures.
+11. 🔔 **Notifications**: notifies through Webhook, Gotify, Telegram or NAS notifications when a download completes or fails, disk space runs low, or a site fails.
+12. 📱 **Multilingual, responsive interface**: available in 简体中文, 繁體中文, English, 日本語, Français, Español, Русский and العربية, following the browser and system language by default; works on desktop and mobile, with light and dark themes.
 
 ## 🚀 Quick start
 

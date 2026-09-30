@@ -1129,7 +1129,7 @@ class MediaLibraryStore:
             clauses.append(f"NOT ({complete_sql})")
         anomaly = optional_enum(
             raw["anomaly"],
-            {"duplicate", "unidentified", "missing", "nfo", "portrait", "landscape"},
+            {"duplicate", "unidentified", "missing", "nfo", "portrait", "landscape", "subtitle"},
             "anomaly",
         )
         if anomaly == "duplicate":
@@ -1138,7 +1138,7 @@ class MediaLibraryStore:
             clauses.append("e.code_key IS NULL")
         elif anomaly == "missing":
             clauses.append(f"{effective_presence} = 'missing'")
-        elif anomaly in {"nfo", "portrait", "landscape"}:
+        elif anomaly in {"nfo", "portrait", "landscape", "subtitle"}:
             clauses.append(f"e.{anomaly}_status != 'present'")
         minimum = optional_height(raw["min_height"], "min_height")
         maximum = optional_height(raw["max_height"], "max_height")
@@ -1255,8 +1255,8 @@ class MediaLibraryStore:
                 generation_id, entry_id, scope_path, code, code_key, variant,
                 title, release_date, source, presence, primary_media_path,
                 nfo_status, nfo_path, portrait_status, landscape_status,
-                quality_height, duplicate_count, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                subtitle_status, quality_height, duplicate_count, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(generation_id, entry_id) DO UPDATE SET
                 scope_path = excluded.scope_path,
                 code = excluded.code,
@@ -1271,6 +1271,7 @@ class MediaLibraryStore:
                 nfo_path = excluded.nfo_path,
                 portrait_status = excluded.portrait_status,
                 landscape_status = excluded.landscape_status,
+                subtitle_status = excluded.subtitle_status,
                 quality_height = excluded.quality_height,
                 duplicate_count = excluded.duplicate_count,
                 updated_at = excluded.updated_at
@@ -1291,6 +1292,7 @@ class MediaLibraryStore:
                 row["nfo_path"],
                 str(row["portrait_status"]),
                 str(row["landscape_status"]),
+                str(row["subtitle_status"]),
                 row["quality_height"],
                 (
                     int(row["duplicate_count"])
@@ -1336,8 +1338,8 @@ class MediaLibraryStore:
                 generation_id, relative_path, parent_path, entry_id, scope_path,
                 code, code_key, variant, source, device, inode, size, modified_ns, suffix,
                 changed_ns, part_key, quality_height, quality_source, nfo_status,
-                nfo_path, nfo_json, portrait_status, landscape_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                nfo_path, nfo_json, portrait_status, landscape_status, subtitle_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 generation_id,
@@ -1363,6 +1365,7 @@ class MediaLibraryStore:
                 item.nfo_json,
                 item.portrait_status,
                 item.landscape_status,
+                item.subtitle_status,
             ),
         )
 
@@ -1397,6 +1400,11 @@ class MediaLibraryStore:
             if any(str(row["landscape_status"]) == "present" for row in rows)
             else "missing"
         )
+        subtitle_status = (
+            "present"
+            if any(str(row["subtitle_status"]) == "present" for row in rows)
+            else "missing"
+        )
         quality_values = [
             int(row["quality_height"])
             for row in rows
@@ -1407,9 +1415,9 @@ class MediaLibraryStore:
             INSERT INTO media_library_workspace_entries (
                 generation_id, entry_id, scope_path, code, code_key, variant, title,
                 release_date, source, presence, primary_media_path, nfo_status,
-                nfo_path, portrait_status, landscape_status, quality_height,
-                duplicate_count, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'present', ?, ?, ?, ?, ?, ?, 0, ?)
+                nfo_path, portrait_status, landscape_status, subtitle_status,
+                quality_height, duplicate_count, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'present', ?, ?, ?, ?, ?, ?, ?, 0, ?)
             ON CONFLICT(generation_id, entry_id) DO UPDATE SET
                 scope_path = excluded.scope_path, code = excluded.code,
                 code_key = excluded.code_key, variant = excluded.variant,
@@ -1419,6 +1427,7 @@ class MediaLibraryStore:
                 nfo_status = excluded.nfo_status, nfo_path = excluded.nfo_path,
                 portrait_status = excluded.portrait_status,
                 landscape_status = excluded.landscape_status,
+                subtitle_status = excluded.subtitle_status,
                 quality_height = excluded.quality_height,
                 updated_at = excluded.updated_at
             """,
@@ -1437,6 +1446,7 @@ class MediaLibraryStore:
                 str(nfo_row["nfo_path"]) if nfo_row["nfo_path"] else None,
                 portrait_status,
                 landscape_status,
+                subtitle_status,
                 max(quality_values) if quality_values else None,
                 stored_timestamp(self._clock()),
             ),
@@ -1630,12 +1640,14 @@ class MediaLibraryStore:
                 retired_generation_id, parent_path, entry_id, scope_path,
                 code, code_key, variant, source, device, inode, size, modified_ns,
                 suffix, changed_ns, part_key, quality_height, quality_source,
-                nfo_status, nfo_path, nfo_json, portrait_status, landscape_status
+                nfo_status, nfo_path, nfo_json, portrait_status, landscape_status,
+                subtitle_status
             )
             SELECT ?, relative_path, ?, NULL, parent_path, entry_id, scope_path,
                    code, code_key, variant, source, device, inode, size, modified_ns,
                    suffix, changed_ns, part_key, quality_height, quality_source,
-                   nfo_status, nfo_path, nfo_json, portrait_status, landscape_status
+                   nfo_status, nfo_path, nfo_json, portrait_status, landscape_status,
+                   subtitle_status
             FROM media_library_workspace_files WHERE generation_id = ?
             """,
             (root_key, generation_id, generation_id),
@@ -1662,13 +1674,13 @@ class MediaLibraryStore:
                 root_key, entry_id, created_generation_id, retired_generation_id,
                 scope_path, code, code_key, variant, title, release_date, source,
                 presence, primary_media_path, nfo_status, nfo_path,
-                portrait_status, landscape_status, quality_height,
+                portrait_status, landscape_status, subtitle_status, quality_height,
                 duplicate_count, updated_at
             )
             SELECT ?, entry_id, ?, NULL, scope_path, code, code_key, variant,
                    title, release_date, source, presence, primary_media_path,
                    nfo_status, nfo_path, portrait_status, landscape_status,
-                   quality_height, duplicate_count, updated_at
+                   subtitle_status, quality_height, duplicate_count, updated_at
             FROM media_library_workspace_entries WHERE generation_id = ?
             """,
             (root_key, generation_id, generation_id),
@@ -1713,6 +1725,7 @@ class MediaLibraryStore:
             "nfo_json",
             "portrait_status",
             "landscape_status",
+            "subtitle_status",
         )
         replaced = tuple(
             str(row[0])
@@ -1805,6 +1818,7 @@ class MediaLibraryStore:
             "nfo_json",
             "portrait_status",
             "landscape_status",
+            "subtitle_status",
         )
         for published_table, workspace_table, fields in (
             (
@@ -1901,6 +1915,7 @@ class MediaLibraryStore:
             "nfo_path",
             "portrait_status",
             "landscape_status",
+            "subtitle_status",
             "quality_height",
             "duplicate_count",
         )
@@ -2043,6 +2058,7 @@ def _file_record_row(row: sqlite3.Row) -> FileRecord:
         nfo_json=(str(row["nfo_json"]) if row["nfo_json"] is not None else None),
         portrait_status=str(row["portrait_status"]),
         landscape_status=str(row["landscape_status"]),
+        subtitle_status=str(row["subtitle_status"]),
     )
 
 
@@ -2072,6 +2088,7 @@ def _entry_payload(
         "nfo_path": str(row["nfo_path"]) if row["nfo_path"] is not None else None,
         "portrait_status": str(row["portrait_status"]),
         "landscape_status": str(row["landscape_status"]),
+        "subtitle_status": str(row["subtitle_status"]),
         "quality_height": (
             int(row["quality_height"]) if row["quality_height"] is not None else None
         ),

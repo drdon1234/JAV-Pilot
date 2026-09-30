@@ -29,10 +29,10 @@ MAX_FETCH_ATTEMPTS = 2
 RETRYABLE_HTTP_STATUSES = frozenset({408, 425, 429, 500, 502, 503, 504})
 
 
-class _SameOriginRedirectHandler(HTTPRedirectHandler):
-    def __init__(self, allowed_origin: tuple[str, str, int]) -> None:
+class _AllowedOriginRedirectHandler(HTTPRedirectHandler):
+    def __init__(self, allowed_origins: frozenset[tuple[str, str, int]]) -> None:
         super().__init__()
-        self.allowed_origin = allowed_origin
+        self.allowed_origins = allowed_origins
 
     def redirect_request(
         self,
@@ -44,7 +44,7 @@ class _SameOriginRedirectHandler(HTTPRedirectHandler):
         newurl: str,
     ) -> Request | None:
         absolute = urljoin(req.full_url, newurl)
-        if _url_origin(absolute) != self.allowed_origin:
+        if _url_origin(absolute) not in self.allowed_origins:
             raise FetchError("cross-origin redirect was rejected")
         return super().redirect_request(req, fp, code, msg, headers, absolute)
 
@@ -58,12 +58,63 @@ def fetch_text(
     allowed_origin: str | None = None,
     data: bytes | None = None,
 ) -> str:
+    raw, charset = _fetch(
+        url,
+        timeout=timeout,
+        max_bytes=max_bytes,
+        headers=headers,
+        allowed_origins=(allowed_origin or url,),
+        data=data,
+    )
+    try:
+        return raw.decode(charset or "utf-8", errors="replace")
+    except LookupError as exc:
+        raise FetchError("response declared an unsupported charset") from exc
+
+
+def fetch_bytes(
+    url: str,
+    *,
+    timeout: float,
+    max_bytes: int,
+    allowed_origins: tuple[str, ...],
+    headers: dict[str, str] | None = None,
+) -> bytes:
+    """Fetch a bounded body from one of ``allowed_origins``.
+
+    Unlike ``fetch_text`` the request may target any listed origin, such as a
+    source's API host and its download host; redirects stay within the list.
+    """
+
+    if not allowed_origins:
+        raise FetchError("request URL is outside the configured source")
+    raw, _charset = _fetch(
+        url,
+        timeout=timeout,
+        max_bytes=max_bytes,
+        headers=headers,
+        allowed_origins=tuple(allowed_origins),
+        data=None,
+    )
+    return raw
+
+
+def _fetch(
+    url: str,
+    *,
+    timeout: float,
+    max_bytes: int,
+    headers: dict[str, str] | None,
+    allowed_origins: tuple[str, ...],
+    data: bytes | None,
+) -> tuple[bytes, str | None]:
     request_headers = dict(DEFAULT_HEADERS)
     if headers:
         request_headers.update(headers)
 
-    origin = _url_origin(allowed_origin or url)
-    if _url_origin(url) != origin:
+    origins = frozenset(_url_origin(value) for value in allowed_origins)
+    origin = _url_origin(url)
+    if origin not in origins:
         raise FetchError("request URL is outside the configured source")
     if not PublicHostResolver(max_hosts=1).is_public(origin[1]):
         raise FetchError("request host must resolve to a public address")
@@ -72,7 +123,7 @@ def fetch_text(
         ProxyHandler(),
         PinnedHTTPHandler(),
         PinnedHTTPSHandler(),
-        _SameOriginRedirectHandler(origin),
+        _AllowedOriginRedirectHandler(origins),
     )
     deadline = time.monotonic() + timeout
     for attempt in range(MAX_FETCH_ATTEMPTS):
@@ -81,16 +132,12 @@ def fetch_text(
             raise FetchError("request timed out")
         try:
             with opener.open(request, timeout=max(0.001, remaining)) as response:
-                if _url_origin(response.geturl() or url) != origin:
+                if _url_origin(response.geturl() or url) not in origins:
                     raise FetchError("cross-origin redirect was rejected")
                 raw = response.read(max_bytes + 1)
                 if len(raw) > max_bytes:
                     raise FetchError(f"response exceeded {max_bytes} bytes")
-                charset = response.headers.get_content_charset() or "utf-8"
-            try:
-                return raw.decode(charset, errors="replace")
-            except LookupError as exc:
-                raise FetchError("response declared an unsupported charset") from exc
+                return raw, response.headers.get_content_charset()
         except HTTPError as exc:
             status = exc.code
             exc.close()
