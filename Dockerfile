@@ -99,7 +99,7 @@ COPY LICENSE ./
 ARG VCS_REF=unknown
 
 LABEL org.opencontainers.image.title="JAV Pilot" \
-      org.opencontainers.image.version="0.0.3" \
+      org.opencontainers.image.version="0.1.0" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.source="https://github.com/drdon1234/JAV-Pilot" \
       org.opencontainers.image.revision="${VCS_REF}"
