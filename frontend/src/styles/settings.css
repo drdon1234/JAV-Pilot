@@ -157,7 +157,15 @@
   color: var(--ink-soft);
   font-size: 12px;
   font-weight: 680;
-}@media (max-width: 1240px) {
+}
+
+/* The history tools follow the runtime grid in the maintenance tab. */
+.maintenance-section > .runtime-grid {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+
+@media (max-width: 1240px) {
 
   .settings-form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -234,6 +242,12 @@
 }
 
 @media (max-width: 560px) {
+
+  /* Keeps the four tabs on one line at common phone widths. */
+  .settings-index a {
+    gap: 6px;
+    padding: 0 8px;
+  }
 
   .settings-section-header {
     align-items: flex-start;

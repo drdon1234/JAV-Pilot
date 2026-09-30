@@ -18,9 +18,7 @@ import {
   Button,
   EmptyState,
   Field,
-  IconButton,
   InlineNotice,
-  PageHeader,
   SkeletonRows,
   StatusBadge,
 } from '../components/ui'
@@ -205,7 +203,8 @@ function PreviewTable({ preview }: { preview: HistoryPreviewPayload }) {
   )
 }
 
-export function HistoryPage() {
+/** The history maintenance tools shown in the Settings "维护" tab. */
+export function HistoryMaintenancePanel({ active }: { active: boolean }) {
   const toast = useToast()
   const queryClient = useQueryClient()
   const [types, setTypes] = useState<Record<HistoryTaskType, boolean>>({
@@ -244,8 +243,9 @@ export function HistoryPage() {
   const status = useQuery({
     queryKey: ['history-status'],
     queryFn: api.historyStatus,
+    enabled: active,
     retry: false,
-    refetchInterval: 30_000,
+    refetchInterval: active ? 30_000 : false,
   })
 
   useEffect(() => {
@@ -459,32 +459,19 @@ export function HistoryPage() {
 
   if (status.isError && !status.data) {
     return (
-      <div className="page history-page">
-        <PageHeader title={t('历史治理')} description={t('任务记录清理、保留与导出')} />
-        <EmptyState
-          role="alert"
-          title={t('历史服务暂不可用')}
-          description={t('无法读取任务历史状态，请稍后重试。')}
-          action={<Button type="button" onClick={() => void status.refetch()}>{t('重新加载')}</Button>}
-        />
-      </div>
+      <EmptyState
+        role="alert"
+        title={t('历史服务暂不可用')}
+        description={t('无法读取任务历史状态，请稍后重试。')}
+        action={<Button type="button" onClick={() => void status.refetch()}>{t('重新加载')}</Button>}
+      />
     )
   }
 
   return (
-    <div className="page history-page">
-      <PageHeader
-        title={t('历史治理')}
-        description={t('任务记录清理、保留与导出')}
-        actions={(
-          <IconButton label={t('刷新历史状态')} onClick={() => void status.refetch()} disabled={status.isFetching}>
-            <RefreshCw className={status.isFetching ? 'spin' : ''} aria-hidden="true" />
-          </IconButton>
-        )}
-      />
-
+    <div className="history-maintenance">
       {status.isError ? <InlineNotice tone="warning" role="status">{t('历史状态暂时无法刷新，当前显示的是上次读取的数据。')}</InlineNotice> : null}
-      {status.isLoading ? <SkeletonRows count={3} /> : (
+      {!status.data ? <SkeletonRows count={3} /> : (
         <>
           <section className="history-status-strip" aria-label={t('历史维护状态')}>
             <div>
@@ -514,7 +501,7 @@ export function HistoryPage() {
           <section className="history-workspace" aria-labelledby="history-filter-title">
             <div className="section-toolbar">
               <div>
-                <h2 id="history-filter-title">{t('清理范围')}</h2>
+                <h3 id="history-filter-title">{t('清理范围')}</h3>
                 <span>{t('预览固定记录后才可执行')}</span>
               </div>
               <Archive aria-hidden="true" />
@@ -678,7 +665,7 @@ export function HistoryPage() {
             <section className="history-tool" aria-labelledby="history-retention-title">
               <div className="section-toolbar">
                 <div>
-                  <h2 id="history-retention-title">{t('保留策略')}</h2>
+                  <h3 id="history-retention-title">{t('保留策略')}</h3>
                   <span>{t('按任务类型设置天数')}</span>
                 </div>
                 <ShieldCheck aria-hidden="true" />
@@ -833,7 +820,7 @@ export function HistoryPage() {
             <section className="history-tool" aria-labelledby="history-vacuum-title">
               <div className="section-toolbar">
                 <div>
-                  <h2 id="history-vacuum-title">{t('数据库空间回收')}</h2>
+                  <h3 id="history-vacuum-title">{t('数据库空间回收')}</h3>
                   <span>{t('与记录清理分离执行')}</span>
                 </div>
                 <Database aria-hidden="true" />

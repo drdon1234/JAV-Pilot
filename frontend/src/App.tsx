@@ -12,7 +12,6 @@ import { t } from './lib/i18n'
 
 const DownloadsPage = lazy(() => recoverableImport('src/pages/DownloadsPage.tsx', 'DownloadsPage', () => import('./pages/DownloadsPage')).then((module) => ({ default: module.DownloadsPage })))
 const DetailPage = lazy(() => recoverableImport('src/pages/DetailPage.tsx', 'DetailPage', () => import('./pages/DetailPage')).then((module) => ({ default: module.DetailPage })))
-const HistoryPage = lazy(() => recoverableImport('src/pages/HistoryPage.tsx', 'HistoryPage', () => import('./pages/HistoryPage')).then((module) => ({ default: module.HistoryPage })))
 const LibraryPage = lazy(() => recoverableImport('src/pages/LibraryPage.tsx', 'LibraryPage', () => import('./pages/LibraryPage')).then((module) => ({ default: module.LibraryPage })))
 const LoginPage = lazy(() => recoverableImport('src/pages/LoginPage.tsx', 'LoginPage', () => import('./pages/LoginPage')).then((module) => ({ default: module.LoginPage })))
 const MetadataPage = lazy(() => recoverableImport('src/pages/MetadataPage.tsx', 'MetadataPage', () => import('./pages/MetadataPage')).then((module) => ({ default: module.MetadataPage })))
@@ -124,7 +123,7 @@ export default function App() {
             <Route path="/metadata" element={lazyRoute(<MetadataPage />)} />
             <Route path="/subtitles" element={lazyRoute(<SubtitlesPage />)} />
             <Route path="/organizer" element={lazyRoute(<OrganizerPage />)} />
-            <Route path="/history" element={lazyRoute(<HistoryPage />)} />
+            <Route path="/history" element={<Navigate to="/settings#maintenance" replace />} />
             <Route path="/sites" element={lazyRoute(<SitesPage />)} />
             <Route path="/workflow-defaults" element={lazyRoute(<WorkflowDefaultsPage />)} />
             <Route path="/settings" element={lazyRoute(<SettingsPage />)} />

@@ -13,7 +13,7 @@ _PAGES = (
     ("/downloads", "下载任务"),
     ("/library", "媒体库"),
     ("/metadata", "元数据补全"),
-    ("/history", "历史治理"),
+    ("/settings#maintenance", "维护"),
 )
 _FORBIDDEN_POST_PATHS = frozenset(
     {

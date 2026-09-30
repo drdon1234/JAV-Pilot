@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Captions, Clapperboard, Compass, Download, FileImage, Film, FolderCog, Globe2, HardDriveDownload, History, Library, ListRestart, type LucideIcon, Search, Settings, SlidersHorizontal, Trophy, Wrench } from 'lucide-react'
+import { Captions, Clapperboard, Compass, Download, FileImage, Film, FolderCog, Globe2, Library, ListChecks, ListRestart, type LucideIcon, Search, Settings, SlidersHorizontal, Trophy, Wrench } from 'lucide-react'
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigationType } from 'react-router-dom'
 
@@ -8,7 +8,7 @@ import { MAIN_CONTENT_SCROLL_QUERY, usesMainContentScroll } from '../lib/pageScr
 import { LanguageSelect } from './LanguageSelect'
 import { ThemeButton } from './ThemeProvider'
 import { StatusBadge } from './ui'
-import { t } from '../lib/i18n'
+import { t, tc } from '../lib/i18n'
 
 const MAX_SCROLL_POSITIONS = 24
 
@@ -238,11 +238,12 @@ const navigationGroups: NavigationGroup[] = [
   },
   {
     id: 'tasks',
-    label: t('任务中心'),
-    icon: HardDriveDownload,
+    label: tc('导航', '任务'),
+    icon: ListChecks,
     items: [
       { to: '/downloads', label: t('下载'), icon: Download },
-      { to: '/history', label: t('历史'), icon: History },
+      { to: '/metadata', label: t('元数据'), icon: FileImage },
+      { to: '/subtitles', label: t('字幕'), icon: Captions },
     ],
   },
   {
@@ -251,14 +252,12 @@ const navigationGroups: NavigationGroup[] = [
     icon: Film,
     items: [
       { to: '/library', label: t('媒体库'), icon: Library },
-      { to: '/metadata', label: t('元数据'), icon: FileImage },
-      { to: '/subtitles', label: t('字幕'), icon: Captions },
-      { to: '/organizer', label: t('整理'), icon: FolderCog },
+      { to: '/organizer', label: t('整理规则'), icon: FolderCog },
     ],
   },
   {
     id: 'system',
-    label: t('系统管理'),
+    label: t('系统'),
     icon: Wrench,
     items: [
       { to: '/sites', label: t('站点'), icon: Globe2 },

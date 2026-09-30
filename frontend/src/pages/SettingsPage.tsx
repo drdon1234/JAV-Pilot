@@ -1,15 +1,16 @@
 import '../styles/settings.css'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Activity, BellRing, KeyRound, LogOut, RefreshCw, Save, ServerCog } from 'lucide-react'
+import { useIsFetching, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { BellRing, KeyRound, LogOut, RefreshCw, Save, ServerCog, Wrench } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import { useToast } from '../components/ToastProvider'
-import { Button, Field, InlineNotice, PageHeader, SkeletonRows, StatusBadge, Toggle } from '../components/ui'
+import { Button, Field, IconButton, InlineNotice, PageHeader, SkeletonRows, StatusBadge, Toggle } from '../components/ui'
 import { api } from '../lib/api'
 import { clearAuthenticatedDetailPrefetchBatch } from '../lib/detailPrefetchSession'
 import { serviceErrorMessage } from '../lib/presentation'
 import { useSearchSessions } from '../lib/searchSessions'
+import { HistoryMaintenancePanel } from './HistoryMaintenancePanel'
 import { NotificationSettingsPanel } from './NotificationSettingsPanel'
 import { t } from '../lib/i18n'
 import { serverText } from '../lib/serverTexts'
@@ -42,14 +43,20 @@ const settingsSections = [
   { id: 'qbittorrent-settings', label: t('下载器'), icon: ServerCog },
   { id: 'access-settings', label: t('访问控制'), icon: KeyRound },
   { id: 'notification-settings', label: t('通知'), icon: BellRing },
-  { id: 'runtime-status', label: t('运行状态'), icon: Activity },
+  { id: 'maintenance', label: t('维护'), icon: Wrench },
 ] as const
+
+/** Old tab anchors that now live in another tab. */
+const legacySectionIds: Record<string, SettingsSectionId> = {
+  'runtime-status': 'maintenance',
+}
 
 type SettingsSectionId = (typeof settingsSections)[number]['id']
 
 function sectionFromHash(hash: string): SettingsSectionId {
   const candidate = hash.replace(/^#/, '')
-  return settingsSections.some((section) => section.id === candidate) ? (candidate as SettingsSectionId) : 'qbittorrent-settings'
+  if (settingsSections.some((section) => section.id === candidate)) return candidate as SettingsSectionId
+  return legacySectionIds[candidate] ?? 'qbittorrent-settings'
 }
 
 export function SettingsPage() {
@@ -64,6 +71,7 @@ export function SettingsPage() {
     queryKey: ['downloader-status'],
     queryFn: api.downloaderStatus,
   })
+  const historyStatusFetching = useIsFetching({ queryKey: ['history-status'] }) > 0
   const [qbForm, setQbForm] = useState<QbForm>(emptyQbForm)
   const qbEditRevision = useRef(0)
   const qbDirty = useRef(false)
@@ -227,7 +235,7 @@ export function SettingsPage() {
     <div className="page settings-page">
       <PageHeader
         title={t('系统设置')}
-        description={t('下载器、访问控制、通知与运行状态')}
+        description={t('下载器、访问控制、通知与系统维护')}
         actions={
           auth.data?.enabled ? (
             <Button variant="ghost" onClick={() => void logout()} disabled={loggingOut} aria-busy={loggingOut}>
@@ -471,19 +479,31 @@ export function SettingsPage() {
           </section>
 
           <section
-            className="settings-section runtime-section"
-            id="runtime-status"
+            className="settings-section maintenance-section"
+            id="maintenance"
             role="tabpanel"
-            aria-labelledby="settings-tab-runtime-status"
-            hidden={activeSection !== 'runtime-status'}
+            aria-labelledby="settings-tab-maintenance"
+            hidden={activeSection !== 'maintenance'}
           >
             <div className="settings-section-header">
               <div>
-                <Activity aria-hidden="true" />
+                <Wrench aria-hidden="true" />
                 <div>
-                  <h2>{t('运行状态')}</h2>
-                  <span>{t('只读')}</span>
+                  <h2>{t('维护')}</h2>
+                  <span>{t('运行状态、任务记录清理与数据库空间回收')}</span>
                 </div>
+              </div>
+              <div className="settings-section-actions">
+                <IconButton
+                  label={t('刷新维护状态')}
+                  onClick={() => {
+                    void runtime.refetch()
+                    void queryClient.invalidateQueries({ queryKey: ['history-status'] })
+                  }}
+                  disabled={runtime.isFetching || historyStatusFetching}
+                >
+                  <RefreshCw className={runtime.isFetching || historyStatusFetching ? 'spin' : ''} aria-hidden="true" />
+                </IconButton>
               </div>
             </div>
             <dl className="runtime-grid">
@@ -516,6 +536,7 @@ export function SettingsPage() {
                 <dd>{qb?.url || t('未配置')}</dd>
               </div>
             </dl>
+            <HistoryMaintenancePanel active={activeSection === 'maintenance'} />
           </section>
         </div>
       </div>
