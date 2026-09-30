@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import PurePosixPath
-from urllib.parse import quote, unquote, urljoin, urlsplit
+from urllib.parse import quote, unquote, urljoin, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 
@@ -35,7 +35,7 @@ class SubtitleCatProvider:
                 continue
             if not code_matches(link.get_text(" ", strip=True), code):
                 continue
-            url = urljoin(f"{self.base_url}/", href)
+            url = self._absolute(href)
             if url not in details:
                 details.append(url)
             if len(details) >= MAX_DETAIL_PAGES:
@@ -79,7 +79,7 @@ class SubtitleCatProvider:
             href = str(link.get("href") or "") if link is not None else ""
             if not href.lower().endswith(".srt"):
                 continue
-            url = urljoin(f"{self.base_url}/", href)
+            url = self._absolute(href)
             if _origin(url) != _origin(self.base_url):
                 continue
             name = unquote(PurePosixPath(urlsplit(url).path).name)
@@ -95,6 +95,17 @@ class SubtitleCatProvider:
                 )
             )
         return found
+
+    def _absolute(self, href: str) -> str:
+        """Resolve a page link and percent-encode its path.
+
+        Links carry raw titles (spaces, symbols), which http.client refuses;
+        decoding first keeps links that are already encoded unchanged.
+        """
+
+        parts = urlsplit(urljoin(f"{self.base_url}/", href))
+        path = quote(unquote(parts.path), safe="/")
+        return urlunsplit((parts.scheme, parts.netloc, path, parts.query, ""))
 
     def _page(self, url: str, timeout: float) -> str:
         self._throttle()
