@@ -191,7 +191,7 @@ npm --prefix frontend run build
 | 资料与磁链 | JavBus、JavDB、FC2（默认启用）；FANZA、MGS、AVBase、FC2DB、JAVTEN（可在“站点”中启用） |
 | 种子索引 | Sukebei、Tokyo Toshokan（通过 Jackett，可与 JAV Pilot 一同部署） |
 | 视频下载 | JableTV、SupJav、MissAV |
-| 排行榜 | JavDB、FANZA、FC2、MGStage、JavMenu，以及一本道、加勒比等无码厂商官网 |
+| 排行榜 | JavDB、FANZA、FC2、MGStage、JavMenu、Netflav，以及一本道、加勒比等无码厂商官网 |
 | 下载器 | qBittorrent |
 | 媒体服务器 | Jellyfin、Emby、Kodi（读取 NFO、海报与背景图） |
 | AI 翻译 | OpenAI 及兼容接口、Anthropic Claude、Google Gemini、Azure OpenAI、Ollama 等 |

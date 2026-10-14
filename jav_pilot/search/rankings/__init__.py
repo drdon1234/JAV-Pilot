@@ -1,4 +1,4 @@
-"""Ranking boards from JavDB, FANZA, FC2, MGStage, uncensored studios and JavMenu.
+"""Ranking boards from JavDB, FANZA, FC2, MGStage, uncensored studios, JavMenu and Netflav.
 
 Every board is a fixed first-party list fetched through the app's proxy.
 Lists are cached for 30 minutes and dynamic category lists (FANZA genres)
@@ -12,7 +12,7 @@ import threading
 import time
 from typing import Any
 
-from . import fanza, fc2, javdb, javmenu, mgs, studios
+from . import fanza, fc2, javdb, javmenu, mgs, netflav, studios
 from .common import Board, Option, RankingError, RankingRequest
 
 __all__ = ["RankingError", "RankingRequest", "fetch_ranking", "ranking_boards"]
@@ -31,6 +31,11 @@ _MONTHLY = Option("monthly", "月榜")
 _REALTIME = Option("realtime", "实时")
 _YEARLY = Option("yearly", "年榜")
 _JAVDB_TYPES = (Option("censored", "有码"), Option("uncensored", "无码"), Option("western", "欧美"))
+_NETFLAV_PICK_PERIODS = (
+    Option("m1", "本月"), Option("m2", "上月"), Option("m3", "2 个月前"), Option("m4", "3 个月前"),
+    Option("m5", "4 个月前"), Option("m6", "5 个月前"), Option("all", "全部"),
+)
+_NETFLAV_YEARS = tuple(Option(year, year) for year in netflav.YEARS)
 
 BOARDS: tuple[Board, ...] = (
     Board(
@@ -74,6 +79,16 @@ BOARDS: tuple[Board, ...] = (
         fetch=javmenu.works, note="有码榜单，可在 JavDB 暂时无法访问时使用。",
     ),
     Board(
+        id="netflav", label="Netflav", group="works", item_kind="work", source="Netflav",
+        periods=_NETFLAV_PICK_PERIODS, fetch=netflav.picks,
+        note="Netflav“最受欢迎”页的精选作品，按站点顺序排列。",
+    ),
+    Board(
+        id="netflav_yearly", label="Netflav 年度", group="works", item_kind="work", source="Netflav",
+        periods=_NETFLAV_YEARS, categories=(Option("censored", "有码"), Option("chinese", "中文字幕")),
+        fetch=netflav.yearly, note="Netflav 年度精选，按当年观看次数排序。",
+    ),
+    Board(
         id="fanza_actress", label="FANZA", group="actors", item_kind="actor", source="FANZA",
         periods=(_MONTHLY,), fetch=fanza.actresses, note="FANZA 官方女优月榜（按销量）。",
     ),
@@ -86,6 +101,11 @@ BOARDS: tuple[Board, ...] = (
         id="carib_actress", label="加勒比", group="actors", item_kind="actor", source="加勒比",
         periods=(Option("current", "当前"),), fetch=studios.carib_actresses,
         note="加勒比官网的人气无码女优榜。",
+    ),
+    Board(
+        id="netflav_actress", label="Netflav", group="actors", item_kind="actor", source="Netflav",
+        periods=(Option("current", "热门"), *_NETFLAV_YEARS), fetch=netflav.actresses,
+        note="热门女优按站点顺序排列；年度榜按当年观看次数排序，并附生日和身材数据。",
     ),
     Board(
         id="fc2_sellers", label="FC2 卖家", group="actors", item_kind="seller", source="FC2 Contents Market",

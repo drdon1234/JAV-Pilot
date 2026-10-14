@@ -194,7 +194,7 @@ npm --prefix frontend run build
 | Метаданные и magnet-ссылки | JavBus, JavDB, FC2 (включены по умолчанию); FANZA, MGS, AVBase, FC2DB, JAVTEN (включаются в разделе «Сайты») |
 | Торрент-индексаторы | Sukebei, Tokyo Toshokan (через Jackett, который можно развернуть вместе с JAV Pilot) |
 | Загрузка видео | JableTV, SupJav, MissAV |
-| Рейтинги | JavDB, FANZA, FC2, MGStage, JavMenu, а также официальные сайты студий без цензуры, например 1Pondo и Caribbeancom |
+| Рейтинги | JavDB, FANZA, FC2, MGStage, JavMenu, Netflav, а также официальные сайты студий без цензуры, например 1Pondo и Caribbeancom |
 | Клиент загрузки | qBittorrent |
 | Медиасерверы | Jellyfin, Emby, Kodi (читают NFO, постеры и фоновые изображения) |
 | ИИ-перевод | OpenAI и совместимые API, Anthropic Claude, Google Gemini, Azure OpenAI, Ollama и другие |

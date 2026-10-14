@@ -194,7 +194,7 @@ npm --prefix frontend run build
 | 情報とマグネットリンク | JavBus、JavDB、FC2（既定で有効）、FANZA、MGS、AVBase、FC2DB、JAVTEN（「サイト」で有効化可能） |
 | トレントインデクサー | Sukebei、Tokyo Toshokan（Jackett 経由。JAV Pilot と一緒にデプロイ可能） |
 | 動画ダウンロード | JableTV、SupJav、MissAV |
-| ランキング | JavDB、FANZA、FC2、MGStage、JavMenu、および一本道・カリビアンコムなど無修正メーカーの公式サイト |
+| ランキング | JavDB、FANZA、FC2、MGStage、JavMenu、Netflav、および一本道・カリビアンコムなど無修正メーカーの公式サイト |
 | ダウンロードクライアント | qBittorrent |
 | メディアサーバー | Jellyfin、Emby、Kodi（NFO・ポスター・背景画像を読み込み） |
 | AI 翻訳 | OpenAI と互換 API、Anthropic Claude、Google Gemini、Azure OpenAI、Ollama など |

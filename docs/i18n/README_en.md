@@ -194,7 +194,7 @@ See the [usage guide](../guide/usage.md) for the complete walkthrough.
 | Metadata and magnets | JavBus, JavDB, FC2 (enabled by default); FANZA, MGS, AVBase, FC2DB, JAVTEN (can be enabled under “Sites”) |
 | Torrent indexers | Sukebei, Tokyo Toshokan (through Jackett, which can be deployed with JAV Pilot) |
 | Video downloads | JableTV, SupJav, MissAV |
-| Rankings | JavDB, FANZA, FC2, MGStage, JavMenu, and the official sites of uncensored studios such as 1Pondo and Caribbeancom |
+| Rankings | JavDB, FANZA, FC2, MGStage, JavMenu, Netflav, and the official sites of uncensored studios such as 1Pondo and Caribbeancom |
 | Download client | qBittorrent |
 | Media servers | Jellyfin, Emby, Kodi (reading NFO, posters and fanart) |
 | AI translation | OpenAI and compatible APIs, Anthropic Claude, Google Gemini, Azure OpenAI, Ollama and more |
