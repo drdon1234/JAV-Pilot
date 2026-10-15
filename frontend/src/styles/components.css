@@ -228,6 +228,19 @@
   min-width: 0;
 }
 
+.language-select::after {
+  position: absolute;
+  top: 50%;
+  inset-inline-end: 11px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  content: '';
+  pointer-events: none;
+  transform: translateY(-65%) rotate(45deg);
+}
+
 .language-select svg {
   position: absolute;
   top: 50%;
@@ -240,11 +253,22 @@
 }
 
 .language-select select {
+  appearance: none;
   min-height: 38px;
-  padding-inline-start: 35px;
+  border-color: var(--border);
+  background: var(--surface-muted);
+  padding-inline: 35px 30px;
   cursor: pointer;
   font-size: 12px;
   font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.language-select select:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-strong);
 }
 
 .field {
@@ -687,7 +711,17 @@ body:has(.toast) .back-to-top {
   inset-inline-end: 18px;
   display: grid;
   gap: 8px;
-  width: 156px;
+  width: min(220px, calc(100vw - 36px));
+}
+
+.login-theme .language-select select {
+  width: 100%;
+}
+
+.page-header h1[data-page-heading]:focus,
+.page-header h1[data-page-heading]:focus-visible {
+  outline: 0;
+  box-shadow: none;
 }
 
 .login-panel {

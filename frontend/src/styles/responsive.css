@@ -406,6 +406,10 @@
     inset-inline-start: 13px;
   }
 
+  .mobile-header .language-select::after {
+    display: none;
+  }
+
   .mobile-header .language-select select {
     position: absolute;
     inset: 0;
@@ -425,6 +429,17 @@
 
   .login-theme .theme-option {
     min-height: 44px;
+  }
+
+  .login-page {
+    grid-template-rows: auto 1fr;
+    gap: 20px;
+  }
+
+  .login-theme {
+    position: static;
+    justify-self: end;
+    width: min(260px, 100%);
   }
 
   .main-content {
@@ -1437,13 +1452,9 @@
 
   .login-page {
     align-items: start;
-    padding: 78px 14px 24px;
-  }
-
-  .login-theme {
-    top: 12px;
-    inset-inline-end: 12px;
-    width: 156px;
+    align-content: start;
+    grid-template-rows: auto auto;
+    padding: 12px 14px 24px;
   }
 
   .login-panel {
