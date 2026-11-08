@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from ...indexers.fanza import fanza_display_code
-from ...indexers.metadata_catalog import release_date, text
+from ...indexers.metadata_catalog import display_code, release_date, text
 from ...net.http_client import FetchError
 from .common import (
     MAX_ITEMS,
@@ -29,6 +29,7 @@ from .common import (
     person_item,
     rating_value,
     work_item,
+    work_id_for,
 )
 
 SOURCE_ID = "ranking-fanza"
@@ -130,7 +131,7 @@ def works(request: RankingRequest) -> list[Item]:
                 votes=review.get("total"),
             )
         )
-    return _require(items)
+    return _complete_codes(_require(items))
 
 
 def actresses(request: RankingRequest) -> list[Item]:
@@ -192,7 +193,38 @@ def genre_works(request: RankingRequest) -> list[Item]:
                 votes=review.get("count"),
             )
         )
-    return _require(items)
+    return _complete_codes(_require(items))
+
+
+def _complete_codes(items: list[Item]) -> list[Item]:
+    """Resolve only ambiguous IDs, in one official request rather than searches."""
+    from urllib.parse import parse_qs, urlsplit
+
+    missing = []
+    for item in items:
+        if item.get("code") or not item.get("detail_url"):
+            continue
+        cid = parse_qs(urlsplit(item["detail_url"]).query).get("id", [""])[0]
+        if re.fullmatch(r"[a-z0-9_]{1,60}", cid):
+            missing.append((item, cid))
+    if not missing:
+        return items
+    query = "query {" + " ".join(
+        f'w{i}: ppvContent(id: {json.dumps(cid)}) {{ id makerContentId }}'
+        for i, (_, cid) in enumerate(missing)
+    ) + "}"
+    try:
+        payload = _query(query, {})
+    except RankingError:
+        return items  # The source link remains usable when metadata is unavailable.
+    for i, (item, cid) in enumerate(missing):
+        detail = payload.get(f"w{i}")
+        if isinstance(detail, dict) and detail.get("id") == cid:
+            code = display_code(detail.get("makerContentId"))
+            if code:
+                item["code"] = code
+                item["work_id"] = work_id_for(code) or item["work_id"]
+    return items
 
 
 def genres() -> tuple[Option, ...]:

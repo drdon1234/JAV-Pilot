@@ -8,6 +8,9 @@ from http import HTTPStatus
 from ...core.guards import QueryError
 from ...search.history import KINDS as SEARCH_HISTORY_KINDS
 from ...search.rankings import RankingError, RankingRequest, fetch_ranking, ranking_boards
+from ...search.detail_prefetch import DetailPrefetchValidationError
+from ...config.settings import load_settings
+from ..services.detail_prefetch import detail_snapshot_from_url
 from ..base import BaseHandler
 from ..request import int_param, query_params, single_param
 from ..services.search_history import search_history_limit, search_history_store
@@ -81,7 +84,24 @@ class SearchHistoryRoutes(BaseHandler):
         except QueryError as exc:
             self._send_json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_REQUEST)
             return
-        self._send_json({"ok": True, **payload})
+        settings = load_settings()
+        items = []
+        for raw in payload.get("items", []):
+            item = dict(raw)
+            item["detail_source"] = None
+            source = str(item.get("source_id") or "").removeprefix("ranking-")
+            if item.get("work_id") and item.get("detail_url"):
+                try:
+                    detail_snapshot_from_url(
+                        item["work_id"], item.get("code") or "", source,
+                        item["detail_url"], settings,
+                    )
+                except (ValueError, DetailPrefetchValidationError):
+                    pass
+                else:
+                    item["detail_source"] = source
+            items.append(item)
+        self._send_json({"ok": True, **payload, "items": items})
 
     def _handle_ranking_boards(self) -> None:
         self._send_json({"ok": True, "boards": ranking_boards()})

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import hashlib
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -130,7 +131,10 @@ def work_item(
     return {
         "rank": rank,
         "code": code,
-        "work_id": work_id_for(code),
+        "work_id": work_id_for(code) or (
+            "record:" + hashlib.sha256(f"{source_id}:{detail_url}".encode()).hexdigest()
+            if detail_url else None
+        ),
         "title": title,
         "subtitle": subtitle or None,
         "release_date": release_date,
@@ -151,7 +155,7 @@ def person_item(
     cover: str | None,
     subtitle: str | None = None,
 ) -> Item:
-    return work_item(
+    item = work_item(
         rank,
         source_id=source_id,
         code=None,
@@ -160,6 +164,8 @@ def person_item(
         cover=cover,
         subtitle=subtitle,
     )
+    item["work_id"] = None
+    return item
 
 
 def rating_value(value: object) -> float | None:

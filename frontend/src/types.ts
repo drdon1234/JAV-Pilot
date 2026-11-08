@@ -2015,13 +2015,15 @@ export interface RankingBoardsPayload {
 export interface RankingItem {
   rank: number
   code: string | null
-  /** Search results' work id for the code; null when the code has no catalog form. */
+  /** Shared catalog identity, or a stable source-link identity for uncoded works. */
   work_id: string | null
   /** Work title, or the person's name on actor and seller boards. */
   title: string
   subtitle: string | null
   release_date: string | null
   detail_url: string | null
+  /** Enabled native source whose detail URL the server has validated. */
+  detail_source?: string | null
   cover: string | null
   rating: number | null
   votes: number | null

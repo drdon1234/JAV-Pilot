@@ -53,6 +53,7 @@ from ..services.detail_prefetch import (
     detail_prefetch_manager,
     detail_prefetch_snapshots_from_codes,
     detail_prefetch_snapshots_from_search_session,
+    detail_snapshot_from_url,
 )
 from ..services.enrichment import (
     MAX_STREAM_ENRICHMENTS_PER_SOURCE,
@@ -966,6 +967,18 @@ class SearchRoutes(BaseHandler):
         recovery_query = single_param(params, "q").strip()
         settings = load_settings()
         sources = source_list(single_param(params, "source") or "all", settings)
+        source_url = single_param(params, "detail_url").strip()
+        linked_work = None
+        if source_url:
+            try:
+                if len(sources) != 1:
+                    raise DetailPrefetchValidationError("detail link requires one source")
+                linked_work = work_result_from_snapshot(detail_snapshot_from_url(
+                    work_id, requested, sources[0], source_url, settings,
+                ))
+            except (ValueError, DetailPrefetchValidationError) as exc:
+                self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
         prefetched = None
         if work_id:
             try:
@@ -981,6 +994,8 @@ class SearchRoutes(BaseHandler):
         )
         if recent_work is None and prefetched is not None:
             recent_work = work_result_from_snapshot(prefetched)
+        if linked_work is not None:
+            recent_work = linked_work
         if recent_work is None and not requested_key and not recovery_query:
             self._send_json(
                 {"error": "work recovery query is required"}, HTTPStatus.BAD_REQUEST
@@ -1024,6 +1039,7 @@ class SearchRoutes(BaseHandler):
             "work",
             work_id or f"code:{requested_key}",
             sources,
+            source_url,
         )
         cached = state.SEARCH_CACHE.get(cache_key)
         if cached is not None:
@@ -1107,6 +1123,16 @@ class SearchRoutes(BaseHandler):
                 javdb_pool,
                 include_images=True,
             )
+            if linked_work is not None and not enriched.code:
+                identities = {
+                    normalized[1]: normalized[0]
+                    for source in enriched.sources
+                    if source.parse_status == "resolved"
+                    and (normalized := normalize_catalog_code(source.raw_code)) is not None
+                }
+                if len(identities) == 1:
+                    canonical, display = next(iter(identities.items()))
+                    enriched = replace(enriched, code=display, canonical_code=canonical)
         finally:
             try:
                 if javdb_pool:

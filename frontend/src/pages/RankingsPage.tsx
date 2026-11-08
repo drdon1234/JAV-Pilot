@@ -37,9 +37,23 @@ const PREFETCH_STATUS: Record<DetailPrefetchItemStatus, { label: string; tone: '
 }
 
 /** Detail page link for a ranked work; search results use the same work id, so parsed details are shared. */
-function detailHref(item: RankingItem): string | null {
-  if (!item.work_id || !item.code) return null
-  return `/works/${encodeURIComponent(item.work_id)}?${new URLSearchParams({ code: item.code }).toString()}`
+function directSource(item: RankingItem, enabled: string[]): string | null {
+  const source = item.detail_source
+  return source && item.detail_url && externalHttpUrl(item.detail_url) && enabled.includes(source)
+    && ['javbus', 'javdb', 'fc2', 'fanza', 'mgs', 'avbase', 'fc2db'].includes(source) ? source : null
+}
+
+function detailHref(item: RankingItem, enabled: string[]): string | null {
+  if (!item.work_id) return null
+  const source = directSource(item, enabled)
+  if (!item.code && !source) return null
+  const params = new URLSearchParams()
+  if (item.code) params.set('code', item.code)
+  if (source && item.detail_url) {
+    params.set('source', source)
+    params.set('detail_url', item.detail_url)
+  }
+  return `/works/${encodeURIComponent(item.work_id)}?${params.toString()}`
 }
 
 interface StoredView {
@@ -275,7 +289,7 @@ export function RankingsPage() {
     return `/results?${params.toString()}`
   }
 
-  const detailCodes = [...new Set(items.filter((item) => item.work_id && item.code).map((item) => item.code as string))]
+  const detailCodes = [...new Set(items.filter((item) => item.work_id && item.code && !directSource(item, searchSources)).map((item) => item.code as string))]
   const prefetchItems = new Map((prefetchBatch?.items ?? []).map((item) => [item.work_id, item.status]))
   const prefetchDone = prefetchBatch ? prefetchBatch.completed + prefetchBatch.failed : 0
 
@@ -385,7 +399,7 @@ export function RankingsPage() {
               onClick={startPrefetch}
             >
               <Layers3 aria-hidden="true" />
-              {t('解析本页详情（{count}）', { count: detailCodes.length })}
+              {t('查找缺失链接（{count}）', { count: detailCodes.length })}
             </Button>
             {prefetchActive && prefetchBatch ? (
               <Button
@@ -399,7 +413,7 @@ export function RankingsPage() {
                 {cancelPrefetch.isPending ? t('正在取消') : t('取消解析')}
               </Button>
             ) : null}
-            <span className="rankings-prefetch-hint">{t('并发查找详情链接，找到即完成；打开详情时再加载完整内容')}</span>
+            <span className="rankings-prefetch-hint">{t('仅查找缺失的详情链接；已有来源链接可直接打开，完整资料按需加载')}</span>
           </div>
           {prefetchBatch ? (
             <div className="rankings-prefetch-progress" aria-live="polite">
@@ -447,21 +461,21 @@ export function RankingsPage() {
               )
             }
             const translated = translation.preferences.enabled ? titles.translate(item.title) : null
-            const detailLink = detailHref(item)
+            const detailLink = detailHref(item, searchSources)
             const prefetchStatus = item.work_id ? prefetchItems.get(item.work_id) : undefined
             return (
               <li className="ranking-row" key={`${item.rank}-${item.code ?? item.title}`}>
                 <span className="ranking-rank"><span className="sr-only">{t('第 {rank} 名', { rank: item.rank })}</span><span aria-hidden="true">{item.rank}</span></span>
                 <div className="ranking-cover">
                   {detailLink ? (
-                    <Link to={detailLink} state={{ returnTo: '/rankings' }} aria-label={t('查看 {code} 详情', { code: item.code })}>
+                    <Link to={detailLink} state={{ returnTo: '/rankings' }} aria-label={t('查看 {code} 详情', { code: item.code ?? item.title })}>
                       <StableImage src={cover} alt={t('{value} 封面', { value: item.code ?? item.title })} referrerPolicy="no-referrer" />
                     </Link>
                   ) : <StableImage src={cover} alt={item.title} referrerPolicy="no-referrer" />}
                 </div>
                 <div className="ranking-main">
                   <span className="ranking-code-line">
-                    <strong>{detailLink ? <Link to={detailLink} state={{ returnTo: '/rankings' }}>{item.code}</Link> : item.code ?? t('未知番号')}</strong>
+                    <strong>{detailLink ? <Link to={detailLink} state={{ returnTo: '/rankings' }}>{item.code ?? t('详情')}</Link> : item.code ?? t('未知番号')}</strong>
                     {prefetchStatus ? <StatusBadge tone={PREFETCH_STATUS[prefetchStatus].tone}>{PREFETCH_STATUS[prefetchStatus].label}</StatusBadge> : null}
                   </span>
                   <p>{translated || item.title}</p>
@@ -475,7 +489,7 @@ export function RankingsPage() {
                 </div>
                 <div className="ranking-actions">
                   {detailLink ? (
-                    <Link className="button button-secondary button-small" to={detailLink} state={{ returnTo: '/rankings' }} aria-label={t('查看 {code} 详情', { code: item.code })}>
+                    <Link className="button button-secondary button-small" to={detailLink} state={{ returnTo: '/rankings' }} aria-label={t('查看 {code} 详情', { code: item.code ?? item.title })}>
                       <FileText aria-hidden="true" />
                       {t('详情')}
                     </Link>

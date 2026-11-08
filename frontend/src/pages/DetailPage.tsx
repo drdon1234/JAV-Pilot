@@ -507,7 +507,7 @@ export function DetailPage() {
   const toast = useToast()
   const queryClient = useQueryClient()
   const workQuery = useQuery({
-    queryKey: ['work', workId, lookupCode, sourceScope, recoveryScope],
+    queryKey: ['work', workId, lookupCode, sourceScope, recoveryScope, detailSearchParams.get('detail_url')],
     queryFn: ({ signal }) => api.work(workId, detailSearchParams, signal),
     enabled: Boolean(workId),
     placeholderData: routeWork,

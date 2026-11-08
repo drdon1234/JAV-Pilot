@@ -232,6 +232,34 @@ def detail_prefetch_snapshots_from_search_session(
 MAX_CODE_PREFETCH_ITEMS = 200
 
 
+def detail_snapshot_from_url(
+    work_id: str, code: str, source_id: str, url: str, settings: dict[str, object],
+) -> dict[str, object]:
+    """Validate a known source link before any network request or cache lookup."""
+    if not valid_work_id(work_id) or source_id not in {
+        "javbus", "javdb", "fc2", "fanza", "mgs", "avbase", "fc2db",
+    }:
+        raise DetailPrefetchValidationError("detail source is invalid")
+    normalized = normalize_catalog_code(code) if code else None
+    if code and normalized is None:
+        raise DetailPrefetchValidationError("detail code is invalid")
+    if work_id.startswith("code:") and (
+        normalized is None or work_id != f"code:{normalized[1]}"
+    ):
+        raise DetailPrefetchValidationError("work id and code do not match")
+    return _prepare_detail_prefetch_snapshot({
+        "work_id": work_id,
+        "code": normalized[0] if normalized else None,
+        "canonical_code": normalized[1] if normalized else None,
+        "title": normalized[0] if normalized else work_id,
+        "sources": [{
+            "source_id": source_id, "raw_code": normalized[0] if normalized else None,
+            "title": normalized[0] if normalized else work_id,
+            "detail_url": url, "images": [], "parse_status": "summary",
+        }],
+    }, source_id, settings)
+
+
 def detail_prefetch_snapshots_from_codes(
     codes: object,
     settings: dict[str, object],
