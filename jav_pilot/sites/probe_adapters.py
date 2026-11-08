@@ -106,6 +106,13 @@ class _SearchSiteProbe(_ConfiguredProbe):
         self._error_code: str | None = None
 
     def stage(self, stage: str) -> None:
+        if stage == "connection" and self.site_id == "fc2" and self.code_key:
+            # Exact FC2 lookup uses the official/DataBank detail chain, never
+            # the AVSOX keyword endpoint. Check the selected business route
+            # and reuse its response for the remaining acceptance stages.
+            self.configuration()
+            self._exact_result()
+            return
         if stage in {"configuration", "dns", "connection"}:
             getattr(self, stage)()
             return
