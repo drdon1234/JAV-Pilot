@@ -113,39 +113,73 @@ def try_verification_checkbox(page: object, deadline: float) -> bool:
                     return True
             except Exception:
                 continue
-        # Turnstile may hide its input in a closed shadow root. The frame is
-        # already origin-checked; restrict the fallback to its checkbox widget.
-        try:
-            box = frame.frame_element().bounding_box()
-            if box and 180 <= box["width"] <= 500 and 40 <= box["height"] <= 180:
-                frame.locator("body").click(
-                    position={"x": 24, "y": box["height"] / 2},
-                    timeout=max(1, min(750, int((deadline - time.monotonic()) * 1000))),
-                )
-                return True
-        except Exception:
-            continue
-    # Managed challenges can host the checkbox in the top document's closed
-    # shadow tree. Only its named challenge stage and compact widget qualify.
+    return _closed_verification_checkbox(page, deadline)
+
+
+def _closed_verification_checkbox(page: object, deadline: float) -> bool:
+    """Find the actual trusted iframe through closed roots; never click a spinner."""
+    cdp = None
     try:
-        if is_challenge(page.content()):
-            stage = page.locator("#challenge-stage").first
-            box = (
-                stage.bounding_box(
-                    timeout=max(1, min(500, int((deadline - time.monotonic()) * 1000)))
-                )
-                if stage.count() and stage.is_visible()
-                else None
-            )
-            if box and 180 <= box["width"] <= 1024 and 40 <= box["height"] <= 180:
-                stage.click(
-                    position={"x": 24, "y": box["height"] / 2},
-                    timeout=max(1, min(750, int((deadline - time.monotonic()) * 1000))),
-                )
-                return True
+        if time.monotonic() >= deadline or not is_challenge(page.content()):
+            return False
+        expected = page.url
+        cdp = page.context.new_cdp_session(page)
+        tree = cdp.send("DOM.getDocument", {"depth": -1, "pierce": True})
+        candidates, pending, budget = [], [tree.get("root", {})], 20000
+        while pending and budget:
+            budget -= 1
+            node = pending.pop()
+            attributes = node.get("attributes", [])
+            attrs = dict(zip(attributes[::2], attributes[1::2]))
+            if node.get("nodeName") == "IFRAME":
+                parsed = urlsplit(attrs.get("src", ""))
+                if (trusted_verification_origin(parsed.scheme, parsed.hostname, parsed.port or 443)
+                        and not parsed.username and not parsed.password):
+                    candidates.append(node["nodeId"])
+            pending.extend(node.get("children", []))
+            pending.extend(node.get("shadowRoots", []))
+            if node.get("contentDocument"):
+                pending.append(node["contentDocument"])
+        if pending or len(candidates) != 1 or time.monotonic() >= deadline:
+            return False
+        obj = cdp.send("DOM.resolveNode", {"nodeId": candidates[0]})["object"]["objectId"]
+
+        def point():
+            result = cdp.send("Runtime.callFunctionOn", {
+                "objectId": obj, "returnByValue": True,
+                "arguments": [{"value": expected}],
+                "functionDeclaration": """function(expected) {
+                  if (!this.isConnected || location.href !== expected || document.readyState !== 'complete') return null;
+                  const r=this.getBoundingClientRect(), x=r.x+28, y=r.y+r.height/2;
+                  if(r.width<290 || r.width>310 || r.height<60 || r.height>85 || r.x<0 || r.y<0 || r.right>innerWidth || r.bottom>innerHeight) return null;
+                  let n=this;
+                  for(let depth=0;depth<64;depth++) {
+                    const s=getComputedStyle(n), root=n.getRootNode();
+                    if(s.visibility!=='visible'||s.display==='none'||Number(s.opacity)===0||root.elementFromPoint(x,y)!==n) return null;
+                    if(root===document) return {x,y};
+                    n=root.host;if(!n)return null;
+                  }
+                  return null;
+                }"""})
+            return result.get("result", {}).get("value")
+
+        target = point()
+        if not target:
+            return False
+        cdp.send("Input.dispatchMouseEvent", {"type": "mouseMoved", **target})
+        if target != point() or time.monotonic() >= deadline:
+            return False
+        cdp.send("Input.dispatchMouseEvent", {"type": "mousePressed", "button": "left", "clickCount": 1, **target})
+        cdp.send("Input.dispatchMouseEvent", {"type": "mouseReleased", "button": "left", "clickCount": 1, **target})
+        return True
     except Exception:
-        pass
-    return False
+        return False
+    finally:
+        if cdp:
+            try:
+                cdp.detach()
+            except Exception:
+                pass  # Verification may navigate and destroy the target first.
 
 
 def trusted_verification_origin(scheme: str, host: str | None, port: int) -> bool:

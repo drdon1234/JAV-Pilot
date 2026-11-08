@@ -40,14 +40,18 @@
   .page-header h1 { font-size: 20px; }
   .page-header p { font-size: 12px; line-height: 1.5; }
   .page-actions { gap: 6px; }
-  .button, .button-small { position: relative; min-height: 36px; padding-inline: 10px; font-size: 13px; gap: 5px; }
-  .button::before, .icon-button::before { content: ''; position: absolute; inset: -4px 0; }
+  .button, .button-small { position: relative; min-height: 32px; padding-inline: 8px; font-size: 13px; gap: 4px; }
+  .button::before, .icon-button::before { content: ''; position: absolute; inset: -6px 0; }
   .button svg { width: 16px; height: 16px; }
-  .icon-button, .icon-button-small { position: relative; min-height: 36px; width: 36px; height: 36px; flex-basis: 36px; }
+  .icon-button, .icon-button-small { position: relative; min-height: 32px; width: 32px; height: 32px; flex-basis: 32px; }
   .page-back { margin-bottom: 8px; }
   .page-back .button { min-height: 32px; padding-inline: 0 8px; }
   .page-back + .page-header { margin-top: 0; }
-  .segmented-control button, .watch-source-tabs .button { min-height: 36px; font-size: 13px; }
+  .segmented-control button, .watch-source-tabs .button { min-height: 32px; font-size: 13px; }
+  .field input:not([type=checkbox], [type=radio]), .field select { min-height: 36px; padding-block: 6px; }
+  .status-badge { min-height: 22px; padding: 2px 6px; font-size: 11px; }
+  .toggle { min-height: 36px; }
+  .source-option { min-height: 36px; padding: 6px 8px; }
   .mobile-tab { min-height: 52px; font-size: 11px; gap: 2px; }
   .mobile-tab svg { width: 19px; height: 19px; }
   .playback-shortcuts { padding-block: 8px; gap: 0; }
@@ -65,5 +69,17 @@
   .selection-actions { gap: 6px; }
   .selection-row { padding-inline-start: 38px; }
   .history-tabs { gap: 20px; margin-bottom: 14px; }
+  .video-controls { padding: 20px 6px 4px; }
+  .video-controls-row { gap: 0; }
+  .video-controls-row > button, .video-controls-row .player-menu summary { min-width: 32px; min-height: 32px; height: 32px; padding-inline: 5px; }
+  .video-controls-row button svg, .video-controls-row .player-menu summary svg { width: 18px; height: 18px; }
+  .video-controls-row .player-menu { font-size: 12px; }
+  .video-controls-row .video-resolution { min-height: 32px; padding-inline: 5px; font-size: 12px; }
+  .video-controls .player-menu-panel button { min-height: 36px; padding: 6px 10px; }
+  .video-controls .player-menu-heading button { width: 32px; min-width: 32px; min-height: 32px; }
+  .video-progress-row { gap: 6px; font-size: 11px; }
+  .video-controls .video-progress-row input[type=range] { min-height: 20px; }
+  .selection-tools, .selection-all { min-height: 32px; font-size: 12px; }
+  .selection-check input, .selection-all input { width: 16px; height: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .video-buffering-spinner { animation: none; } }

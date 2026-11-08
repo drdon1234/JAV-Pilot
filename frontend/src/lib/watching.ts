@@ -1,6 +1,11 @@
 import { requestJson } from './api'
 import { t } from './i18n'
 
+export function watchCoverUrl(source: string, cover: string): string {
+  if (!cover || source !== 'av123') return cover
+  return `/api/covers?${new URLSearchParams({ source, url: cover })}`
+}
+
 export interface WatchSite { id: string; name: string; enabled: boolean; base_url: string }
 export interface WatchEntry {
   source: string

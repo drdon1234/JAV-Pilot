@@ -326,7 +326,7 @@ def _policy_for_source(
             continue
         if site.get("id") != source:
             continue
-        if not site.get("enabled") or site.get("parser_profile") not in METADATA_PROFILES:
+        if not site.get("enabled") or (site.get("parser_profile") not in METADATA_PROFILES and source != "av123"):
             break
         selected = site
         break
@@ -345,6 +345,13 @@ def _policy_for_source(
 
     profile = str(selected.get("parser_profile") or "")
     target = _split_http_url(url)
+    if source == "av123":
+        if target.scheme != "https" or target.hostname != "icdn.123av.me" or (target.port or 443) != 443:
+            raise CoverRequestError("cover URL is outside the configured source")
+        if not PublicHostResolver(max_hosts=1).is_public(target.hostname):
+            raise CoverRequestError("cover URL host must resolve to a public address")
+        return _CoverPolicy(origin=_origin(target), referer="https://123av.com/",
+                            path_pattern=re.compile(r"/img2/(?:s\d+/)?[a-f0-9]{2}/[a-z0-9_-]+/cover(?:-t)?\.(?:jpg|webp|png)"))
     if profile == "javbus":
         return _javbus_cover_policy(parsed, target, referer=base_url + "/")
     if profile == "fc2":

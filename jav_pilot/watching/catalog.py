@@ -189,7 +189,7 @@ def describe(source: str, url: str) -> dict:
         raise WebDownloadProviderError("站点作品暂时无法解析", code="response_invalid")
     image = soup.select_one('meta[property="og:image"]')
     cover = urljoin(origin, str(image.get("content") or "")) if image else ""
-    if source == "av123" and not cover:
+    if source == "av123":
         from .av123 import poster
         cover = poster(document)
     if not cover:

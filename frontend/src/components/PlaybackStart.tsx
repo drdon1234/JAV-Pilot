@@ -1,3 +1,4 @@
+import { watchCoverUrl } from '../lib/watching'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Bookmark, Film, Library, Play } from 'lucide-react'
@@ -19,7 +20,7 @@ export function PlaybackStart() {
     <section className="playback-recent" aria-labelledby="playback-recent-heading">
       <div className="playback-recent-heading"><h2 id="playback-recent-heading">{t('最近观看')}</h2><Link className="button button-ghost button-small" to="/history">{t('全部记录')}<ArrowRight aria-hidden="true" /></Link></div>
       {history.isPending ? <SkeletonRows count={2} /> : history.isError ? <InlineNotice tone="danger">{t('无法加载播放记录，请重试。')}<Button onClick={() => void history.refetch()}>{t('重试')}</Button></InlineNotice> : items.length ? <div className="playback-recent-grid">{items.map(item => <Link key={item.id} className="playback-recent-item" to={`/player?${new URLSearchParams(item.kind === 'local' ? { entry: item.entry, file: String(item.file) } : { source: item.source, url: item.url })}`}>
-        <div className="playback-recent-image">{item.cover ? <img src={item.cover} alt="" loading="lazy" referrerPolicy="no-referrer" onError={event => { const image = event.currentTarget; if (item.kind === 'local' && !image.dataset.fallback) { image.dataset.fallback = '1'; image.src = `/api/library/artwork?entry=${encodeURIComponent(item.entry)}` } else image.hidden = true }} /> : null}<Film aria-hidden="true" /><span><Play aria-hidden="true" />{item.completed ? t('从头播放') : t('继续播放')}</span></div>
+        <div className="playback-recent-image">{item.cover ? <img src={watchCoverUrl(item.source, item.cover)} alt="" loading="lazy" referrerPolicy="no-referrer" onError={event => { const image = event.currentTarget; if (item.kind === 'local' && !image.dataset.fallback) { image.dataset.fallback = '1'; image.src = `/api/library/artwork?entry=${encodeURIComponent(item.entry)}` } else image.hidden = true }} /> : null}<Film aria-hidden="true" /><span><Play aria-hidden="true" />{item.completed ? t('从头播放') : t('继续播放')}</span></div>
         <strong>{item.code || item.title}</strong><span className="playback-recent-title">{item.title}</span>
         <progress aria-label={t('播放进度')} max={item.duration || 1} value={item.completed ? item.duration : Math.min(item.position, item.duration)} />
         <small>{item.kind === 'local' ? t('本地播放') : item.source} · {playbackTime(item.position)} / {playbackTime(item.duration)}</small>

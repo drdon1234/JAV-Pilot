@@ -1,3 +1,4 @@
+import { watchCoverUrl } from '../lib/watching'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, Bookmark as BookmarkIcon, Play, Search, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -50,7 +51,7 @@ export function FavoritesPage() {
 function FavoriteRow({ item, removing, onRemove }: { item: Bookmark; removing: boolean; onRemove: () => void }) {
   const destination = item.kind === 'detail' ? item.url : watchHref(item, item.kind === 'playback')
   return <article className="watch-entry">
-    <Link className="watch-entry-cover" to={destination} tabIndex={-1} aria-hidden="true"><StableImage src={item.cover} alt="" loading="lazy" referrerPolicy="no-referrer" /></Link>
+    <Link className="watch-entry-cover" to={destination} tabIndex={-1} aria-hidden="true"><StableImage src={watchCoverUrl(item.source, item.cover)} alt="" loading="lazy" referrerPolicy="no-referrer" /></Link>
     <div className="watch-entry-body"><div className="watch-inline-actions"><strong>{item.code}</strong><StatusBadge tone={item.kind === 'playback' ? 'info' : 'neutral'}>{bookmarkLabels[item.kind]}</StatusBadge>
       {item.editions.map(edition => <StatusBadge key={edition}>{editionLabel(edition)}</StatusBadge>)}</div>
       <h3><Link to={destination}>{item.title}</Link></h3>

@@ -5,6 +5,7 @@ import threading
 import time
 import hashlib
 import json
+from dataclasses import replace
 from http.cookies import SimpleCookie
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -50,6 +51,10 @@ class BrowserPageFetcher:
         headers: dict[str, str] | None = None,
     ) -> None:
         self.bounds = bounds.normalized()
+        # Browser verification owns its caller's bounded budget, not the
+        # shorter generic search limit. Keep all other normalized limits.
+        if session_origin:
+            self.bounds = replace(self.bounds, timeout_seconds=max(1.0, min(float(bounds.timeout_seconds), 120.0)))
         self._session_origin = session_origin
         self._trusted_origins = frozenset(_http_origin(url) for url in allowed_origins)
         self._headers = headers or {}
@@ -139,7 +144,10 @@ class BrowserPageFetcher:
             route_web_socket = getattr(self._context, "route_web_socket", None)
             if not callable(route_web_socket):
                 raise BrowserFetchError("Playwright does not support WebSocket routing")
-            route_web_socket("**/*", lambda web_socket: web_socket.close())
+            # A routed socket is mocked until connect_to_server is called.
+            # Closing it synchronously inside this callback can deadlock the
+            # Playwright dispatcher during a challenge navigation.
+            route_web_socket("**/*", lambda web_socket: None)
             self._page = (
                 self._context.pages[0]
                 if self._context.pages

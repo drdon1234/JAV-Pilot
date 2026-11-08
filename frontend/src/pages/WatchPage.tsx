@@ -1,3 +1,4 @@
+import { watchCoverUrl } from '../lib/watching'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { ArrowRight, Bookmark, ExternalLink, Play, RefreshCw, Search, Settings } from 'lucide-react'
 import { BackLink } from '../components/BackLink'
@@ -14,7 +15,7 @@ import { StableImage } from './WorkUi'
 function EntryCard({ entry, sourceName, query }: { entry: WatchEntry; sourceName: string; query: string }) {
   return <article className="watch-card">
     <Link className="watch-card-cover" to={watchHref(entry, false, query)} tabIndex={-1} aria-hidden="true">
-      <StableImage src={entry.cover} alt="" loading="lazy" referrerPolicy="no-referrer" />
+      <StableImage src={watchCoverUrl(entry.source, entry.cover)} alt="" loading="lazy" referrerPolicy="no-referrer" />
     </Link>
     <div className="watch-card-body">
       <div className="watch-inline-actions"><strong>{entry.code || sourceName}</strong>{entry.editions.map(edition =>
@@ -104,7 +105,7 @@ export function SelectedWork({ source, url, play, onPlay }: {
       <a href={entry.url} className="button button-ghost button-small" target="_blank" rel="noopener noreferrer">{t('查看来源')}<ExternalLink aria-hidden="true" /></a></div>
     {play ? <WatchPlayer key={`${source}:${url}`} entry={entry} /> : null}
     <section className={`watch-work-info${play ? ' watch-playing-info' : ''}`}>
-      <div className="watch-work-cover"><StableImage src={entry.cover} alt={t('作品封面')} referrerPolicy="no-referrer" /></div>
+      <div className="watch-work-cover"><StableImage src={watchCoverUrl(entry.source, entry.cover)} alt={t('作品封面')} referrerPolicy="no-referrer" /></div>
       <div><div className="watch-inline-actions"><strong>{entry.code || source}</strong>{entry.editions.map(edition => <StatusBadge key={edition}>{editionLabel(edition)}</StatusBadge>)}</div>
         <h2>{entry.title}</h2>{entry.description ? <p className="watch-work-description">{entry.description}</p> : null}
         <div className="watch-inline-actions">

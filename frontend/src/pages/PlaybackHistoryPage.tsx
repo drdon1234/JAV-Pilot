@@ -1,3 +1,4 @@
+import { watchCoverUrl } from '../lib/watching'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Film, Play, RefreshCw, Trash2 } from 'lucide-react'
@@ -27,7 +28,7 @@ export function PlaybackHistoryPage() {
         const target = `/player?${new URLSearchParams(item.kind === 'local' ? { entry: item.entry, file: String(item.file) } : { source: item.source, url: item.url })}`
         return <article key={item.id} className={`playback-history-row${selection.managing ? ' selection-row' : ''}`}>
           <SelectionCheck selection={selection} id={item.id} name={item.title || item.code} disabled={bulk.isPending} />
-          <Link to={target} className="playback-history-cover" aria-label={item.title}>{item.cover ? <img src={item.cover} alt="" loading="lazy" referrerPolicy="no-referrer" onError={event => {
+          <Link to={target} className="playback-history-cover" aria-label={item.title}>{item.cover ? <img src={watchCoverUrl(item.source, item.cover)} alt="" loading="lazy" referrerPolicy="no-referrer" onError={event => {
             const image = event.currentTarget
             if (item.kind === 'local' && !image.dataset.fallback) { image.dataset.fallback = '1'; image.src = `/api/library/artwork?entry=${encodeURIComponent(item.entry)}` }
             else { image.hidden = true; image.parentElement?.classList.add('cover-unavailable') }
