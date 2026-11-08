@@ -21,6 +21,7 @@ from ..config.paths import runtime_data_dir
 FC2_DIAGNOSTIC_SITE_IDS = frozenset({"fc2", "fc2db", "javten"})
 DEFAULT_JAV_DIAGNOSTIC_CODE = "SSIS-001"
 DEFAULT_FC2_DIAGNOSTIC_CODE = "FC2-PPV-4642311"
+DEFAULT_MGS_DIAGNOSTIC_CODE = "SIRO-4513"
 _LOCK = threading.Lock()
 
 
@@ -36,6 +37,9 @@ class SiteDiagnosticCodes:
     def for_site(self, site_id: str) -> str:
         if site_id in FC2_DIAGNOSTIC_SITE_IDS:
             return self.fc2 or DEFAULT_FC2_DIAGNOSTIC_CODE
+        if site_id == "mgs":
+            # MGS has a different catalogue; the general FANZA sample is absent.
+            return self.jav or DEFAULT_MGS_DIAGNOSTIC_CODE
         return self.jav or DEFAULT_JAV_DIAGNOSTIC_CODE
 
     def public_dict(self) -> dict[str, str]:

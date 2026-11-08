@@ -1739,7 +1739,7 @@ def _session(*, impersonate: str = "chrome"):
 def _supjav_session():
     # One stable HTTP session; challenged documents recover in the persistent
     # browser instead of issuing a burst with nine unrelated fingerprints.
-    return _session(impersonate="safari")
+    return _session(impersonate="chrome")
 
 
 def _bounded_page(
