@@ -14,7 +14,7 @@ JAV Pilot 从下列站点获取资料、磁链和视频。外部站点会改版�
 | JableTV、SupJav | 视频下载 | 启用 | |
 | MissAV | 视频下载、作品简介 | 启用 | 使用内置浏览器及其独立的浏览器数据 |
 | FANZA、MGS、AVBase | 关键词搜索与作品资料 | 关闭 | 不提供磁链；常受地区限制或访问验证影响 |
-| FC2DB、JAVTEN | FC2 作品资料 | 关闭 | 只接受带 `FC2` 前缀的完整番号，不支持关键词搜索 |
+| FC2DB | FC2 作品资料 | 关闭 | 只接受带 `FC2` 前缀的完整番号，不支持关键词搜索 |
 | Sukebei、Tokyo Toshokan | 种子搜索 | 关闭 | 需要 Torznab 服务，见[种子索引](indexers.md) |
 | KissJAV、JAV-NONI | 查找视频资源 | 关闭 | 只在搜索中列出，不参与自动下载 |
 | 迅雷字幕 | 中文字幕 | 启用 | 多为人工字幕；字幕文件从 `subtitle.v.geilijiasu.com` 下载 |

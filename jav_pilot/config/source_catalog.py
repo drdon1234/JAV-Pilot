@@ -7,7 +7,6 @@ METADATA_CATALOG = {
     "mgs": ("MGS", "https://www.mgstage.com", True),
     "avbase": ("AVBase", "https://www.avbase.net", True),
     "fc2db": ("FC2DB", "https://fc2db.net", False),
-    "javten": ("JAVTEN", "https://javten.com", False),
 }
 TORRENT_CATALOG = {
     "sukebei": ("Sukebei", "https://sukebei.nyaa.si"),

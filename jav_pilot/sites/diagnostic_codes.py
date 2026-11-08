@@ -1,7 +1,7 @@
 """Acceptance codes for site diagnostics, entered and remembered by the user.
 
 Two codes are kept because the sources cover different catalogues: FC2-only
-sources (FC2, FC2DB, JAVTEN) are checked with the FC2 code and every other
+sources (FC2, FC2DB) are checked with the FC2 code and every other
 source with the JAV code. Empty user fields use built-in samples at execution
 time; those samples are never saved as user input or sent as input values.
 """
@@ -18,7 +18,7 @@ from ..core.catalog_code import normalize_catalog_code
 from ..core.storage import atomic_write_text
 from ..config.paths import runtime_data_dir
 
-FC2_DIAGNOSTIC_SITE_IDS = frozenset({"fc2", "fc2db", "javten"})
+FC2_DIAGNOSTIC_SITE_IDS = frozenset({"fc2", "fc2db"})
 DEFAULT_JAV_DIAGNOSTIC_CODE = "SSIS-001"
 DEFAULT_FC2_DIAGNOSTIC_CODE = "FC2-PPV-4642311"
 DEFAULT_MGS_DIAGNOSTIC_CODE = "SIRO-4513"
@@ -40,6 +40,10 @@ class SiteDiagnosticCodes:
         if site_id == "mgs":
             # MGS has a different catalogue; the general FANZA sample is absent.
             return self.jav or DEFAULT_MGS_DIAGNOSTIC_CODE
+        if site_id == "kissjav":
+            return self.jav or DEFAULT_FC2_DIAGNOSTIC_CODE
+        if site_id == "javnoni":
+            return self.jav or "TO-5181"
         return self.jav or DEFAULT_JAV_DIAGNOSTIC_CODE
 
     def public_dict(self) -> dict[str, str]:

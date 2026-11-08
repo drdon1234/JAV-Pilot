@@ -115,7 +115,7 @@ export interface SiteSettings {
   }
 }
 
-export type SiteDiagnosticSite = 'javbus' | 'javdb' | 'fc2' | 'fanza' | 'mgs' | 'avbase' | 'fc2db' | 'javten' | 'jable' | 'supjav' | 'missav' | 'kissjav' | 'javnoni' | 'xunlei' | 'subtitlecat'
+export type SiteDiagnosticSite = 'javbus' | 'javdb' | 'fc2' | 'fanza' | 'mgs' | 'avbase' | 'fc2db' | 'jable' | 'supjav' | 'missav' | 'kissjav' | 'javnoni' | 'xunlei' | 'subtitlecat'
 
 export type SiteDiagnosticStage =
   | 'configuration'
@@ -1591,7 +1591,7 @@ export type MediaMetadataReviewFieldName =
   | 'tags'
   | 'description'
 
-export type MetadataSourceId = 'javbus' | 'javdb' | 'fc2' | 'fanza' | 'mgs' | 'avbase' | 'fc2db' | 'javten'
+export type MetadataSourceId = 'javbus' | 'javdb' | 'fc2' | 'fanza' | 'mgs' | 'avbase' | 'fc2db'
 export type MediaMetadataReviewSource = 'nfo' | MetadataSourceId | 'missav'
 export type MediaMetadataReviewImageKind = 'portrait' | 'landscape'
 export type MediaMetadataReviewValue = string | number | string[] | null

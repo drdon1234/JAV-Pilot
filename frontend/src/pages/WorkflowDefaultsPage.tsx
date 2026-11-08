@@ -248,7 +248,7 @@ export function WorkflowDefaultsPage() {
             <Toggle label={t('新入库作品自动补全')} checked={defaults.metadata_auto_complete} onChange={(event) => update({ metadata_auto_complete: event.target.checked })} />
             <span>{t('媒体库发现新作品（包括你手动放入的文件夹）时，自动为缺少 NFO 或图片的作品创建补全任务。')}</span>
             <Toggle label={t('默认来源失败时自动换源')} checked={defaults.metadata_auto_fallback} onChange={(event) => update({ metadata_auto_fallback: event.target.checked })} />
-            <span>{t('已启用的来源查不到资料或没有封面时，再尝试其他内置站点（JAV 用 FANZA、MGS、AVBase，FC2 用 FC2DB、JAVTEN）。')}</span>
+            <span>{t('已启用的来源查不到资料或没有封面时，再尝试其他内置站点（JAV 用 FANZA、MGS、AVBase，FC2 用 FC2DB）。')}</span>
           </div>
         </Section>
 

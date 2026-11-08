@@ -25,7 +25,6 @@ from ..indexers.fanza import FanzaIndexer
 from ..indexers.mgs import MgsIndexer
 from ..indexers.avbase import AvBaseIndexer
 from ..indexers.fc2db import Fc2DbIndexer
-from ..indexers.javten import JavTenIndexer
 from ..indexers.jackett import bundled_torznab_indexer
 from ..indexers.torznab import TorznabConfig, TorznabIndexer
 from ..core.models import (
@@ -61,7 +60,7 @@ SOURCE_ERROR_SENSITIVE_CONTEXT_RE = re.compile(
 SENSITIVE_SOURCE_ERROR = "upstream request failed (sensitive details redacted)"
 _METADATA_INDEXERS = {
     "fanza": FanzaIndexer, "mgs": MgsIndexer, "avbase": AvBaseIndexer,
-    "fc2db": Fc2DbIndexer, "javten": JavTenIndexer,
+    "fc2db": Fc2DbIndexer,
 }
 
 

@@ -191,7 +191,7 @@ npm --prefix frontend run build
 
 | 種類 | 対応 |
 | --- | --- |
-| 情報とマグネットリンク | JavBus、JavDB、FC2（既定で有効）、FANZA、MGS、AVBase、FC2DB、JAVTEN（「サイト」で有効化可能） |
+| 情報とマグネットリンク | JavBus、JavDB、FC2（既定で有効）、FANZA、MGS、AVBase、FC2DB（「サイト」で有効化可能） |
 | トレントインデクサー | Sukebei、Tokyo Toshokan（Jackett 経由。JAV Pilot と一緒にデプロイ可能） |
 | 動画ダウンロード | JableTV、SupJav、MissAV |
 | ランキング | JavDB、FANZA、FC2、MGStage、JavMenu、Netflav、および一本道・カリビアンコムなど無修正メーカーの公式サイト |

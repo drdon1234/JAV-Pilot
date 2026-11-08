@@ -201,7 +201,7 @@ npm --prefix frontend run build
 
 | الفئة | الدعم |
 | --- | --- |
-| البيانات الوصفية وروابط magnet | JavBus وJavDB وFC2 (مفعّلة افتراضيًا)؛ FANZA وMGS وAVBase وFC2DB وJAVTEN (يمكن تفعيلها من «المواقع») |
+| البيانات الوصفية وروابط magnet | JavBus وJavDB وFC2 (مفعّلة افتراضيًا)؛ FANZA وMGS وAVBase وFC2DB (يمكن تفعيلها من «المواقع») |
 | فهارس التورنت | Sukebei وTokyo Toshokan (عبر Jackett الذي يمكن نشره مع JAV Pilot) |
 | تنزيل الفيديو | JableTV وSupJav وMissAV |
 | التصنيفات | JavDB وFANZA وFC2 وMGStage وJavMenu وNetflav، إضافةً إلى المواقع الرسمية لاستوديوهات غير خاضعة للرقابة مثل 1Pondo وCaribbeancom |

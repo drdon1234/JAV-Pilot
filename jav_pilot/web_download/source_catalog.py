@@ -88,6 +88,11 @@ class CatalogMedia:
 def catalog_search_url(source_id: str, origin: str, query: str, page: int) -> str:
     if source_id not in CANDIDATE_WEB_SOURCE_IDS or not 1 <= page <= 999:
         raise WebCatalogError("configuration")
+    normalized = normalize_catalog_code(query)
+    if source_id == KISSJAV_SITE_ID and normalized and normalized[1].startswith("FC2PPV"):
+        # The source indexes its FC2 numeric ID; hyphenated prefixes turn into
+        # separate search terms and can bury the exact work below other results.
+        query = normalized[1][6:]
     encoded = quote(query, safe="")
     if source_id == KISSJAV_SITE_ID:
         base = f"{origin}/search/{encoded}/"
@@ -98,7 +103,10 @@ def catalog_search_url(source_id: str, origin: str, query: str, page: int) -> st
 def _catalog_identity(title: str) -> tuple[str, str] | None:
     identities = {}
     for match in _CODE.finditer(unicodedata.normalize("NFKC", title)):
-        normalized = normalize_catalog_code(match.group(), max_length=32)
+        # Source titles commonly spell FC2 numbers as "FC2PPV 1234567".
+        normalized = normalize_catalog_code(
+            re.sub(r"[-_ ]+", "-", match.group()), max_length=32
+        )
         if normalized is not None:
             identities[normalized[1]] = normalized
     return next(iter(identities.values())) if len(identities) == 1 else None

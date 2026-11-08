@@ -49,7 +49,7 @@ const CAPABILITY_LABELS: Record<SiteCapability, string> = {
 const DIAGNOSTIC_SITES: Array<{ id: SiteDiagnosticSite; label: string; stages: SiteDiagnosticStage[] }> = [
   { id: 'javbus', label: 'JavBus', stages: ['configuration', 'dns', 'connection', 'search', 'detail', 'image'] },
   { id: 'javdb', label: 'JavDB', stages: ['configuration', 'dns', 'connection', 'search', 'detail', 'image'] },
-  ...(['fc2', 'fanza', 'mgs', 'avbase', 'fc2db', 'javten'] as const).map((id) => ({
+  ...(['fc2', 'fanza', 'mgs', 'avbase', 'fc2db'] as const).map((id) => ({
     id, label: PROFILE_LABELS[id],
     stages: ['configuration', 'dns', 'connection', 'detail', 'image'] as SiteDiagnosticStage[],
   })),
@@ -712,7 +712,7 @@ function SiteDiagnosticsPanel({
         </div>
       </header>
       <p className="site-diagnostic-hint">
-        {t('验收番号用来确认站点能查到一部真实作品：JAV 番号用于 JavBus、JavDB、FANZA 和 Web 视频站点，FC2 番号用于 FC2、FC2DB 与 JAVTEN。 留空时使用内置验收番号。输入的番号会在测试时自动保存，后台定时诊断也会使用。')}
+        {t('验收番号用来确认站点能查到一部真实作品：JAV 番号用于 JavBus、JavDB、FANZA 和 Web 视频站点，FC2 番号用于 FC2、FC2DB。 留空时使用内置验收番号。输入的番号会在测试时自动保存，后台定时诊断也会使用。')}
       </p>
       {error ? (
         <InlineNotice tone="danger" role="alert">
@@ -909,7 +909,7 @@ function SiteEditor({ site, onChange, onRemove }: { site: SiteSettings; onChange
       {site.id === 'kissjav' || site.id === 'javnoni' ? (
         <InlineNotice>{t('此来源提供资源发现。完整片源与版本尚未验收，暂不用于自动下载。')}</InlineNotice>
       ) : null}
-      {site.parser_profile === 'fc2db' || site.parser_profile === 'javten' ? (
+      {site.parser_profile === 'fc2db' ? (
         <InlineNotice>{t('仅按带 FC2 前缀的番号查询详情，不参与自由关键词发现。')}</InlineNotice>
       ) : null}
 

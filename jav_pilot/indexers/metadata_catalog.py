@@ -360,7 +360,7 @@ def image_url_allowed(profile: str, url: str, base_url: str) -> bool:
         return path.startswith(("/pics_dig/digital/", "/pics_dig/mono/"))
     if profile in {"mgs", "avbase"} and host == "image.mgstage.com":
         return True
-    if profile in {"fc2db", "javten"} and fc2_image_path_allowed(host, path):
+    if profile in {"fc2db"} and fc2_image_path_allowed(host, path):
         return True
     if profile == "fc2db" and host == "img.fc2db.net":
         return path.startswith("/wp-content/uploads/")
@@ -368,7 +368,7 @@ def image_url_allowed(profile: str, url: str, base_url: str) -> bool:
         if re.match(r"^/wp-content/uploads/\d{4}/\d{2}/[^/]+$", path):
             return True
     return bool(
-        profile in {"avbase", "fc2db", "javten"}
+        profile in {"avbase", "fc2db"}
         and host == (urlsplit(base_url).hostname or "").lower()
         and path.startswith(("/images/", "/uploads/", "/storage/", "/media/"))
     )

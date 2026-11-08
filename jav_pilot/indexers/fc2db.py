@@ -83,9 +83,6 @@ def parse_fc2_metadata(
         url = canonical
     title = heading_text or text(item.get("name"))
     seller = item.get("publisher")
-    if provider == "javten" and not seller:
-        # JAVTEN's Movie director field describes the publisher, not cast.
-        seller = item.get("director")
     actors = refs("actor", item.get("actor", []))
     tags = refs("tag", item.get("genre", []))
     if not tags:

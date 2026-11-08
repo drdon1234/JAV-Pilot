@@ -43,7 +43,7 @@ from ..search.engine import default_indexers
 from ..config.source_catalog import METADATA_CATALOG, METADATA_PROFILES
 
 
-MetadataProfile = Literal["javbus", "javdb", "fc2", "fanza", "mgs", "avbase", "fc2db", "javten"]
+MetadataProfile = Literal["javbus", "javdb", "fc2", "fanza", "mgs", "avbase", "fc2db"]
 
 _MAX_TEXT_LENGTH = 500
 _MAX_RELATED_ITEMS = 100
@@ -582,7 +582,7 @@ def _fallback_metadata_indexers(
     return tuple(output)
 
 
-_FC2_CATALOG_PROFILES = frozenset({"fc2db", "javten"})
+_FC2_CATALOG_PROFILES = frozenset({"fc2db"})
 
 
 def _metadata_source_bounds(
