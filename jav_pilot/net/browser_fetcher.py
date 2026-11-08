@@ -63,6 +63,7 @@ class BrowserPageFetcher:
         self._host_resolver = PublicHostResolver(max_hosts=32)
         self._tmpdir: TemporaryDirectory[str] | None = None
         self._browser_slot_acquired = False
+        self._profile_lock = None
         self._playwright_timeout_error: type[BaseException] = TimeoutError
 
     def __enter__(self) -> "BrowserPageFetcher":
@@ -95,6 +96,7 @@ class BrowserPageFetcher:
                 ).hexdigest()
                 profile = runtime_data_dir() / "browser-sessions" / key
                 profile.mkdir(parents=True, exist_ok=True, mode=0o700)
+                self._lock_profile(profile)
                 profile_path = str(profile)
                 self._cookie_path = profile / "site-cookies.json"
             else:
@@ -196,6 +198,9 @@ class BrowserPageFetcher:
                         self._tmpdir.cleanup()
                 finally:
                     try:
+                        if self._profile_lock is not None:
+                            self._profile_lock.close()
+                            self._profile_lock = None
                         self._context = None
                         self._playwright = None
                         self._tmpdir = None
@@ -204,6 +209,35 @@ class BrowserPageFetcher:
                         self._host_resolver = PublicHostResolver(max_hosts=32)
                     finally:
                         self._release_browser_slot()
+
+    def _lock_profile(self, profile: Path) -> None:
+        # An OS lock survives neither a killed worker nor container recreation.
+        # Hold it through browser shutdown before clearing Chromium's stale
+        # hostname/PID symlinks, which otherwise outlive the owning container.
+        handle = (profile / "session.lock").open("a+b")
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                handle.seek(0)
+                if not handle.read(1):
+                    handle.write(b"0")
+                    handle.flush()
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as exc:
+            handle.close()
+            raise BrowserFetchError("browser fetch capacity is busy") from exc
+        self._profile_lock = handle
+        if os.name != "nt":
+            for name in ("SingletonLock", "SingletonCookie", "SingletonSocket"):
+                target = profile / name
+                if target.is_symlink():
+                    target.unlink()
 
     def _release_browser_slot(self) -> None:
         if not self._browser_slot_acquired:

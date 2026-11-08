@@ -375,8 +375,7 @@ def build_site_probe_adapters(
     """Probe adapters for every configured site.
 
     ``codes`` supplies a JAV and an FC2 acceptance code; each site uses the one
-    matching its catalogue. A site without a matching code is checked only as
-    far as its connection, because every later stage needs a real work.
+    matching its catalogue, falling back to the built-in sample for empty fields.
     """
 
     if not isinstance(codes, SiteDiagnosticCodes):
@@ -390,18 +389,14 @@ def build_site_probe_adapters(
         adapters.append(
             FunctionalProbeAdapter(
                 site_id,
-                ("configuration", "dns", "connection", "search", "detail", "image")
-                if code
-                else ("configuration", "dns", "connection"),
+                ("configuration", "dns", "connection", "search", "detail", "image"),
                 probe.stage,
             )
         )
     for site_id in ("jable", "supjav", "missav"):
         code = codes.for_site(site_id)
         probe = _WebDownloadSiteProbe(site_id, code, settings)
-        if not code:
-            stages: tuple[str, ...] = ("configuration", "dns")
-        elif site_id == "missav":
+        if site_id == "missav":
             stages = ("configuration", "dns", "connection", "quality", "manifest")
         else:
             stages = (
@@ -426,7 +421,7 @@ def build_site_probe_adapters(
         probe = _WebDownloadSiteProbe(site_id, code, settings)
         adapters.append(FunctionalProbeAdapter(
             site_id,
-            ("configuration", "dns", "connection", "search") if code else ("configuration", "dns"),
+            ("configuration", "dns", "connection", "search"),
             probe.stage,
         ))
     for site_id in SUBTITLE_CATALOG:
@@ -436,7 +431,7 @@ def build_site_probe_adapters(
         probe = _SubtitleSiteProbe(site_id, code, settings)
         adapters.append(FunctionalProbeAdapter(
             site_id,
-            ("configuration", "dns", "connection", "search") if code else ("configuration", "dns", "connection"),
+            ("configuration", "dns", "connection", "search"),
             probe.stage,
         ))
     return tuple(adapters)
@@ -456,11 +451,14 @@ def _web_provider_error_code(error: WebDownloadProviderError) -> str:
         "upstream_unavailable": "upstream_http",
         "all_providers_unavailable": "upstream_http",
         "cancelled": "dependency_unavailable",
+        "busy": "busy",
     }.get(error.code, "internal_error")
 
 
 def _upstream_error_code(message: str) -> str:
     lowered = str(message or "").casefold()
+    if "browser fetch capacity is busy" in lowered:
+        return "busy"
     if "redirect" in lowered or "outside the configured source" in lowered:
         return "redirect_rejected"
     if "exceeded" in lowered or "too large" in lowered:

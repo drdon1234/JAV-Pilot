@@ -1765,9 +1765,15 @@ def _bounded_page(
         return fetch_browser_text(url, timeout=remaining, max_bytes=_MAX_PAGE_BYTES,
                                   allowed_origins=(_origin(url),), headers=headers)
     except FetchError as exc:
-        raise WebDownloadProviderError("Provider browser verification failed", code=(
-            "challenge_active" if "challenge" in str(exc) else "upstream_unavailable"
-        )) from exc
+        message = str(exc).lower()
+        code = "upstream_unavailable"
+        if "browser fetch capacity is busy" in message:
+            code = "busy"
+        elif "timed out" in message or "timeout" in message:
+            code = "timeout"
+        elif "challenge" in message:
+            code = "challenge_active"
+        raise WebDownloadProviderError("Provider browser verification failed", code=code) from exc
 
 
 def _bounded_get(

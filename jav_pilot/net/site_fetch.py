@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import time
+import json
+import os
+import signal
+import subprocess
+import sys
 from collections import OrderedDict
 import threading
 from urllib.parse import urlsplit
 
-from ..core.models import SearchBounds
-from .browser_fetcher import BrowserFetchError, BrowserPageFetcher
+from .browser_fetcher import BROWSER_SLOTS, BROWSER_QUEUE_TIMEOUT_SECONDS
 from .challenges import age_gate, is_challenge, is_firewall_block
 from .http_client import FetchError, fetch_text as fetch_http_text
 
@@ -28,16 +32,50 @@ def fetch_browser_text(
     origin = f"{parsed.scheme}://{parsed.netloc}"
     if origin not in allowed_origins:
         raise FetchError("request URL is outside the configured source")
+    deadline = time.monotonic() + timeout
+    if not BROWSER_SLOTS.acquire(timeout=max(0, min(timeout, BROWSER_QUEUE_TIMEOUT_SECONDS))):
+        raise FetchError("browser fetch capacity is busy")
+    process = None
     try:
-        with BrowserPageFetcher(
-            SearchBounds(timeout_seconds=timeout, max_response_bytes=max_bytes),
-            session_origin=origin,
-            allowed_origins=allowed_origins,
-            headers=headers,
-        ) as browser:
-            html = browser.fetch(url)
-    except BrowserFetchError as exc:
-        raise FetchError(str(exc)) from exc
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise FetchError("browser request timed out")
+        process = subprocess.Popen(
+            [sys.executable, "-m", "jav_pilot.net.browser_worker"],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, encoding="utf-8", start_new_session=os.name != "nt",
+        )
+        request = dict(url=url, origin=origin, timeout=remaining, max_bytes=max_bytes,
+                       allowed_origins=allowed_origins, headers=headers)
+        try:
+            output, _ = process.communicate(json.dumps(request), timeout=remaining)
+        except subprocess.TimeoutExpired as exc:
+            raise FetchError("browser verification timed out") from exc
+        try:
+            result = json.loads(output)
+        except ValueError as exc:
+            raise FetchError("browser runtime returned an invalid response") from exc
+        if result.get("error"):
+            raise FetchError(result["error"])
+        html = result.get("html")
+        if process.returncode or not isinstance(html, str):
+            raise FetchError("browser runtime returned an invalid response")
+    finally:
+        try:
+            if process is not None:
+                # Also reap descendants after normal exit: browser shutdown can
+                # leave a driver or Chromium process holding the session lock.
+                if os.name != "nt":
+                    try:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                elif process.poll() is None:
+                    subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                process.wait()
+        finally:
+            BROWSER_SLOTS.release()
     if len(html.encode("utf-8")) > max_bytes:
         raise FetchError(f"response exceeded {max_bytes} bytes")
     with _LOCK:

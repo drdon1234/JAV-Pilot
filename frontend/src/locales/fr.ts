@@ -1750,7 +1750,7 @@ const messages: Record<string, string> = {
   "请输入 FC2 番号": "Saisissez un code FC2",
   "测试全部 {done} / {total}": "Test global {done} / {total}",
   "测试全部站点": "Tester tous les sites",
-  "验收番号用来确认站点能查到一部真实作品：JAV 番号用于 JavBus、JavDB、FANZA 和 Web 视频站点，FC2 番号用于 FC2、FC2DB 与 JAVTEN。 留空的一项只检查配置、域名和连接。输入的番号会在测试时自动保存，后台定时诊断也会使用。": "Les codes de test confirment qu'un site trouve une œuvre réelle : le code JAV sert pour JavBus, JavDB, FANZA et les sites de vidéos Web, le code FC2 pour FC2, FC2DB et JAVTEN. Un champ vide ne vérifie que la configuration, le domaine et la connexion. Les codes saisis sont enregistrés automatiquement pendant le test et utilisés aussi par les diagnostics planifiés.",
+  "验收番号用来确认站点能查到一部真实作品：JAV 番号用于 JavBus、JavDB、FANZA 和 Web 视频站点，FC2 番号用于 FC2、FC2DB 与 JAVTEN。 留空时使用内置验收番号。输入的番号会在测试时自动保存，后台定时诊断也会使用。": "Les codes de test confirment qu'un site trouve une œuvre réelle : le code JAV sert pour JavBus, JavDB, FANZA et les sites de vidéos Web, le code FC2 pour FC2, FC2DB et JAVTEN. Un champ vide utilise un code de test intégré. Les codes saisis sont enregistrés automatiquement pendant le test et utilisés aussi par les diagnostics planifiés.",
   "无法读取诊断历史：{error}": "Impossible de lire l'historique des diagnostics : {error}",
   "站点诊断状态": "État des diagnostics des sites",
   "{label} 分阶段状态": "État par étape de {label}",

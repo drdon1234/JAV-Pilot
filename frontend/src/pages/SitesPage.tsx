@@ -88,7 +88,6 @@ type DiagnosticRunProgress = {
 // Sites are tested in parallel; a small pool keeps one run from flooding the
 // upstream sites or the MissAV browser gate.
 const DIAGNOSTIC_CONCURRENCY = 4
-const FC2_DIAGNOSTIC_SITES = new Set<SiteDiagnosticSite>(['fc2', 'fc2db', 'javten'])
 
 type DiagnosticRunOutcome = {
   site: SiteDiagnosticSite
@@ -713,7 +712,7 @@ function SiteDiagnosticsPanel({
         </div>
       </header>
       <p className="site-diagnostic-hint">
-        {t('验收番号用来确认站点能查到一部真实作品：JAV 番号用于 JavBus、JavDB、FANZA 和 Web 视频站点，FC2 番号用于 FC2、FC2DB 与 JAVTEN。 留空的一项只检查配置、域名和连接。输入的番号会在测试时自动保存，后台定时诊断也会使用。')}
+        {t('验收番号用来确认站点能查到一部真实作品：JAV 番号用于 JavBus、JavDB、FANZA 和 Web 视频站点，FC2 番号用于 FC2、FC2DB 与 JAVTEN。 留空时使用内置验收番号。输入的番号会在测试时自动保存，后台定时诊断也会使用。')}
       </p>
       {error ? (
         <InlineNotice tone="danger" role="alert">
@@ -744,7 +743,6 @@ function SiteDiagnosticsPanel({
                 size="small"
                 onClick={() => onProbe(site.id)}
                 disabled={busy || historyPending}
-                title={!(FC2_DIAGNOSTIC_SITES.has(site.id) ? codes.fc2 : codes.jav).trim() ? t('未填写对应验收番号，仅检查连接') : undefined}
               >
                 {progress?.running.includes(site.id) ? (
                   <RefreshCw className="spin" aria-hidden="true" />

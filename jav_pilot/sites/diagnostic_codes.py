@@ -2,8 +2,8 @@
 
 Two codes are kept because the sources cover different catalogues: FC2-only
 sources (FC2, FC2DB, JAVTEN) are checked with the FC2 code and every other
-source with the JAV code. Nothing is filled in by default; a source without a
-matching code is only checked up to its connection stage.
+source with the JAV code. Empty user fields use built-in samples at execution
+time; those samples are never saved as user input or sent as input values.
 """
 
 from __future__ import annotations
@@ -19,6 +19,8 @@ from ..core.storage import atomic_write_text
 from ..config.paths import runtime_data_dir
 
 FC2_DIAGNOSTIC_SITE_IDS = frozenset({"fc2", "fc2db", "javten"})
+DEFAULT_JAV_DIAGNOSTIC_CODE = "SSIS-001"
+DEFAULT_FC2_DIAGNOSTIC_CODE = "FC2-PPV-4642311"
 _LOCK = threading.Lock()
 
 
@@ -31,8 +33,10 @@ class SiteDiagnosticCodes:
     jav: str | None = None
     fc2: str | None = None
 
-    def for_site(self, site_id: str) -> str | None:
-        return self.fc2 if site_id in FC2_DIAGNOSTIC_SITE_IDS else self.jav
+    def for_site(self, site_id: str) -> str:
+        if site_id in FC2_DIAGNOSTIC_SITE_IDS:
+            return self.fc2 or DEFAULT_FC2_DIAGNOSTIC_CODE
+        return self.jav or DEFAULT_JAV_DIAGNOSTIC_CODE
 
     def public_dict(self) -> dict[str, str]:
         return {"jav": self.jav or "", "fc2": self.fc2 or ""}
