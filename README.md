@@ -238,3 +238,7 @@ JAV Pilot 仅为工具软件，不提供任何影片、账号或资源，也不�
 ## 💬 反馈与支持
 
 问题与建议请通过 [Issues](https://github.com/drdon1234/JAV-Pilot/issues) 提交。欢迎通过 Star 支持本项目。
+
+### 发布镜像
+
+在 WSL 的项目目录运行 `python3 tools/release_image.py --push`。发布工具只使用已提交的源码，拒绝未提交的修改，并校验镜像版本、Git 提交标识、运行时版本和依赖后再推送版本标签与 `latest`。NAS 部署应使用已发布的明确版本标签；管理界面登记的 Compose 目录必须与容器标签中的项目目录一致。

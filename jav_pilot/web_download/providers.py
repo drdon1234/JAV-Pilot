@@ -10,6 +10,7 @@ import time
 import tempfile
 import unicodedata
 from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import BinaryIO, Callable, Iterator, Sequence, TypeVar
@@ -338,7 +339,7 @@ def probe_web_download_provider_connection(
 
     try:
         document = (
-            _run_supjav_coordinated(fetch)
+            _run_supjav_coordinated(fetch, timeout_seconds=timeout_seconds)
             if provider_id == SUPJAV_SITE_ID
             else fetch()
         )
@@ -1186,18 +1187,62 @@ def _capture_supjav(
             quality_strategy=quality_strategy,
             cancel_event=cancel_event,
         ),
+        timeout_seconds=timeout_seconds,
         cancel_event=cancel_event,
     )
 
 
+_PROVIDER_BUDGET: ContextVar[tuple[float, threading.Event | None] | None] = ContextVar(
+    "provider_budget", default=None
+)
+
+
+def _provider_timeout(seconds: float) -> float:
+    if seconds <= 0 or not math.isfinite(seconds):
+        raise WebDownloadProviderError("Provider operation timed out", code="timeout")
+    budget = _PROVIDER_BUDGET.get()
+    if budget is not None:
+        deadline, cancel_event = budget
+        _raise_if_provider_cancelled(cancel_event)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise WebDownloadProviderError("Provider operation timed out", code="timeout")
+        seconds = min(seconds, remaining)
+    return max(0.001, min(float(seconds), 120.0))
+
+
 def _run_supjav_coordinated(
+    operation: Callable[[], _CoordinatedResult],
+    *,
+    timeout_seconds: float,
+    cancel_event: threading.Event | None = None,
+) -> _CoordinatedResult:
+    if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
+        raise WebDownloadProviderError("Invalid provider timeout", code="configuration")
+    deadline = time.monotonic() + min(timeout_seconds, 120.0)
+    parent = _PROVIDER_BUDGET.get()
+    if parent is not None:
+        deadline = min(deadline, parent[0])
+    token = _PROVIDER_BUDGET.set((deadline, cancel_event))
+    try:
+        result = _run_supjav_locked(operation, cancel_event=cancel_event)
+        _provider_timeout(timeout_seconds)
+        return result
+    except Exception:
+        _provider_timeout(timeout_seconds)
+        raise
+    finally:
+        _PROVIDER_BUDGET.reset(token)
+
+
+def _run_supjav_locked(
     operation: Callable[[], _CoordinatedResult],
     *,
     cancel_event: threading.Event | None = None,
 ) -> _CoordinatedResult:
     """Run any SupJav request wave under the shared pacing coordinator."""
 
-    while not _SUPJAV_CAPTURE_LOCK.acquire(timeout=0.1):
+    while not _SUPJAV_CAPTURE_LOCK.acquire(timeout=_provider_timeout(0.1)):
         _raise_if_provider_cancelled(cancel_event)
     try:
         with _locked_supjav_capture_state(cancel_event=cancel_event) as state:
@@ -1318,13 +1363,17 @@ def _write_supjav_next_at(state: BinaryIO, value: float) -> None:
 def _wait_for_provider_delay(
     delay: float, cancel_event: threading.Event | None
 ) -> None:
+    _provider_timeout(120.0)
     if delay <= 0:
         return
+    delay = _provider_timeout(delay)
     if cancel_event is not None:
         if cancel_event.wait(delay):
             _raise_if_provider_cancelled(cancel_event)
+        _provider_timeout(120.0)
         return
     time.sleep(delay)
+    _provider_timeout(120.0)
 
 
 def _capture_supjav_uncoordinated(
@@ -1380,6 +1429,8 @@ def _capture_supjav_uncoordinated(
                 quality_strategy=quality_strategy,
             )
         except WebDownloadProviderError as exc:
+            if exc.code in {"timeout", "cancelled"}:
+                raise
             fst_error = exc
         except Exception:
             fst_error = WebDownloadProviderError(
@@ -1406,8 +1457,9 @@ def _capture_supjav_uncoordinated(
                 detail_url=detail_url,
                 timeout_seconds=timeout_seconds,
             )
-        except WebDownloadProviderError:
-            pass
+        except WebDownloadProviderError as exc:
+            if exc.code in {"timeout", "cancelled"}:
+                raise
         except Exception:
             pass
     if fst_error is not None:
@@ -1746,7 +1798,7 @@ def _bounded_page(
     session: object, url: str, timeout_seconds: float, *, allowed_hosts: set[str],
     headers: dict[str, str] | None = None,
 ) -> str:
-    deadline = time.monotonic() + timeout_seconds
+    deadline = time.monotonic() + _provider_timeout(timeout_seconds)
     try:
         document = _bounded_get(session, url, timeout_seconds, allowed_hosts=allowed_hosts, headers=headers)
     except WebDownloadProviderError as exc:
@@ -1758,9 +1810,7 @@ def _bounded_page(
         if not is_challenge(document):
             return document
     _require_allowed_public_host(url, allowed_hosts, "Provider request host was rejected")
-    remaining = deadline - time.monotonic()
-    if remaining < 1:
-        raise WebDownloadProviderError("Provider verification timed out", code="challenge_active")
+    remaining = _provider_timeout(deadline - time.monotonic())
     try:
         return fetch_browser_text(url, timeout=remaining, max_bytes=_MAX_PAGE_BYTES,
                                   allowed_origins=(_origin(url),), headers=headers)
@@ -1791,7 +1841,7 @@ def _bounded_get(
     response = session.get(
         url,
         headers=headers or {},
-        timeout=max(5.0, min(float(timeout_seconds), 120.0)),
+        timeout=_provider_timeout(timeout_seconds),
         allow_redirects=False,
     )
     if int(response.status_code) in _REDIRECT_STATUSES:
@@ -1852,7 +1902,7 @@ def _bounded_get_with_redirects(
         response = session.get(
             current,
             headers=headers,
-            timeout=max(5.0, min(float(timeout_seconds), 120.0)),
+            timeout=_provider_timeout(timeout_seconds),
             allow_redirects=False,
         )
         if int(response.status_code) in _REDIRECT_STATUSES:

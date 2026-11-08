@@ -16,6 +16,7 @@ import type {
   AppSettings,
   FilterOption,
   SiteDiagnosticProbePayload,
+  SiteDiagnosticResult,
   SiteDiagnosticSite,
   SiteDiagnosticStage,
   SiteDiagnosticStatus,
@@ -102,7 +103,10 @@ function mergeDiagnosticStatuses(
   const statuses = new Map(
     (current?.statuses ?? []).map((status) => [`${status.site}:${status.stage}`, status]),
   )
-  incoming.statuses.forEach((status) => statuses.set(`${status.site}:${status.stage}`, status))
+  incoming.statuses.forEach((status) => {
+    const key = `${status.site}:${status.stage}`
+    if (status.last_checked_at >= (statuses.get(key)?.last_checked_at ?? 0)) statuses.set(key, status)
+  })
   return { ok: incoming.ok, statuses: [...statuses.values()] }
 }
 
@@ -203,6 +207,8 @@ export function SitesPage() {
   const [diagnosticCodes, setDiagnosticCodes] = useState({ jav: '', fc2: '' })
   const diagnosticCodesLoaded = useRef(false)
   const [diagnosticProgress, setDiagnosticProgress] = useState<DiagnosticRunProgress | null>(null)
+  const [diagnosticResults, setDiagnosticResults] = useState<SiteDiagnosticResult[]>([])
+  const [diagnosticAttempted, setDiagnosticAttempted] = useState<SiteDiagnosticSite[]>([])
   const [diagnosticRequestErrors, setDiagnosticRequestErrors] = useState<Partial<Record<SiteDiagnosticSite, string>>>({})
   const [siteEditorKeys, setSiteEditorKeys] = useState<string[]>([])
   const editorKeySequence = useRef(0)
@@ -219,6 +225,9 @@ export function SitesPage() {
   }, [diagnostics.data?.codes])
   const probe = useMutation({
     mutationFn: async ({ mode, sites }: DiagnosticRunRequest) => {
+      setDiagnosticAttempted((current) => [...new Set([...current, ...sites])])
+      setDiagnosticResults((current) => current.filter((result) => !sites.includes(result.site)))
+      setDiagnosticRequestErrors((current) => Object.fromEntries(Object.entries(current).filter(([site]) => !sites.includes(site as SiteDiagnosticSite))))
       const outcomes: DiagnosticRunOutcome[] = []
       const codes = { ...diagnosticCodes }
       const queue = [...sites]
@@ -238,6 +247,7 @@ export function SitesPage() {
           queryClient.setQueryData<SiteDiagnosticsPayload>(['site-diagnostics'], (current) =>
             mergeDiagnosticStatuses(current, payload),
           )
+          setDiagnosticResults((current) => [...current.filter((result) => result.site !== site), ...payload.results])
           outcomes.push({ site, payload })
         } catch (error) {
           const requestError = error as Error
@@ -571,6 +581,8 @@ export function SitesPage() {
         busy={probe.isPending}
         historyPending={diagnostics.isFetching}
         requestErrors={diagnosticRequestErrors}
+        results={diagnosticResults}
+        attempted={diagnosticAttempted}
         onProbe={(site) => probe.mutate({ mode: 'single', sites: [site] })}
         onProbeAll={() => probe.mutate({ mode: 'all', sites: DIAGNOSTIC_SITES.filter((site) => settings.data?.settings.sites.some((saved) => saved.id === site.id && saved.enabled)).map((site) => site.id) })}
         onRetry={() => void diagnostics.refetch()}
@@ -649,6 +661,8 @@ function SiteDiagnosticsPanel({
   busy,
   historyPending,
   requestErrors,
+  results,
+  attempted,
   onProbe,
   onProbeAll,
   onRetry,
@@ -661,11 +675,14 @@ function SiteDiagnosticsPanel({
   progress: DiagnosticRunProgress | null
   busy: boolean
   historyPending: boolean
+  results: SiteDiagnosticResult[]
+  attempted: SiteDiagnosticSite[]
   requestErrors: Partial<Record<SiteDiagnosticSite, string>>
   onProbe: (site: SiteDiagnosticSite) => void
   onProbeAll: () => void
   onRetry: () => void
 }) {
+  const currentByStage = useMemo(() => new Map(results.map((result) => [`${result.site}:${result.stage}`, result])), [results])
   const byStage = useMemo(
     () => new Map(statuses.map((status) => [`${status.site}:${status.stage}`, status])),
     [statuses],
@@ -724,7 +741,15 @@ function SiteDiagnosticsPanel({
         <div className="site-diagnostic-list" role="list" aria-label={t('站点诊断状态')}>
           {DIAGNOSTIC_SITES.map((site) => (
             <div className="site-diagnostic-row" role="listitem" key={site.id}>
-              <span className="site-diagnostic-name">{site.label}</span>
+              <span className="site-diagnostic-name">{site.label}
+                {(() => {
+                  const times = attempted.includes(site.id)
+                    ? results.filter((result) => result.site === site.id).map((result) => result.checked_at)
+                    : statuses.filter((status) => status.site === site.id).map((status) => status.last_checked_at)
+                  const timestamp = times.length ? Math.max(...times) : null
+                  return timestamp ? <small className="site-diagnostic-time">{new Date(timestamp * 1000).toLocaleString()}</small> : null
+                })()}
+              </span>
               <div className="site-diagnostic-stages" role="group" aria-label={t('{label} 分阶段状态', { label: site.label })}>
                 {requestErrors[site.id] ? (
                   <span className="site-diagnostic-request-error" role="alert">
@@ -735,6 +760,9 @@ function SiteDiagnosticsPanel({
                   <DiagnosticStageBadge
                     label={DIAGNOSTIC_STAGE_LABELS[stage]}
                     status={byStage.get(`${site.id}:${stage}`)}
+                    result={currentByStage.get(`${site.id}:${stage}`)}
+                    attempted={attempted.includes(site.id)}
+                    pending={Boolean(progress && attempted.includes(site.id) && !results.some((result) => result.site === site.id) && !requestErrors[site.id])}
                     key={stage}
                   />
                 ))}
@@ -757,18 +785,25 @@ function SiteDiagnosticsPanel({
   )
 }
 
-function DiagnosticStageBadge({ label, status }: { label: string; status?: SiteDiagnosticStatus }) {
-  const tone = !status ? 'neutral' : status.last_error_code ? 'danger' : 'success'
-  const errorLabel = status?.last_error_code ? errorCodeLabel(status.last_error_code, t('站点检查失败')) : ''
-  const detail = !status
-    ? t('尚未测试')
-    : status.last_error_code
-      ? t('{errorLabel}，连续失败 {consecutive_failures} 次', { errorLabel, consecutive_failures: status.consecutive_failures })
-      : t('通过，{last_latency_ms} ms', { last_latency_ms: status.last_latency_ms })
+export function DiagnosticStageBadge({ label, status, result, attempted = false, pending = false }: {
+  label: string; status?: SiteDiagnosticStatus; result?: SiteDiagnosticResult; attempted?: boolean; pending?: boolean
+}) {
+  const historical = !attempted && status
+  const error = result?.error_code ?? (historical ? status.last_error_code : null)
+  const success = result ? result.status === 'ok' : Boolean(historical && !error)
+  const deferred = result?.status === 'deferred'
+  const tone = pending || deferred || (!result && !historical) ? 'neutral' : success ? 'success' : 'danger'
+  const checkedAt = result?.checked_at ?? (historical ? status.last_checked_at : null)
+  const latency = result?.latency_ms ?? (historical ? status.last_latency_ms : null)
+  const detail = pending ? t('测试中')
+    : deferred ? t('资源忙，本次未完成')
+      : error ? errorCodeLabel(error, t('站点检查失败'))
+        : success ? `${latency ?? 0} ms` : attempted ? t('本次未完成') : t('未测')
+  const timestamp = checkedAt ? new Date(checkedAt * 1000).toLocaleString() : ''
   return (
-    <span className="site-diagnostic-stage" title={t('{label}：{detail}', { label, detail })}>
+    <span className="site-diagnostic-stage" title={`${label}：${detail}${timestamp ? ` · ${timestamp}` : ''}`}>
       <StatusBadge tone={tone}>{label}</StatusBadge>
-      <span>{!status ? t('未测') : errorLabel || `${status.last_latency_ms} ms`}</span>
+      <span>{detail}{historical ? ` · ${t('历史结果')}` : ''}</span>
     </span>
   )
 }

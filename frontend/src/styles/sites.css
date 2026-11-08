@@ -85,3 +85,10 @@
 .site-priority-note a {
   margin-inline: 4px;
 }
+
+.site-diagnostic-time {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: normal;
+}
