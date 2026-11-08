@@ -14,7 +14,8 @@ from bs4 import BeautifulSoup, Tag
 from jav_pilot.core.catalog_code import canonical_catalog_code, normalize_catalog_code
 from jav_pilot.search.fc2_images import fc2_image_path_allowed
 from jav_pilot.core.guards import looks_like_catalog_query, normalize_query
-from jav_pilot.net.http_client import FetchError, fetch_text
+from jav_pilot.net.http_client import FetchError
+from jav_pilot.net.site_fetch import fetch_site_text as fetch_text
 from jav_pilot.core.models import (
     Rating,
     RelatedRef,
@@ -80,6 +81,9 @@ class Fc2Indexer(Indexer):
         ):
             return "仅支持 FC2 番号"
         return None
+
+    def diagnostic_detail_search(self, query: str, bounds: SearchBounds) -> tuple[SearchResult, ...]:
+        return self.search(query, replace(bounds.normalized(), fetch_magnets=True, detail_limit=1))
 
     def search(self, query: str, bounds: SearchBounds) -> tuple[SearchResult, ...]:
         query = normalize_query(query)

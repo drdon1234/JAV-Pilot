@@ -14,7 +14,8 @@ from bs4 import BeautifulSoup
 from jav_pilot.core.catalog_code import canonical_catalog_code, normalize_catalog_code
 from jav_pilot.search.fc2_images import fc2_image_path_allowed
 from jav_pilot.core.guards import normalize_query
-from jav_pilot.net.http_client import FetchError, fetch_text
+from jav_pilot.net.http_client import FetchError
+from jav_pilot.net.site_fetch import fetch_site_text as fetch_text
 from jav_pilot.core.models import RelatedRef, SearchBounds, SearchResult, SourceDetails
 
 from .base import Indexer
@@ -183,6 +184,7 @@ def metadata_result(
         provenance["code"] = {"source_id": source_id, "provider": provider, "url": url}
     metadata = {
         "details_resolved": resolved,
+        "images_resolved": resolved,
         "detail_provider": provider,
         "detail_identity_verified": bool(resolved and code),
         "field_sources": provenance,
@@ -224,6 +226,13 @@ class MetadataCatalogIndexer(Indexer):
     headers: dict[str, str] = {}
     supports_keyword_search = True
 
+    def fetch_origins(self, url: str) -> tuple[str, ...]:
+        parsed = urlsplit(url)
+        return (f"{parsed.scheme}://{parsed.netloc}",)
+
+    def probe_connection(self, bounds: SearchBounds) -> None:
+        self._fetch(self.base_url, bounds)
+
     def __init__(
         self,
         base_url: str = "",
@@ -255,6 +264,7 @@ class MetadataCatalogIndexer(Indexer):
             max_bytes=bounds.max_response_bytes,
             headers={**self.headers, **(headers or {})},
             allowed_origin=origin,
+            allowed_origins=self.fetch_origins(url),
             data=data,
         )
 
@@ -344,12 +354,17 @@ def image_url_allowed(profile: str, url: str, base_url: str) -> bool:
         return False
     if profile in {"fanza", "avbase"} and host == "pics.dmm.co.jp":
         return path.startswith(("/digital/", "/mono/"))
+    if profile in {"fanza", "avbase"} and host == "awsimgsrc.dmm.co.jp":
+        return path.startswith(("/pics_dig/digital/", "/pics_dig/mono/"))
     if profile in {"mgs", "avbase"} and host == "image.mgstage.com":
         return True
     if profile in {"fc2db", "javten"} and fc2_image_path_allowed(host, path):
         return True
     if profile == "fc2db" and host == "img.fc2db.net":
         return path.startswith("/wp-content/uploads/")
+    if profile == "fc2db" and host == (urlsplit(base_url).hostname or "").lower():
+        if re.match(r"^/wp-content/uploads/\d{4}/\d{2}/[^/]+$", path):
+            return True
     return bool(
         profile in {"avbase", "fc2db", "javten"}
         and host == (urlsplit(base_url).hostname or "").lower()

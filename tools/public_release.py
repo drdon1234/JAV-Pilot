@@ -25,8 +25,8 @@ TREES = {
     'deploy': {'.yml', '.example'},
     'ops': {'.py', '.yml'},
     'tools': {'.py'},
-    'docs': {'.md', '.svg', '.png', '.webp'},
-    'frontend/src': {'.ts', '.tsx', '.css'},
+    'docs': {'.md', '.txt', '.svg', '.png', '.webp'},
+    'frontend/src': {'.ts', '.tsx', '.css', '.json'},
     'frontend/public': {'.svg', '.png', '.webp', '.ico', '.woff2'},
 }
 OLD_NAME = re.compile(

@@ -831,15 +831,15 @@ class DetailPrefetchManager:
         resolver: DetailResolver,
         config_fingerprint: Callable[[], str],
         *,
-        worker_count: int = 2,
+        worker_count: int = 3,
         max_attempts: int = 3,
         retry_delays: Sequence[float] = (0.25, 1.0),
         clock: Callable[[], float] = time.time,
         id_factory: Callable[[], str] | None = None,
     ) -> None:
-        if isinstance(worker_count, bool) or not 1 <= worker_count <= 2:
+        if isinstance(worker_count, bool) or not 1 <= worker_count <= 3:
             raise DetailPrefetchValidationError(
-                "detail prefetch worker count must be between 1 and 2"
+                "detail prefetch worker count must be between 1 and 3"
             )
         if isinstance(max_attempts, bool) or not 1 <= max_attempts <= 5:
             raise DetailPrefetchValidationError(

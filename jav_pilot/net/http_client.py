@@ -44,6 +44,12 @@ class _AllowedOriginRedirectHandler(HTTPRedirectHandler):
         newurl: str,
     ) -> Request | None:
         absolute = urljoin(req.full_url, newurl)
+        if (
+            urlsplit(req.full_url).hostname in {"www.dmm.co.jp", "video.dmm.co.jp"}
+            and _url_origin(absolute) == ("https", "special.dmm.co.jp", 443)
+            and urlsplit(absolute).path == "/not-available-in-your-region/"
+        ):
+            raise FetchError("source is unavailable from the current network region")
         if _url_origin(absolute) not in self.allowed_origins:
             raise FetchError("cross-origin redirect was rejected")
         return super().redirect_request(req, fp, code, msg, headers, absolute)
@@ -56,6 +62,7 @@ def fetch_text(
     max_bytes: int,
     headers: dict[str, str] | None = None,
     allowed_origin: str | None = None,
+    allowed_origins: tuple[str, ...] | None = None,
     data: bytes | None = None,
 ) -> str:
     raw, charset = _fetch(
@@ -63,7 +70,7 @@ def fetch_text(
         timeout=timeout,
         max_bytes=max_bytes,
         headers=headers,
-        allowed_origins=(allowed_origin or url,),
+        allowed_origins=allowed_origins or (allowed_origin or url,),
         data=data,
     )
     try:

@@ -12,7 +12,8 @@ from ..search.cover_proxy import (
     CoverUpstreamError,
     fetch_cover,
 )
-from ..net.http_client import FetchError, fetch_text
+from ..net.http_client import FetchError
+from ..net.site_fetch import fetch_site_text
 from ..core.models import SearchBounds, SearchResult
 from ..net.network_guard import PublicHostResolver
 from ..config.settings import site_by_id
@@ -82,7 +83,11 @@ class _ConfiguredProbe:
     def connection(self) -> None:
         self.dns()
         try:
-            fetch_text(
+            indexer = default_indexers(self.settings).get(self.site_id)
+            if self.site_id in METADATA_CATALOG and indexer is not None:
+                indexer.probe_connection(SearchBounds(timeout_seconds=30.0))
+                return
+            fetch_site_text(
                 self.base_url,
                 timeout=10.0,
                 max_bytes=512 * 1024,
@@ -171,6 +176,7 @@ class _SearchSiteProbe(_ConfiguredProbe):
                 self.code,
                 SearchBounds(
                     limit=5,
+                    timeout_seconds=30.0,
                     page=1,
                     max_pages=1,
                     # Detail enrichment provides the component metadata used by
@@ -210,7 +216,7 @@ class _WebDownloadSiteProbe(_ConfiguredProbe):
             return
         if stage == "connection":
             self.dns()
-            self._captured_search_page(timeout_seconds=15.0)
+            self._captured_search_page(timeout_seconds=30.0)
             return
         if stage == "search":
             self._validate_search_page()

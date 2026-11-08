@@ -29,7 +29,7 @@ JAVNONI_SITE_ID = "javnoni"
 CANDIDATE_WEB_SOURCE_IDS = (KISSJAV_SITE_ID, JAVNONI_SITE_ID)
 CANDIDATE_WEB_ORIGINS = {
     KISSJAV_SITE_ID: "https://kissjav.li",
-    JAVNONI_SITE_ID: "https://jav-noni.live",
+    JAVNONI_SITE_ID: "https://javnoni.com",
 }
 _MAX_PAGE_BYTES = 4 * 1024 * 1024
 _CODE = re.compile(

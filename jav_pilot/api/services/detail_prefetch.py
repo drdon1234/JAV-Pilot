@@ -17,7 +17,6 @@ from ...core.catalog_code import normalize_catalog_code
 from ...core.guards import QueryError
 from ...core.models import SearchBounds
 from ...core.observability import emit_json_log
-from ...indexers.torznab import TorznabIndexer
 from ...search.detail_prefetch import (
     DetailPrefetchManager,
     DetailPrefetchResolveError,
@@ -30,7 +29,7 @@ from ...search.engine import default_indexers, search
 from ...search.session_store import MetadataSearchStoreError
 from .. import state
 from ..request import valid_request_id, valid_work_id
-from .enrichment import JavDbFetcherPool, code_key, enrich_stream_work
+from .enrichment import code_key
 from .environment import app_revision, detail_prefetch_database_path
 from .history import require_operational_mode
 from .metadata_search import metadata_search_store
@@ -79,10 +78,8 @@ def detail_prefetch_manager() -> DetailPrefetchManager:
                     detail_prefetch_database_path(),
                     _resolve_detail_prefetch,
                     _detail_prefetch_config_fingerprint,
-                    # Measured against the live sites: two workers roughly halve
-                    # a ranking page's time; more mostly buys JavDB 429s. A
-                    # rate-limited item waits a few seconds before its retry.
-                    worker_count=2,
+                    # Keep one of the four global search slots for interactive work.
+                    worker_count=3,
                     retry_delays=(3.0, 10.0),
                 )
             return state.DETAIL_PREFETCH
@@ -426,150 +423,54 @@ def _resolve_detail_prefetch(
     settings = load_settings()
     prepared = _prepare_detail_prefetch_snapshot(snapshot, source_scope, settings)
     work = work_result_from_snapshot(prepared)
-    # A bare code (a ranking entry) names no site that carries the work, so the
-    # lookup keeps the sites that do instead of requiring every enabled site.
-    code_lookup = not any(source.detail_url for source in work.sources)
+    # A verified detail URL is the batch result. Full enrichment belongs to
+    # the interactive detail endpoint, where optional source failures are isolated.
+    if any(source.detail_url for source in work.sources):
+        return work.to_dict()
     if not _wait_for_detail_search_capacity(cancel_event):
         return work.to_dict()
-    javdb_pool = None
     try:
         registry = default_indexers(settings)
-        if any(source.source_id not in registry for source in work.sources):
+        sources = tuple(source.source_id for source in work.sources)
+        if any(source not in registry for source in sources):
             raise DetailPrefetchResolveError("parse_failed")
-        bounds = SearchBounds(
-            limit=20,
-            page=1,
-            max_pages=1,
-            fetch_magnets=True,
-            detail_limit=1,
-            sort="relevance",
-            match="exact",
-            search_kind="code",
-        ).normalized()
-        # A bare code also looks up the torrent indexers: most new works have no
-        # torrent yet, and an indexer that does not carry the work is dropped
-        # below instead of failing the whole prefetch.
-        missing_sources = tuple(
-            source.source_id for source in work.sources
-            if not source.detail_url
-            and (code_lookup or not isinstance(registry[source.source_id], TorznabIndexer))
+        lookup_code = work.canonical_code or work.code or next(
+            (source.raw_code for source in work.sources if source.raw_code), None
         )
-        if missing_sources:
-            lookup_code = (
-                work.canonical_code
-                or work.code
-                or next(
-                    (source.raw_code for source in work.sources if source.raw_code),
-                    None,
-                )
+        if not lookup_code:
+            raise DetailPrefetchResolveError("work_not_found")
+        bounds = SearchBounds(
+            limit=20, page=1, max_pages=1, fetch_magnets=False,
+            detail_limit=0, sort="relevance", match="exact", search_kind="code",
+        ).normalized()
+        try:
+            response = search(
+                lookup_code, sources=sources, bounds=bounds, indexers=registry,
+                cancelled=cancel_event.is_set,
             )
-            if not lookup_code:
-                raise DetailPrefetchResolveError("work_not_found")
-            try:
-                response = search(
-                    lookup_code,
-                    sources=missing_sources,
-                    bounds=replace(bounds, fetch_magnets=False, detail_limit=0),
-                    indexers=registry,
-                    cancelled=cancel_event.is_set,
-                )
-            except (QueryError, ValueError):
-                raise DetailPrefetchResolveError("work_not_found") from None
-            if response.errors and not code_lookup:
+        except (QueryError, ValueError):
+            raise DetailPrefetchResolveError("work_not_found") from None
+        if cancel_event.is_set():
+            return work.to_dict()
+        requested_key = code_key(str(lookup_code))
+        recovered = next(
+            (
+                candidate for candidate in response.results
+                if (candidate.work_id == work.work_id
+                    or code_key(candidate.canonical_code or candidate.code or "") == requested_key)
+                and any(source.detail_url for source in candidate.sources)
+            ),
+            None,
+        )
+        if recovered is None:
+            if response.errors:
                 raise _detail_prefetch_error_from_text(
                     " ".join(str(error) for error in response.errors.values())
                 )
-            requested_key = code_key(str(lookup_code))
-            recovered = next(
-                (
-                    candidate
-                    for candidate in response.results
-                    if candidate.work_id == work.work_id
-                    or code_key(candidate.canonical_code or candidate.code or "")
-                    == requested_key
-                ),
-                None,
-            )
-            if recovered is None and response.errors:
-                error = _detail_prefetch_error_from_text(
-                    " ".join(str(error) for error in response.errors.values())
-                )
-                # Sites that fail every lookup (region locks, blocked
-                # redirects) do not make a work missing from the sites that
-                # answered into a parse failure; a transient error still
-                # retries, since the work may be on the site that hit it.
-                if error.retryable or len(response.errors) >= len(missing_sources):
-                    raise error
-            if recovered is None:
-                raise DetailPrefetchResolveError("work_not_found")
-            recovered_sources = {
-                source.source_id: source for source in recovered.sources
-            }
-            work = replace(
-                work,
-                sources=tuple(
-                    recovered_sources.get(source.source_id, source)
-                    if not source.detail_url
-                    else source
-                    for source in work.sources
-                ),
-            )
-            if code_lookup:
-                # The snapshot only carried the code; title, date, actors and
-                # tags come from the sites that carry the work.
-                work = replace(
-                    recovered,
-                    work_id=work.work_id,
-                    sources=tuple(
-                        source
-                        for source in work.sources
-                        if source.detail_url
-                        or (
-                            isinstance(registry[source.source_id], TorznabIndexer)
-                            and source.source_id in recovered_sources
-                        )
-                    ),
-                )
-                if not any(source.detail_url for source in work.sources):
-                    raise DetailPrefetchResolveError("work_not_found")
-            if any(not source.detail_url and not isinstance(registry[source.source_id], TorznabIndexer)
-                   for source in work.sources):
-                raise DetailPrefetchResolveError("work_not_found")
-        if cancel_event.is_set():
-            return work.to_dict()
-        javdb_pool = JavDbFetcherPool(bounds)
-        enriched = enrich_stream_work(
-            work,
-            registry,
-            bounds,
-            javdb_pool,
-            include_images=True,
-            cancelled=cancel_event.is_set,
-        )
+            raise DetailPrefetchResolveError("work_not_found")
+        return replace(recovered, work_id=work.work_id).to_dict()
     finally:
-        try:
-            if javdb_pool is not None:
-                javdb_pool.close()
-        finally:
-            state.SEARCH_TOTAL_SLOTS.release()
-    if cancel_event.is_set():
-        return enriched.to_dict()
-    errors = [
-        error
-        for source in enriched.sources
-        for error in (
-            source.error,
-            source.details_error,
-            source.image_error,
-            source.magnet_error,
-        )
-        if error
-    ]
-    if errors:
-        raise _detail_prefetch_error_from_text(" ".join(errors))
-    if any(source.parse_status != "resolved" for source in enriched.sources):
-        raise DetailPrefetchResolveError("parse_failed")
-    return enriched.to_dict()
+        state.SEARCH_TOTAL_SLOTS.release()
 
 
 def _wait_for_detail_search_capacity(cancel_event: threading.Event) -> bool:

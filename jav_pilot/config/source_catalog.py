@@ -3,7 +3,7 @@
 from .bundled_jackett import bundled_jackett_site
 
 METADATA_CATALOG = {
-    "fanza": ("FANZA", "https://www.dmm.co.jp", True),
+    "fanza": ("FANZA", "https://video.dmm.co.jp", True),
     "mgs": ("MGS", "https://www.mgstage.com", True),
     "avbase": ("AVBase", "https://www.avbase.net", True),
     "fc2db": ("FC2DB", "https://fc2db.net", False),
@@ -15,7 +15,7 @@ TORRENT_CATALOG = {
 }
 WEB_CATALOG = {
     "kissjav": ("KissJAV", "https://kissjav.li"),
-    "javnoni": ("JAV-NONI", "https://jav-noni.live"),
+    "javnoni": ("JAV-NONI", "https://javnoni.com"),
 }
 SUBTITLE_CATALOG = {
     "xunlei": ("迅雷字幕", "https://api-shoulei-ssl.xunlei.com"),

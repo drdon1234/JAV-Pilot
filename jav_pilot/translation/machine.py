@@ -16,8 +16,11 @@ import threading
 import time
 import unicodedata
 from contextlib import closing
+from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote
+
+from opencc import OpenCC
 
 from ..net.http_client import FetchError, fetch_text
 from ..config.paths import default_database_path
@@ -62,9 +65,9 @@ class TranslationService:
             if not text:
                 continue
             if _already_target(text, target):
-                results[index] = text
+                results[index] = _normalize_translation(text, target)
             elif key in cached:
-                results[index] = cached[key]
+                results[index] = _normalize_translation(cached[key], target)
             else:
                 pending.append(index)
         if not pending:
@@ -83,6 +86,7 @@ class TranslationService:
         for index in pending:
             value = translated.get(clean[index])
             if value:
+                value = _normalize_translation(value, target)
                 results[index] = value
                 fresh.append((keys[index], target, value))
         self._store(fresh)
@@ -125,6 +129,21 @@ class TranslationService:
         connection = sqlite3.connect(self.path, timeout=5.0)
         connection.execute("PRAGMA busy_timeout = 5000")
         return connection
+
+
+@lru_cache(maxsize=2)
+def _chinese_converter(config: str) -> OpenCC:
+    return OpenCC(config)
+
+
+def _normalize_translation(value: str, target: str) -> str:
+    # Normalize both fresh responses and persisted cache hits. Upstream services
+    # and the already-target shortcut do not reliably distinguish Chinese scripts.
+    if target == "zh-CN":
+        return _chinese_converter("t2s").convert(value)
+    if target == "zh-TW":
+        return _chinese_converter("s2t").convert(value)
+    return value
 
 
 def _clean_text(value: object) -> str:

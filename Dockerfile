@@ -96,10 +96,12 @@ RUN --mount=type=cache,id=jav-pilot-pip,target=/root/.cache/pip,sharing=locked \
     python verify_python_lock.py --verify-installed-closure
 
 COPY LICENSE ./
+COPY docs/licenses/ ./docs/licenses/
+COPY frontend/src/lib/rankingCategoryLabels.json ./docs/licenses/rankingCategoryLabels.json
 ARG VCS_REF=unknown
 
 LABEL org.opencontainers.image.title="JAV Pilot" \
-      org.opencontainers.image.version="0.2.1" \
+      org.opencontainers.image.version="0.2.2" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.source="https://github.com/drdon1234/JAV-Pilot" \
       org.opencontainers.image.revision="${VCS_REF}"

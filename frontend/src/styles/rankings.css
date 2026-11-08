@@ -82,6 +82,12 @@
   background: var(--surface-muted);
 }
 
+.ranking-cover > a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .ranking-cover img,
 .ranking-cover .stable-image-placeholder {
   width: 100%;

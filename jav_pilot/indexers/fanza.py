@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from urllib.parse import parse_qs, quote, urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from jav_pilot.net.http_client import FetchError
 from jav_pilot.core.models import SearchBounds, SearchResult, SourceDetails
@@ -14,7 +14,6 @@ from .metadata_catalog import (
     document,
     duration_minutes,
     json_ld,
-    json_objects,
     meta,
     metadata_result,
     public_url,
@@ -48,50 +47,45 @@ def fanza_display_code(value: object) -> str | None:
     )
 
 
-def fanza_search_payload(html: str) -> dict:
-    soup = document(html)
-    payloads = []
-    flight = []
-    decoder = json.JSONDecoder()
-    for script in soup.select("script"):
-        raw = script.get_text()
-        if script.get("type") == "application/json":
-            try:
-                payloads.append(json.loads(raw))
-            except ValueError:
-                pass
-        for marker in re.finditer(r"self\.__next_f\.push\(", raw):
-            try:
-                part, _ = decoder.raw_decode(raw[marker.end() :].lstrip())
-            except ValueError:
-                continue
-            if (
-                isinstance(part, list)
-                and len(part) == 2
-                and part[0] == 1
-                and isinstance(part[1], str)
-            ):
-                flight.append(part[1])
-    for line in "".join(flight).splitlines():
-        _, _, raw = line.partition(":")
-        if "backendResponse" not in raw:
-            continue
-        try:
-            payloads.append(json.loads(raw))
-        except ValueError:
-            continue
-    for payload in payloads:
-        for item in json_objects(payload):
-            backend = item.get("backendResponse")
-            if isinstance(backend, dict) and isinstance(backend.get("contents"), dict):
-                return backend
-    raise FetchError("FANZA search page did not contain recognized metadata")
+_SEARCH_QUERY = """query SearchMetadata($word: String!, $offset: Int!) {
+  legacySearchPPV(queryWord: $word, limit: 50, offset: $offset, floor: AV,
+    sort: SALES_RANK_SCORE, facetLimit: 1, includeExplicit: true, excludeUndelivered: true) {
+    result { contents { id title packageImage { largeUrl mediumUrl } } }
+  }
+}"""
 
 
 class FanzaIndexer(MetadataCatalogIndexer):
     name = "fanza"
-    default_url = "https://www.dmm.co.jp"
+    default_url = "https://video.dmm.co.jp"
     headers = {"Cookie": "age_check_done=1"}
+
+    def probe_connection(self, bounds: SearchBounds) -> None:
+        raw = self._fetch(
+            "https://api.video.dmm.co.jp/graphql",
+            bounds,
+            headers={
+                "Content-Type": "application/json",
+                "Origin": "https://video.dmm.co.jp",
+                "Referer": "https://video.dmm.co.jp/",
+                "Fanza-Device": "BROWSER",
+            },
+            data=b'{"query":"query { __typename }"}',
+        )
+        try:
+            response = json.loads(raw)
+            if response.get("errors") or not response["data"]["__typename"]:
+                raise ValueError
+        except (ValueError, TypeError, KeyError, AttributeError):
+            raise FetchError(
+                "FANZA API returned an invalid metadata document"
+            ) from None
+
+    def fetch_origins(self, url: str) -> tuple[str, ...]:
+        origins = super().fetch_origins(url)
+        if urlsplit(url).hostname in {"www.dmm.co.jp", "video.dmm.co.jp"}:
+            return ("https://www.dmm.co.jp", "https://video.dmm.co.jp")
+        return origins
 
     def request_url_allowed(self, url: str) -> bool:
         if super().request_url_allowed(url):
@@ -100,7 +94,8 @@ class FanzaIndexer(MetadataCatalogIndexer):
         return bool(
             safe
             and urlsplit(safe).scheme == "https"
-            and urlsplit(safe).netloc in {"video.dmm.co.jp", "api.video.dmm.co.jp"}
+            and urlsplit(safe).netloc
+            in {"www.dmm.co.jp", "video.dmm.co.jp", "api.video.dmm.co.jp"}
         )
 
     def detail_url_allowed(self, url: str) -> bool:
@@ -122,55 +117,61 @@ class FanzaIndexer(MetadataCatalogIndexer):
         query, bounds = self._query(query, bounds)
         if fc2_product_id(query):
             return ()
-        keyword = query.replace("-", "") if display_code(query) else query
-        url = f"{self.base_url}/search/=/searchstr={quote(keyword, safe='')}/limit=30/sort=date/page={bounds.page}/"
-        payload = fanza_search_payload(self._fetch(url, bounds))
-        rows = payload["contents"].get("data")
-        if not isinstance(rows, list):
-            raise FetchError("FANZA search result list is missing")
+        match = re.fullmatch(r"([A-Za-z]{2,12})-(\d{2,8})", query)
+        keyword = match[1].lower() + match[2].zfill(5) if match else query
+        raw = self._fetch(
+            "https://api.video.dmm.co.jp/graphql",
+            bounds,
+            headers={
+                "Content-Type": "application/json",
+                "Referer": "https://video.dmm.co.jp/",
+                "Origin": "https://video.dmm.co.jp",
+                "Fanza-Device": "BROWSER",
+            },
+            data=json.dumps(
+                {
+                    "query": _SEARCH_QUERY,
+                    "variables": {"word": keyword, "offset": (bounds.page - 1) * 50},
+                }
+            ).encode(),
+        )
+        try:
+            payload = json.loads(raw)
+            rows = payload["data"]["legacySearchPPV"]["result"]["contents"]
+            if payload.get("errors") or not isinstance(rows, list):
+                raise ValueError
+        except (ValueError, KeyError, TypeError):
+            raise FetchError("FANZA search result list is missing") from None
         output = []
         seen = set()
-        for item in rows[:200]:
+        for item in rows[:50]:
             if not isinstance(item, dict):
                 continue
-            target = public_url(item.get("detail_url"), self.base_url)
-            if not target or not self.detail_url_allowed(target) or target in seen:
-                continue
-            cid = text(item.get("content_id"), 100)
+            cid = text(item.get("id"), 100)
             title = text(item.get("title"))
-            if not title or not cid:
+            if (
+                not re.fullmatch(r"[a-zA-Z0-9_]{1,100}", cid)
+                or not title
+                or cid in seen
+            ):
                 continue
-            target_path = urlsplit(target)
-            path_id = re.search(r"/cid=([A-Za-z0-9_]+)/", target_path.path)
-            target_id = (
-                path_id.group(1)
-                if path_id
-                else parse_qs(target_path.query).get("id", [""])[0]
-            )
-            if cid.lower() != target_id.lower():
-                continue
-            code = fanza_display_code(cid)
-            details = SourceDetails(
-                title=title,
-                actors=refs("actor", item.get("casts")),
-                makers=refs("maker", item.get("makers")),
-                tags=refs("tag", item.get("keywords")),
-                series=refs("series", item.get("series")),
-            )
+            package = item.get("packageImage")
+            package = package if isinstance(package, dict) else {}
             output.append(
                 metadata_result(
                     source_id=self.source_id,
                     provider=self.name,
-                    url=target,
-                    code=code,
+                    url=f"https://video.dmm.co.jp/av/content/?id={cid}",
+                    code=fanza_display_code(cid),
                     title=title,
-                    details=details,
                     resolved=False,
-                    images=[("cover", item.get("thumbnail_image_url"))],
+                    images=[
+                        ("cover", package.get("largeUrl") or package.get("mediumUrl"))
+                    ],
                     extra={"content_id": cid},
                 )
             )
-            seen.add(target)
+            seen.add(cid)
             if len(output) >= bounds.limit:
                 break
         if rows and not output:
@@ -191,6 +192,7 @@ class FanzaIndexer(MetadataCatalogIndexer):
             headers={
                 "Content-Type": "application/json",
                 "Referer": "https://video.dmm.co.jp/",
+                "Origin": "https://video.dmm.co.jp",
                 "Fanza-Device": "BROWSER",
             },
             data=json.dumps({"query": _DETAIL_QUERY, "variables": {"id": cid}}).encode(

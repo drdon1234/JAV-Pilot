@@ -47,7 +47,9 @@ from ..config.settings import (
     site_has_capability,
 )
 from .media import MAX_MANIFEST_BYTES
-from ..net.http_client import FetchError, fetch_text
+from ..net.http_client import FetchError
+from ..net.site_fetch import fetch_site_text as fetch_text, fetch_browser_text
+from ..net.challenges import is_challenge, is_firewall_block
 from .source_catalog import (
     CANDIDATE_WEB_SOURCE_IDS,
     WebCatalogError,
@@ -78,21 +80,6 @@ _MAX_RESOURCE_PAGE_ITEMS = 128
 _SUPJAV_CAPTURE_SPACING_SECONDS = 3.0
 _SUPJAV_CHALLENGE_COOLDOWN_SECONDS = 30.0
 _SUPJAV_CAPTURE_LOCK = threading.Lock()
-# SupJav's Cloudflare policy currently admits only Safari TLS/HTTP2
-# fingerprints, and each admits roughly half of first requests. Rotating
-# through several Safari builds before the legacy profiles makes one search
-# page succeed with near certainty instead of failing on the first challenge.
-_SUPJAV_IMPERSONATE_PROFILES = (
-    "safari15_5",
-    "safari2601",
-    "safari184_ios",
-    "safari17_0",
-    "safari170",
-    "safari17_2_ios",
-    "safari155",
-    "firefox147",
-    "chrome131",
-)
 _SUPJAV_CAPTURE_STATE_PATH = (
     Path(tempfile.gettempdir()) / "jav-pilot-supjav-capture.lock"
 )
@@ -340,7 +327,7 @@ def probe_web_download_provider_connection(
                 timeout=timeout_seconds, max_bytes=_MAX_PAGE_BYTES,
                 allowed_origin=origin,
             )
-        return _bounded_get(
+        return _bounded_page(
             _supjav_session()
             if provider_id == SUPJAV_SITE_ID
             else _session(impersonate="chrome"),
@@ -451,7 +438,7 @@ def probe_jable_current_search(
     """Select a current catalog sample after a diagnostic title disappears."""
 
     origin = _safe_origin(base_url, expected_profile=JABLE_SITE_ID)
-    document = _bounded_get(
+    document = _bounded_page(
         _session(),
         f"{origin}/",
         timeout_seconds,
@@ -735,7 +722,7 @@ class WebProviderResourceSearcher:
                 document = (
                     fetch_text(search_url, timeout=30.0, max_bytes=_MAX_PAGE_BYTES, allowed_origin=origin)
                     if self._source_id in CANDIDATE_WEB_SOURCE_IDS
-                    else _bounded_get(session, search_url, 30.0, allowed_hosts={urlsplit(origin).hostname or ""})
+                    else _bounded_page(session, search_url, 30.0, allowed_hosts={urlsplit(origin).hostname or ""})
                 )
             except WebDownloadProviderNotFound:
                 # Search endpoints are expected to return a structured 200
@@ -1353,7 +1340,7 @@ def _capture_supjav_uncoordinated(
     session = _supjav_session()
     _raise_if_provider_cancelled(cancel_event)
     search_url = f"{origin}/?s={quote(str(code), safe='')}"
-    search = _bounded_get(
+    search = _bounded_page(
         session,
         search_url,
         timeout_seconds,
@@ -1361,7 +1348,7 @@ def _capture_supjav_uncoordinated(
     )
     detail_url = _supjav_exact_result(search, origin, code)
     _raise_if_provider_cancelled(cancel_event)
-    detail = _bounded_get(
+    detail = _bounded_page(
         session,
         detail_url,
         timeout_seconds,
@@ -1677,7 +1664,7 @@ def _capture_jable(
     slug = re.sub(r"[^a-z0-9]+", "-", str(code).strip().lower()).strip("-")
     detail_url = f"{origin}/videos/{slug}/"
     try:
-        detail = _bounded_get(
+        detail = _bounded_page(
             session, detail_url, timeout_seconds, allowed_hosts={host}
         )
         title_match = re.search(
@@ -1690,14 +1677,14 @@ def _capture_jable(
         ):
             raise WebDownloadProviderNotFound()
     except WebDownloadProviderNotFound:
-        search = _bounded_get(
+        search = _bounded_page(
             session,
             f"{origin}/search/?q={quote(str(code), safe='')}",
             timeout_seconds,
             allowed_hosts={host},
         )
         detail_url = _jable_exact_result(search, origin, code)
-        detail = _bounded_get(
+        detail = _bounded_page(
             session, detail_url, timeout_seconds, allowed_hosts={host}
         )
     matches = re.findall(r"https://[^\s\"']+\.m3u8[^\s\"']*", detail, re.IGNORECASE)
@@ -1749,47 +1736,38 @@ def _session(*, impersonate: str = "chrome"):
     return requests.Session(impersonate=impersonate)
 
 
-class _SupjavAdaptiveSession:
-    """Retry only challenge responses with a different TLS/browser profile."""
-
-    def __init__(self) -> None:
-        first = _SUPJAV_IMPERSONATE_PROFILES[0]
-        self._sessions: dict[str, object] = {
-            first: _session(impersonate=first)
-        }
-        self._preferred_index = 0
-
-    def get(self, url: str, **kwargs: object) -> object:
-        last_response: object | None = None
-        profile_count = len(_SUPJAV_IMPERSONATE_PROFILES)
-        for offset in range(profile_count):
-            index = (self._preferred_index + offset) % profile_count
-            profile = _SUPJAV_IMPERSONATE_PROFILES[index]
-            session = self._sessions.get(profile)
-            if session is None:
-                session = _session(impersonate=profile)
-                self._sessions[profile] = session
-            response = session.get(url, **kwargs)
-            last_response = response
-            status_code = int(getattr(response, "status_code", 0) or 0)
-            headers = getattr(response, "headers", {})
-            mitigated = str(
-                headers.get("cf-mitigated", "")
-                if hasattr(headers, "get")
-                else ""
-            ).casefold()
-            if status_code not in {403, 429, 503} and "challenge" not in mitigated:
-                self._preferred_index = index
-                return response
-        if last_response is None:  # pragma: no cover - profiles are constant.
-            raise WebDownloadProviderError(
-                "SupJav browser profiles are unavailable", code="configuration"
-            )
-        return last_response
+def _supjav_session():
+    # One stable HTTP session; challenged documents recover in the persistent
+    # browser instead of issuing a burst with nine unrelated fingerprints.
+    return _session(impersonate="safari")
 
 
-def _supjav_session() -> _SupjavAdaptiveSession:
-    return _SupjavAdaptiveSession()
+def _bounded_page(
+    session: object, url: str, timeout_seconds: float, *, allowed_hosts: set[str],
+    headers: dict[str, str] | None = None,
+) -> str:
+    deadline = time.monotonic() + timeout_seconds
+    try:
+        document = _bounded_get(session, url, timeout_seconds, allowed_hosts=allowed_hosts, headers=headers)
+    except WebDownloadProviderError as exc:
+        if exc.code != "challenge_active":
+            raise
+    else:
+        if is_firewall_block(document):
+            raise WebDownloadProviderError("Source firewall blocked this network", code="upstream_unavailable")
+        if not is_challenge(document):
+            return document
+    _require_allowed_public_host(url, allowed_hosts, "Provider request host was rejected")
+    remaining = deadline - time.monotonic()
+    if remaining < 1:
+        raise WebDownloadProviderError("Provider verification timed out", code="challenge_active")
+    try:
+        return fetch_browser_text(url, timeout=remaining, max_bytes=_MAX_PAGE_BYTES,
+                                  allowed_origins=(_origin(url),), headers=headers)
+    except FetchError as exc:
+        raise WebDownloadProviderError("Provider browser verification failed", code=(
+            "challenge_active" if "challenge" in str(exc) else "upstream_unavailable"
+        )) from exc
 
 
 def _bounded_get(
@@ -1816,7 +1794,9 @@ def _bounded_get(
         )
     if int(response.status_code) == 404:
         raise WebDownloadProviderNotFound()
-    if int(response.status_code) in {403, 429, 503}:
+    if int(response.status_code) == 429:
+        raise WebDownloadProviderError("Provider rate limit is active", code="rate_limited")
+    if int(response.status_code) in {403, 503}:
         raise WebDownloadProviderError(
             "Provider challenge is active", code="challenge_active"
         )

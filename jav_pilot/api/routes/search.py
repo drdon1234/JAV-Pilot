@@ -28,6 +28,7 @@ from ...search.detail_prefetch import (
     DetailPrefetchNotFoundError,
     DetailPrefetchUnavailableError,
     DetailPrefetchValidationError,
+    work_result_from_snapshot,
 )
 from ...search.engine import default_indexers, sanitize_source_error, search
 from ...search.session_store import (
@@ -975,12 +976,11 @@ class SearchRoutes(BaseHandler):
                 sqlite3.Error,
             ):
                 prefetched = None
-        if prefetched is not None:
-            self._send_json({"work": prefetched, "cached": True, "prefetched": True})
-            return
         recent_work = (
             state.WORK_CACHE.get(work_cache_key(work_id, sources)) if work_id else None
         )
+        if recent_work is None and prefetched is not None:
+            recent_work = work_result_from_snapshot(prefetched)
         if recent_work is None and not requested_key and not recovery_query:
             self._send_json(
                 {"error": "work recovery query is required"}, HTTPStatus.BAD_REQUEST

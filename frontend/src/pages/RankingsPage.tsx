@@ -18,6 +18,7 @@ import { QuickWebDownload } from './QuickWebDownload'
 import { StableImage } from './WorkUi'
 import { t } from '../lib/i18n'
 import { serverText } from '../lib/serverTexts'
+import { useRankingCategories } from '../lib/rankingCategories'
 
 import '../styles/rankings.css'
 
@@ -31,7 +32,7 @@ const STORAGE_KEY = 'jav-pilot:rankings-view'
 const PREFETCH_STATUS: Record<DetailPrefetchItemStatus, { label: string; tone: 'neutral' | 'success' | 'warning' | 'info' }> = {
   queued: { label: t('等待解析'), tone: 'neutral' },
   running: { label: t('解析中'), tone: 'info' },
-  completed: { label: t('详情已就绪'), tone: 'success' },
+  completed: { label: t('链接已就绪'), tone: 'success' },
   failed: { label: t('解析失败'), tone: 'warning' },
 }
 
@@ -199,7 +200,11 @@ export function RankingsPage() {
     .map((site) => site.id)
   const errorCode = ranking.error instanceof ApiError ? ranking.error.code : null
   const staleCategory = errorCode === 'invalid' && Boolean(board?.dynamic_categories && category)
-  const categories = board?.dynamic_categories ? ranking.data?.categories ?? [] : board?.categories ?? []
+  const categories = useRankingCategories(
+    board?.id ?? '',
+    board?.dynamic_categories ? ranking.data?.categories ?? [] : board?.categories ?? [],
+    Boolean(board?.dynamic_categories),
+  )
   const shownCategory = board?.dynamic_categories ? ranking.data?.category ?? category : category
 
   useEffect(() => {
@@ -330,7 +335,7 @@ export function RankingsPage() {
                   onChange={(event) => updateView({ category: event.target.value })}
                 >
                   {categories.length ? null : <option value={shownCategory}>{t('正在加载分类')}</option>}
-                  {categories.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
+                  {categories.map((option) => <option value={option.value} key={option.value} title={option.originalLabel}>{option.label}</option>)}
                 </select>
               </label>
             ) : categories.length > 1 ? (
@@ -394,7 +399,7 @@ export function RankingsPage() {
                 {cancelPrefetch.isPending ? t('正在取消') : t('取消解析')}
               </Button>
             ) : null}
-            <span className="rankings-prefetch-hint">{t('在后台逐部解析详情，完成后点“详情”即可直接打开')}</span>
+            <span className="rankings-prefetch-hint">{t('并发查找详情链接，找到即完成；打开详情时再加载完整内容')}</span>
           </div>
           {prefetchBatch ? (
             <div className="rankings-prefetch-progress" aria-live="polite">
@@ -448,11 +453,15 @@ export function RankingsPage() {
               <li className="ranking-row" key={`${item.rank}-${item.code ?? item.title}`}>
                 <span className="ranking-rank"><span className="sr-only">{t('第 {rank} 名', { rank: item.rank })}</span><span aria-hidden="true">{item.rank}</span></span>
                 <div className="ranking-cover">
-                  <StableImage src={cover} alt={t('{value} 封面', { value: item.code ?? item.title })} referrerPolicy="no-referrer" />
+                  {detailLink ? (
+                    <Link to={detailLink} state={{ returnTo: '/rankings' }} aria-label={t('查看 {code} 详情', { code: item.code })}>
+                      <StableImage src={cover} alt={t('{value} 封面', { value: item.code ?? item.title })} referrerPolicy="no-referrer" />
+                    </Link>
+                  ) : <StableImage src={cover} alt={item.title} referrerPolicy="no-referrer" />}
                 </div>
                 <div className="ranking-main">
                   <span className="ranking-code-line">
-                    <strong>{item.code ?? t('未知番号')}</strong>
+                    <strong>{detailLink ? <Link to={detailLink} state={{ returnTo: '/rankings' }}>{item.code}</Link> : item.code ?? t('未知番号')}</strong>
                     {prefetchStatus ? <StatusBadge tone={PREFETCH_STATUS[prefetchStatus].tone}>{PREFETCH_STATUS[prefetchStatus].label}</StatusBadge> : null}
                   </span>
                   <p>{translated || item.title}</p>
@@ -469,12 +478,6 @@ export function RankingsPage() {
                     <Link className="button button-secondary button-small" to={detailLink} state={{ returnTo: '/rankings' }} aria-label={t('查看 {code} 详情', { code: item.code })}>
                       <FileText aria-hidden="true" />
                       {t('详情')}
-                    </Link>
-                  ) : null}
-                  {item.code ? (
-                    <Link className="button button-secondary button-small" to={searchHref(item.code, 'code')}>
-                      <Search aria-hidden="true" />
-                      {t('搜索')}
                     </Link>
                   ) : null}
                   {item.code && webConfigured ? <QuickWebDownload code={item.code} /> : null}
