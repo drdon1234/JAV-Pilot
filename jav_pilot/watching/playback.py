@@ -221,6 +221,10 @@ def _fetch(session: PlaybackSession, url: str, headers: dict, playlist: bool):
                 if len(body) > limit:
                     raise SafeMediaError("播放资源过大，请换一条线路")
                 content_type = raw_headers.get("content-type", "application/octet-stream").split(";")[0]
+                # Rotating CDNs disguise TS segments as CSS, SVG or scripts.
+                # Verify repeated transport sync bytes before accepting that MIME.
+                if not playlist and len(body) >= 564 and all(body[offset] == 0x47 for offset in (0, 188, 376)):
+                    content_type = "video/mp2t"
                 if "html" in content_type or "javascript" in content_type or content_type == 'image/svg+xml':
                     raise SafeMediaError("线路返回了验证页，请重新解析")
                 forwarded = {key: raw_headers[key] for key in ("content-range", "accept-ranges") if key in raw_headers}

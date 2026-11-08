@@ -43,7 +43,7 @@
 .watch-search-note { margin: 0; }
 .watch-empty-line { margin: 0; padding: 24px 16px; border-block: 1px solid var(--border); color: var(--muted); }
 .watch-pagination { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding-top: 12px; font-size: 12px; color: var(--muted); }
-.playback-return { position: fixed; right: 24px; bottom: 88px; z-index: 20; box-shadow: var(--shadow-card); }
+.playback-return.button { position: fixed; right: 24px; bottom: 88px; z-index: 20; box-shadow: var(--shadow-card); }
 .watch-work-info { display: grid; grid-template-columns: minmax(180px, 28%) minmax(0, 1fr); gap: 24px; padding-block: 8px; align-items: start; }
 .watch-work-cover { aspect-ratio: 16 / 10; overflow: hidden; background: var(--surface-muted); border-radius: var(--radius-control); }
 .watch-work-info h2 { font-size: 20px; line-height: 1.5; margin: 10px 0 16px; overflow-wrap: anywhere; }
