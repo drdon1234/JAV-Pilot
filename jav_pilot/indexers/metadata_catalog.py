@@ -222,6 +222,7 @@ def metadata_result(
 
 
 class MetadataCatalogIndexer(Indexer):
+    http_fetch = None
     default_url = ""
     headers: dict[str, str] = {}
     supports_keyword_search = True
@@ -266,6 +267,7 @@ class MetadataCatalogIndexer(Indexer):
             allowed_origin=origin,
             allowed_origins=self.fetch_origins(url),
             data=data,
+            **({"http_fetch": self.http_fetch} if self.http_fetch else {}),
         )
 
     def request_url_allowed(self, url: str) -> bool:

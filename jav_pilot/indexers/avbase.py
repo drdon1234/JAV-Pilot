@@ -5,6 +5,7 @@ import re
 from urllib.parse import quote, urlsplit
 
 from jav_pilot.net.http_client import FetchError
+from jav_pilot.net.curl_http import fetch_text as fetch_browser_http
 from jav_pilot.core.models import SearchBounds, SearchResult, SourceDetails
 
 from .fc2 import fc2_product_id
@@ -22,6 +23,7 @@ from .metadata_catalog import (
 
 
 class AvBaseIndexer(MetadataCatalogIndexer):
+    http_fetch = staticmethod(fetch_browser_http)
     name = "avbase"
     default_url = "https://www.avbase.net"
 

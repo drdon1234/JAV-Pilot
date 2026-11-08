@@ -95,6 +95,7 @@ def fetch_site_text(
     allowed_origin: str | None = None,
     allowed_origins: tuple[str, ...] | None = None,
     data: bytes | None = None,
+    http_fetch=None,
 ) -> str:
     parsed = urlsplit(url)
     origin = f"{parsed.scheme}://{parsed.netloc}"
@@ -104,7 +105,7 @@ def fetch_site_text(
         warm = _BROWSER_ORIGINS.get(origin, 0) > time.monotonic()
     if not warm or data is not None:
         try:
-            html = fetch_http_text(
+            html = (http_fetch or fetch_http_text)(
                 url,
                 timeout=timeout,
                 max_bytes=max_bytes,
