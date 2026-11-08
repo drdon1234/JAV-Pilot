@@ -27,7 +27,7 @@ import type {
 } from '../types'
 import { t } from '../lib/i18n'
 
-const BUILTIN_WEB_SITE_IDS = ['jable', 'supjav', 'missav', 'kissjav', 'javnoni'] as const
+const BUILTIN_WEB_SITE_IDS = ['jable', 'supjav', 'missav', 'kissjav', 'javnoni', 'av123'] as const
 const BUILTIN_SUBTITLE_SITE_IDS = ['xunlei', 'subtitlecat'] as const
 const DEFAULT_METADATA_SEARCH_PRIORITY = ['javdb', 'javbus', 'fc2'] as const
 const DEFAULT_METADATA_SCRAPER_PRIORITY = ['javbus', 'javdb', 'fc2'] as const
@@ -38,6 +38,7 @@ type SitePriorityField =
   | 'web_download_provider_priority'
   | 'metadata_scraper_site_priority'
 const CAPABILITY_LABELS: Record<SiteCapability, string> = {
+  online_watch: t('在线观看'),
   metadata_search: t('元数据搜索'),
   metadata_detail: t('番号详情'),
   torrent_search: t('种子搜索'),

@@ -24,6 +24,18 @@ class PatternRoute:
 
 
 GET_ROUTES: dict[str, Route] = {
+    "/api/library/artwork": Route("_handle_library_artwork", with_query=True),
+    "/api/library/folder-cover": Route("_handle_library_folder_cover", with_query=True),
+    "/api/playback-history": Route("_handle_playback_history", with_query=True),
+    "/api/library/playback": Route("_handle_local_playback", with_query=True),
+    "/api/library/media": Route("_handle_local_media", with_query=True),
+    "/api/library/subtitle": Route("_handle_local_subtitle", with_query=True),
+    "/api/watch/recommendations": Route("_handle_watch_recommendations", with_query=True),
+    "/api/watch/sites": Route("_handle_watch_sites"),
+    "/api/watch/detail": Route("_handle_watch_detail", with_query=True),
+    "/api/watch/catalog": Route("_handle_watch_catalog", with_query=True),
+    "/api/watch/media": Route("_handle_watch_media", with_query=True),
+    "/api/bookmarks": Route("_handle_bookmarks"),
     "/healthz": Route("_handle_healthz", public=True),
     "/readyz": Route("_handle_readyz", public=True),
     "/api/auth/status": Route("_handle_auth_status", public=True),
@@ -89,6 +101,12 @@ GET_PATTERN_ROUTES: tuple[PatternRoute, ...] = (
 )
 
 POST_ROUTES: dict[str, Route] = {
+    "/api/library/folder-cover/action": Route("_handle_library_folder_cover_action"),
+    "/api/playback-history/action": Route("_handle_playback_history_action"),
+    "/api/library/playback/progress": Route("_handle_local_progress"),
+    "/api/watch/resolve": Route("_handle_watch_resolve"),
+    "/api/watch/close": Route("_handle_watch_close"),
+    "/api/bookmarks/action": Route("_handle_bookmark_action"),
     "/api/auth/login": Route("_handle_auth_login", public=True),
     "/api/auth/logout": Route("_handle_auth_logout", public=True),
     "/api/auth/password": Route("_handle_auth_password", public=True),

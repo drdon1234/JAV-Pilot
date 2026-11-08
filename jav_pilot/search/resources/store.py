@@ -811,9 +811,10 @@ class ResourceSearchStore:
                         5, _create_aggregate_schema, _verify_aggregate_schema
                     ),
                     SQLiteMigration(6, _migrate_exact_match, _verify_exact_match),
+                    SQLiteMigration(7, _migrate_resource_links, _verify_resource_links),
                 ),
                 clock=self._clock,
-                verify_current=_verify_exact_match,
+                verify_current=_verify_resource_links,
             )
 
     @contextmanager
@@ -862,6 +863,18 @@ def _migrate_exact_match(connection: sqlite3.Connection) -> None:
 def _verify_exact_match(connection: sqlite3.Connection) -> None:
     _verify_aggregate_schema(connection)
     require_columns(connection, "resource_search_sessions", ("exact_match",))
+
+
+def _migrate_resource_links(connection: sqlite3.Connection) -> None:
+    for table in ("resource_search_items", "resource_search_pending"):
+        connection.execute(f"ALTER TABLE {table} ADD COLUMN cover_url TEXT")
+        connection.execute(f"ALTER TABLE {table} ADD COLUMN detail_url TEXT")
+
+
+def _verify_resource_links(connection: sqlite3.Connection) -> None:
+    _verify_exact_match(connection)
+    for table in ("resource_search_items", "resource_search_pending"):
+        require_columns(connection, table, ("cover_url", "detail_url"))
 
 
 def _source_summary(row: sqlite3.Row) -> dict[str, object]:

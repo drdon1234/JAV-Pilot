@@ -12,6 +12,8 @@ from .routes.auth import AuthRoutes
 from .routes.downloads import DownloadRoutes
 from .routes.history import HistoryRoutes
 from .routes.library import MediaLibraryRoutes
+from .routes.local_playback import LocalPlaybackRoutes
+from .routes.playback_history import PlaybackHistoryRoutes
 from .routes.media_metadata import MediaMetadataRoutes
 from .routes.metadata_search import MetadataSearchRoutes
 from .routes.notifications import NotificationRoutes
@@ -26,6 +28,7 @@ from .routes.system import SystemRoutes
 from .routes.translation import TranslationRoutes
 from .routes.web_download_batches import WebDownloadBatchRoutes
 from .routes.web_downloads import WebDownloadRoutes
+from .routes.watching import WatchingRoutes
 from .routing import GET_PATTERN_ROUTES, GET_ROUTES, POST_ROUTES, Route, all_routes
 from .static_files import is_app_route
 
@@ -33,6 +36,9 @@ LOGGER = logging.getLogger(__name__)
 
 
 class JavPilotHandler(
+    LocalPlaybackRoutes,
+    PlaybackHistoryRoutes,
+    WatchingRoutes,
     AssetRoutes,
     AuthRoutes,
     DownloadReplacementRoutes,

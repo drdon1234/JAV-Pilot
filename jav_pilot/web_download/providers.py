@@ -136,6 +136,7 @@ class ProviderManifest:
     page_url: str = field(repr=False)
     selected_height: int | None = None
     media_kind: str = "hls"
+    allowed_media_hosts: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -1168,6 +1169,7 @@ def _capture_supjav(
     requested_height: object | None,
     quality_strategy: object,
     cancel_event: threading.Event | None = None,
+    selected_detail_url: str | None = None,
 ) -> ProviderManifest:
     """Capture SupJav without allowing concurrent retry waves.
 
@@ -1186,6 +1188,7 @@ def _capture_supjav(
             requested_height=requested_height,
             quality_strategy=quality_strategy,
             cancel_event=cancel_event,
+            selected_detail_url=selected_detail_url,
         ),
         timeout_seconds=timeout_seconds,
         cancel_event=cancel_event,
@@ -1384,18 +1387,20 @@ def _capture_supjav_uncoordinated(
     requested_height: object | None,
     quality_strategy: object,
     cancel_event: threading.Event | None = None,
+    selected_detail_url: str | None = None,
 ) -> ProviderManifest:
     origin = _safe_origin(base_url, expected_profile=SUPJAV_SITE_ID)
     session = _supjav_session()
     _raise_if_provider_cancelled(cancel_event)
-    search_url = f"{origin}/?s={quote(str(code), safe='')}"
-    search = _bounded_page(
-        session,
-        search_url,
-        timeout_seconds,
-        allowed_hosts={urlsplit(origin).hostname or ""},
-    )
-    detail_url = _supjav_exact_result(search, origin, code)
+    if selected_detail_url is None:
+        search_url = f"{origin}/?s={quote(str(code), safe='')}"
+        search = _bounded_page(
+            session, search_url, timeout_seconds,
+            allowed_hosts={urlsplit(origin).hostname or ""},
+        )
+        detail_url = _supjav_exact_result(search, origin, code)
+    else:
+        detail_url = selected_detail_url
     _raise_if_provider_cancelled(cancel_event)
     detail = _bounded_page(
         session,
@@ -1800,7 +1805,15 @@ def _bounded_page(
 ) -> str:
     deadline = time.monotonic() + _provider_timeout(timeout_seconds)
     try:
-        document = _bounded_get(session, url, timeout_seconds, allowed_hosts=allowed_hosts, headers=headers)
+        try:
+            document = _bounded_get(session, url, timeout_seconds, allowed_hosts=allowed_hosts, headers=headers)
+        except WebDownloadProviderError as exc:
+            if exc.code != "redirect_policy":
+                raise
+            document, _ = _bounded_get_with_redirects(
+                session, url, _provider_timeout(deadline - time.monotonic()),
+                allowed_hosts=allowed_hosts, headers=headers or {},
+            )
     except WebDownloadProviderError as exc:
         if exc.code != "challenge_active":
             raise

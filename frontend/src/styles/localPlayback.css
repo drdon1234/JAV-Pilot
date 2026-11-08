@@ -1,0 +1,8 @@
+.local-playback { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.local-playback > .button { align-self: flex-start; }
+.local-playback-heading h2 { margin: 0 0 12px; font-size: 18px; line-height: 1.6; overflow-wrap: anywhere; }
+.local-playback-files { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); gap: 8px; }
+.local-playback-file { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-control); color: var(--ink); text-decoration: none; min-width: 0; }
+.local-playback-file span { color: var(--ink-soft); font-size: 12px; overflow-wrap: anywhere; }
+.local-playback-file:hover { background: var(--surface-muted); }
+.local-playback-file.is-active { border-color: var(--primary); background: var(--surface-muted); }

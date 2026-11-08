@@ -23,6 +23,7 @@ from .resume import MediaPlaylist, parse_media_playlist
 MEDIA_HOST = "surrit.com"
 _PROVIDER_MEDIA_SUFFIXES = {
     "missav": ("surrit.com",),
+    "av123": (),
     "supjav": (
         "cdn-centaurus.com",
         "premilkyway.com",
@@ -57,6 +58,7 @@ _ACTIVE_TOTAL_TIMEOUT: ContextVar[float | None] = ContextVar(
 _ACTIVE_MEDIA_PROVIDER: ContextVar[str] = ContextVar(
     "active_web_download_media_provider", default="missav"
 )
+_SESSION_MEDIA_HOSTS: ContextVar[tuple[str, ...]] = ContextVar("session_media_hosts", default=())
 _RETRYABLE_MEDIA_HTTP_STATUSES = frozenset({408, 425, 429})
 _REFRESH_MEDIA_HTTP_STATUSES = frozenset({401, 403, 404, 410})
 
@@ -72,15 +74,17 @@ class MediaTransportDisposition(Enum):
 
 
 @contextmanager
-def media_provider_scope(provider: object):
+def media_provider_scope(provider: object, *, allowed_hosts: tuple[str, ...] = ()):
     clean = str(provider or "").strip().lower()
     if clean not in _PROVIDER_MEDIA_SUFFIXES:
         raise SafeMediaError("media provider was rejected")
     token = _ACTIVE_MEDIA_PROVIDER.set(clean)
+    hosts_token = _SESSION_MEDIA_HOSTS.set(allowed_hosts if clean in {'av123', 'supjav'} else ())
     try:
         yield
     finally:
         _ACTIVE_MEDIA_PROVIDER.reset(token)
+        _SESSION_MEDIA_HOSTS.reset(hosts_token)
 
 
 def classify_media_transport_error(
@@ -291,6 +295,8 @@ def require_allowed_media_url(
         hostname == suffix or (suffix != MEDIA_HOST and hostname.endswith(f".{suffix}"))
         for suffix in suffixes
     )
+    if provider in {'av123', 'supjav'}:
+        allowed_host = allowed_host or hostname in _SESSION_MEDIA_HOSTS.get()
     if (
         parsed.scheme != "https"
         or not allowed_host

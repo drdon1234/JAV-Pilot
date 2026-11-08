@@ -1,35 +1,29 @@
 import '../styles/library.css'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useInfiniteQuery } from '@tanstack/react-query'
 import {
-  AlertTriangle,
-  Captions,
-  Check,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  CircleHelp,
-  FileImage,
   Filter,
-  FolderOpen,
   Library,
   RefreshCw,
   Search,
   X,
 } from 'lucide-react'
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 
-import { SubtitleCandidatesDialog, type SubtitleDialogTarget } from '../components/SubtitleCandidatesDialog'
 import { Button, EmptyState, IconButton, InlineNotice, PageHeader, SkeletonRows, StatusBadge } from '../components/ui'
 import { ApiError, api } from '../lib/api'
 import { webDownloadVariantLabel } from '../lib/webDownloads'
 import type {
-  MediaLibraryAssetStatus,
-  MediaLibraryEntry,
   MediaLibraryListParams,
   MediaLibraryPresence,
+  MediaLibraryEntry,
 } from '../types'
 import { t } from '../lib/i18n'
+import { LibraryDetail, LibraryPoster } from '../components/LibraryDetail'
+import { LibraryFolder, folderLabel } from '../components/LibraryFolder'
+import { BackLink } from '../components/BackLink'
+import { useSelection, SelectionTools, SelectionCheck } from '../components/SelectionTools'
 
 const LIBRARY_PAGE_SIZE = 50
 const FILTER_KEYS = [
@@ -99,16 +93,13 @@ function filtersFromParams(params: URLSearchParams): FilterDraft {
   ) as FilterDraft
 }
 
-function routePage(params: URLSearchParams): number {
-  const raw = Number.parseInt(params.get('page') || '1', 10)
-  return Number.isFinite(raw) && raw > 0 ? Math.min(raw, 200_000) : 1
-}
-
 function appliedFilters(params: URLSearchParams): MediaLibraryListParams {
   const filters = filtersFromParams(params)
   const request: MediaLibraryListParams = {
     limit: LIBRARY_PAGE_SIZE,
-    offset: (routePage(params) - 1) * LIBRARY_PAGE_SIZE,
+    offset: 0,
+    grouped: !params.get('group'),
+    group: params.get('group') || undefined,
   }
   if (filters.q) request.query = filters.q
   if (filters.actor) request.actor = filters.actor
@@ -143,73 +134,45 @@ function libraryErrorMessage(error: unknown): string {
   return t('无法读取媒体库，请稍后重试。')
 }
 
-function sourceLabel(source: MediaLibraryEntry['source']): string {
-  return source === 'nfo' ? 'NFO' : t('文件路径')
-}
-
-function qualityLabel(height: number | null): string {
-  if (height === null) return t('画质未知')
-  if (height >= 4320) return '8K'
-  if (height >= 2160) return '4K'
-  return `${height}p`
-}
-
-function listLabel(values: string[], fallback: string): string {
-  return values.length ? values.slice(0, 3).join(t('、')) : fallback
-}
-
-function assetLabel(name: string, status: MediaLibraryAssetStatus): string {
-  if (status === 'present') return t('{name} 完整', { name })
-  if (status === 'invalid') return t('{name} 无效', { name })
-  if (status === 'unknown') return t('{name} 待确认', { name })
-  return t('{name} 缺失', { name })
-}
-
-function assetTone(status: MediaLibraryAssetStatus) {
-  if (status === 'present') return 'success' as const
-  if (status === 'invalid') return 'danger' as const
-  if (status === 'missing') return 'warning' as const
-  return 'neutral' as const
-}
-
-function presenceLabel(presence: MediaLibraryPresence): string {
-  if (presence === 'present') return t('文件存在')
-  if (presence === 'missing') return t('文件已删除')
-  return t('存储待确认')
-}
-
-function presenceTone(presence: MediaLibraryPresence) {
-  if (presence === 'present') return 'success' as const
-  if (presence === 'missing') return 'danger' as const
-  return 'warning' as const
-}
-
-function metadataTarget(entry: MediaLibraryEntry, returnPath: string): string | null {
-  if (!entry.code || entry.presence !== 'present') return null
-  const params = new URLSearchParams({ code: entry.code, return: returnPath })
-  return `/metadata?${params.toString()}`
-}
-
 export function LibraryPage() {
+  const [params] = useSearchParams()
+  return params.get('entry') ? <LibraryDetail entryId={params.get('entry')!} /> : <LibraryBrowser />
+}
+
+function LibraryBrowser() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const routeKey = searchParams.toString()
-  const page = routePage(searchParams)
+  const group = searchParams.get('group') || ''
+  const selection = useSelection(routeKey)
+  const sentinel = useRef<HTMLDivElement>(null)
   const applied = useMemo(() => appliedFilters(searchParams), [routeKey])
   const appliedDraft = useMemo(() => filtersFromParams(searchParams), [routeKey])
   const [draft, setDraft] = useState<FilterDraft>(appliedDraft)
-  const [subtitleDialog, setSubtitleDialog] = useState<SubtitleDialogTarget | null>(null)
 
   useEffect(() => {
     setDraft(appliedDraft)
   }, [appliedDraft])
 
-  const library = useQuery({
+  const pages = useInfiniteQuery({
     queryKey: ['media-library', routeKey],
-    queryFn: () => api.mediaLibrary(applied),
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) => api.mediaLibrary({ ...applied, offset: pageParam }),
+    getNextPageParam: last => last.has_more ? last.offset + last.items.length : undefined,
     retry: false,
     staleTime: 15_000,
   })
+  const items = Array.from(new Map(pages.data?.pages.flatMap(page => page.items).map(entry => [entry.entry_id, entry]) ?? []).values())
+  const library = { ...pages, data: pages.data ? { ...pages.data.pages[0], items } : undefined }
+  useEffect(() => {
+    const node = sentinel.current
+    if (!node || !pages.hasNextPage || pages.isFetching || pages.isError) return
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) void pages.fetchNextPage()
+    }, { rootMargin: '600px' })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [pages.hasNextPage, pages.isFetching, pages.isError, pages.fetchNextPage])
   const rebuild = useMutation({
     mutationFn: (acceptRootChange: boolean) => api.rebuildMediaLibrary(
       library.data?.revision ?? 0,
@@ -219,20 +182,52 @@ export function LibraryPage() {
   })
 
   const count = library.data?.count ?? 0
-  const pageCount = Math.max(1, Math.ceil(count / LIBRARY_PAGE_SIZE))
   const hasFilters = activeFilterCount(appliedDraft) > 0
   const advancedCount = FILTER_KEYS
     .filter((key) => !['q', 'presence', 'completeness', 'anomaly'].includes(key))
     .filter((key) => draft[key]).length
   const returnPath = `${location.pathname}${location.search}`
-
-  useEffect(() => {
-    if (!library.data?.ok || library.isFetching || page <= pageCount) return
-    const next = new URLSearchParams(searchParams)
-    if (pageCount === 1) next.delete('page')
-    else next.set('page', String(pageCount))
-    setSearchParams(next, { replace: true })
-  }, [library.data?.ok, library.isFetching, page, pageCount, searchParams, setSearchParams])
+  const [batchResult, setBatchResult] = useState('')
+  const batch = useMutation({
+    mutationFn: async (action: 'subtitles' | 'metadata' | 'export') => {
+      const chosen: MediaLibraryEntry[] = []
+      if (group) chosen.push(...items.filter(entry => selection.selected.has(entry.entry_id)))
+      else for (const prefix of selection.selected) {
+        let offset = 0
+        for (;;) {
+          const page = await api.mediaLibrary({ ...applied, grouped: false, group: prefix, limit: 200, offset })
+          chosen.push(...page.items)
+          if (chosen.length > 5000) throw new Error(t('每次最多处理 5000 部作品。'))
+          if (!page.has_more) break
+          offset += page.items.length
+        }
+      }
+      if (action === 'export') {
+        const url = URL.createObjectURL(new Blob([JSON.stringify(chosen, null, 2)], { type: 'application/json' }))
+        const link = document.createElement('a'); link.href = url; link.download = 'jav-pilot-library.json'; link.click()
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+        return { done: chosen.length, failed: 0, skipped: 0 }
+      }
+      const eligible = chosen.filter(entry => entry.presence === 'present' && entry.code && (action !== 'subtitles' || entry.media_paths.length === 1))
+      const queue = action === 'metadata' ? [...new Map(eligible.map(entry => [entry.code, entry])).values()] : eligible
+      let done = 0, failed = 0
+      const skipped = chosen.length - eligible.length
+      await Promise.all(Array.from({ length: Math.min(3, queue.length) }, async () => {
+        for (;;) {
+          const entry = queue.shift()
+          if (!entry) return
+          try {
+            if (action === 'subtitles') await api.subtitleAction({ action: 'fetch', entry_id: entry.entry_id })
+            else await api.scanMediaMetadata(entry.code!)
+            done++
+          } catch { failed++ }
+        }
+      }))
+      return { done, failed, skipped }
+    },
+    onSuccess: result => { setBatchResult(t('完成 {done} 项，失败 {failed} 项，跳过 {skipped} 项。', result)); if (!result.failed) selection.finish() },
+    onError: (error: Error) => setBatchResult(error.message),
+  })
 
   function updateDraft(key: FilterKey, value: string) {
     setDraft((current) => ({ ...current, [key]: value }))
@@ -253,21 +248,15 @@ export function LibraryPage() {
     setSearchParams({})
   }
 
-  function goToPage(nextPage: number) {
-    const next = new URLSearchParams(searchParams)
-    if (nextPage <= 1) next.delete('page')
-    else next.set('page', String(nextPage))
-    setSearchParams(next)
-  }
-
   const unavailable = library.data && !library.data.ok
   const indexUnknown = library.data?.index_state === 'unknown'
 
   return (
     <div className="page library-page">
+      {group ? <BackLink fallback={location.state?.libraryReturnPath || '/library'} /> : null}
       <PageHeader
-        title={t('媒体库')}
-        description={t('本地作品、元数据完整度与文件状态')}
+        title={group ? folderLabel(group) : t('媒体库')}
+        description={group ? t('选择作品，查看详情并播放。') : t('按番号前缀浏览本地作品，进入目录选择影片。')}
         actions={(
           <IconButton
             label={t('重建媒体库索引')}
@@ -278,9 +267,16 @@ export function LibraryPage() {
           </IconButton>
         )}
       />
+      <SelectionTools selection={selection} ids={items.map(entry => group ? entry.entry_id : entry.group_key!)} busy={batch.isPending}>
+        <Button size="small" disabled={!selection.selected.size || batch.isPending} onClick={() => batch.mutate('subtitles')}>{t('获取字幕')}</Button>
+        <Button size="small" disabled={!selection.selected.size || batch.isPending} onClick={() => batch.mutate('metadata')}>{t('补全所选番号')}</Button>
+        <Button size="small" disabled={!selection.selected.size || batch.isPending} onClick={() => batch.mutate('export')}>{t('导出所选')}</Button>
+      </SelectionTools>
+      {selection.managing ? <p className="selection-note">{group ? t('仅处理所选作品；元数据补全按番号处理全部版本。') : t('选择目录后处理其中全部作品，包含尚未滚动加载的作品。')}</p> : null}
+      {batchResult ? <p className="selection-note" role="status">{batchResult}</p> : null}
 
       <section className="library-workspace" aria-label={t('媒体库作品')}>
-        <form className="library-filter-form" role="search" onSubmit={submitFilters}>
+        {!group ? <form className="library-filter-form" role="search" onSubmit={submitFilters}>
           <div className="library-filter-primary">
             <label className="library-search-field">
               <span>{t('番号或标题')}</span>
@@ -371,7 +367,7 @@ export function LibraryPage() {
               </Button>
             </div>
           ) : null}
-        </form>
+        </form> : null}
 
         <div className="section-toolbar library-toolbar">
           <div>
@@ -379,7 +375,7 @@ export function LibraryPage() {
               <Library aria-hidden="true" />
               {indexUnknown ? t('索引待确认') : t('本地索引')}
             </StatusBadge>
-            <span>{library.data?.ok ? t('找到 {count} 部作品', { count }) : library.isLoading ? t('正在读取媒体库') : t('媒体库状态不可用')}</span>
+            <span>{library.data?.ok ? group ? t('找到 {count} 部作品', { count }) : t('共 {count} 个目录', { count }) : library.isLoading ? t('正在读取媒体库') : t('媒体库状态不可用')}</span>
           </div>
           {library.isFetching && library.data ? <span className="polling-label">{t('正在刷新')}</span> : null}
         </div>
@@ -460,133 +456,29 @@ export function LibraryPage() {
         ) : null}
 
         {library.data?.ok && library.data.items.length ? (
-          <div className="library-table" role="table" aria-label={t('媒体库作品列表')}>
-            <div className="library-table-head" role="row">
-              <span role="columnheader">{t('作品')}</span>
-              <span role="columnheader">{t('资料')}</span>
-              <span role="columnheader">{t('完整度')}</span>
-              <span role="columnheader">{t('文件')}</span>
-              <span role="columnheader">{t('操作')}</span>
-            </div>
-            {library.data.items.map((entry) => (
-              <LibraryRow
-                entry={entry}
-                returnPath={returnPath}
-                key={entry.entry_id}
-                onOpenSubtitles={(item) => setSubtitleDialog({ kind: 'entry', entryId: item.entry_id, code: item.code || '' })}
-              />
-            ))}
+          <div className="library-poster-grid" aria-label={t('媒体库作品列表')}>
+            {items.map(entry => {
+              if (!group) return <div className={selection.managing ? 'selection-poster' : undefined} key={entry.group_key}><SelectionCheck selection={selection} id={entry.group_key!} name={folderLabel(entry.group_key!)} disabled={batch.isPending} /><LibraryFolder prefix={entry.group_key!} count={entry.group_count!} revision={entry.revision} returnPath={returnPath} /></div>
+              const target = `/library?${new URLSearchParams({ entry: entry.entry_id })}`
+              return <article className={`library-poster-card${selection.managing ? ' selection-poster' : ''}`} key={entry.entry_id}>
+                <SelectionCheck selection={selection} id={entry.entry_id} name={entry.code || entry.title || t('本地媒体')} disabled={batch.isPending} />
+                <Link to={target} state={{ libraryReturnPath: returnPath }} className="library-poster-link" aria-label={entry.code || entry.title || t('本地媒体')}>
+                  <LibraryPoster entry={entry} />
+                </Link>
+                <div className="library-poster-meta"><div className="watch-inline-actions"><strong>{entry.code || t('未识别番号')}</strong>
+                  {entry.variant ? <StatusBadge>{webDownloadVariantLabel(entry.variant)}</StatusBadge> : null}
+                </div><h2><Link to={target} state={{ libraryReturnPath: returnPath }}>{entry.title || t('本地媒体')}</Link></h2>
+                <p>{[entry.quality_height ? `${entry.quality_height}p` : '', ...entry.actors.slice(0, 2)].filter(Boolean).join(' · ')}</p>
+                {entry.presence !== 'present' ? <StatusBadge tone="warning">{entry.presence === 'missing' ? t('文件已删除') : t('存储待确认')}</StatusBadge> : null}
+                </div>
+              </article>
+            })}
           </div>
         ) : null}
 
-        {library.data?.ok && count > 0 ? (
-          <nav className="history-pager" aria-label={t('媒体库分页')}>
-            <IconButton
-              label={t('上一页')}
-              size="small"
-              onClick={() => goToPage(Math.max(1, page - 1))}
-              disabled={page <= 1 || library.isFetching}
-            >
-              <ChevronLeft aria-hidden="true" />
-            </IconButton>
-            <span>{t('第 {page} / {pageCount} 页，共 {count} 部', { page, pageCount, count })}</span>
-            <IconButton
-              label={t('下一页')}
-              size="small"
-              onClick={() => goToPage(page + 1)}
-              disabled={!library.data.has_more || library.isFetching}
-            >
-              <ChevronRight aria-hidden="true" />
-            </IconButton>
-          </nav>
-        ) : null}
+        <div ref={sentinel} className="library-load-status" role="status">{pages.isFetchingNextPage ? t('正在加载') : null}</div>
+        {pages.isFetchNextPageError ? <Button onClick={() => void pages.fetchNextPage()}>{t('重试')}</Button> : null}
       </section>
-      <SubtitleCandidatesDialog target={subtitleDialog} onClose={() => setSubtitleDialog(null)} />
-    </div>
-  )
-}
-
-function LibraryRow({
-  entry,
-  returnPath,
-  onOpenSubtitles,
-}: {
-  entry: MediaLibraryEntry
-  returnPath: string
-  onOpenSubtitles: (entry: MediaLibraryEntry) => void
-}) {
-  const metadataUrl = metadataTarget(entry, returnPath)
-  const workLabel = entry.code || t('未识别番号')
-  const incomplete = [entry.nfo_status, entry.portrait_status, entry.landscape_status]
-    .some((status) => status !== 'present')
-  return (
-    <div className={`library-row library-presence-${entry.presence}`} role="row">
-      <div className="library-work-cell" role="cell">
-        <div className="library-work-heading">
-          {entry.code ? <strong>{entry.code}</strong> : <span className="library-unidentified"><CircleHelp aria-hidden="true" />{t('未识别番号')}</span>}
-          {entry.variant ? <StatusBadge>{webDownloadVariantLabel(entry.variant)}</StatusBadge> : null}
-          <StatusBadge tone={presenceTone(entry.presence)}>{presenceLabel(entry.presence)}</StatusBadge>
-        </div>
-        <span className="library-title" title={entry.title || undefined}>{entry.title || t('本地媒体')}</span>
-        <div className="library-anomalies">
-          {entry.duplicate_count > 1 ? <StatusBadge tone="warning"><AlertTriangle aria-hidden="true" />{t('{duplicate_count} 个副本', { duplicate_count: entry.duplicate_count })}</StatusBadge> : null}
-          {incomplete ? <StatusBadge tone="warning">{t('元数据不完整')}</StatusBadge> : null}
-          {entry.media_paths.length > 1 ? <StatusBadge>{t('{count} 段', { count: entry.media_paths.length })}</StatusBadge> : null}
-        </div>
-      </div>
-      <div className="library-details-cell" role="cell">
-        <strong title={entry.actors.join(t('、')) || undefined}>{listLabel(entry.actors, t('演员未知'))}</strong>
-        <span title={[...entry.makers, ...entry.publishers].join(t('、')) || undefined}>
-          {listLabel([...entry.makers, ...entry.publishers], t('片商未知'))}
-          {entry.series.length ? ` · ${entry.series[0]}` : ''}
-        </span>
-        <span>{sourceLabel(entry.source)} · {qualityLabel(entry.quality_height)}{entry.release_date ? ` · ${entry.release_date}` : ''}</span>
-        {entry.tags.length ? <span className="library-tags" title={entry.tags.join(t('、'))}>{entry.tags.slice(0, 3).join(t('、'))}</span> : null}
-      </div>
-      <div className="library-assets-cell" role="cell">
-        <StatusBadge tone={assetTone(entry.nfo_status)}>
-          {entry.nfo_status === 'present' ? <Check aria-hidden="true" /> : null}
-          {assetLabel('NFO', entry.nfo_status)}
-        </StatusBadge>
-        <StatusBadge tone={assetTone(entry.portrait_status)}>{assetLabel(t('竖图'), entry.portrait_status)}</StatusBadge>
-        <StatusBadge tone={assetTone(entry.landscape_status)}>{assetLabel(t('横图'), entry.landscape_status)}</StatusBadge>
-        <StatusBadge tone={assetTone(entry.subtitle_status)}>{assetLabel(t('字幕'), entry.subtitle_status)}</StatusBadge>
-      </div>
-      <div className="library-file-cell" role="cell">
-        <code title={entry.primary_media_path}>{entry.primary_media_path}</code>
-        <span>
-          <FolderOpen aria-hidden="true" />
-          {entry.presence === 'missing'
-            ? t('文件记录已保留')
-            : entry.presence === 'unknown'
-              ? t('等待存储恢复')
-              : t('{count} 个视频文件', { count: entry.media_paths.length })}
-        </span>
-      </div>
-      <div className="library-row-actions" role="cell">
-        {metadataUrl ? (
-          <Link
-            to={metadataUrl}
-            state={{ libraryReturnPath: returnPath }}
-            className="library-metadata-link"
-            aria-label={t('补全 {workLabel} 元数据', { workLabel })}
-            title={t('补全 {workLabel} 元数据', { workLabel })}
-            data-focus-return-key={`library:${entry.entry_id}`}
-          >
-            <FileImage aria-hidden="true" />
-          </Link>
-        ) : <span aria-hidden="true">-</span>}
-        <button
-          type="button"
-          className="library-subtitle-button"
-          onClick={() => onOpenSubtitles(entry)}
-          disabled={!entry.code || entry.presence !== 'present'}
-          aria-label={t('{workLabel} 的字幕', { workLabel })}
-          title={t('{workLabel} 的字幕', { workLabel })}
-        >
-          <Captions aria-hidden="true" />
-        </button>
-      </div>
     </div>
   )
 }

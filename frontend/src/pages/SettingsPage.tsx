@@ -237,12 +237,12 @@ export function SettingsPage() {
         title={t('系统设置')}
         description={t('下载器、访问控制、通知与系统维护')}
         actions={
-          auth.data?.enabled ? (
+            <><Link className="button button-secondary" to="/workflow-defaults">{t('工作流默认参数')}</Link>{auth.data?.enabled ? (
             <Button variant="ghost" onClick={() => void logout()} disabled={loggingOut} aria-busy={loggingOut}>
               <LogOut aria-hidden="true" />
               {loggingOut ? t('正在退出') : t('退出登录')}
             </Button>
-          ) : undefined
+            ) : null}</>
         }
       />
 

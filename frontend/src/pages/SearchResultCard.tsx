@@ -3,6 +3,7 @@ import type { MouseEvent, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { StatusBadge } from '../components/ui'
+import { WatchLink } from '../components/WatchActions'
 import { coverImageUrl } from '../lib/api'
 import type { SiteSettings, WorkMagnet, WorkResult } from '../types'
 import { sourceName, StableImage, type DownloadState, WorkMagnetList, workCover } from './WorkUi'
@@ -76,6 +77,7 @@ export function SearchResultCard({
           <h3 data-open-detail>{titleContent ?? result.title}</h3>
         </div>
         <div className="result-actions">
+          {result.code || result.canonical_code ? <WatchLink code={result.code || result.canonical_code || ''} /> : null}
           {actions}
           <Link
             className="button button-secondary button-small result-detail-link"

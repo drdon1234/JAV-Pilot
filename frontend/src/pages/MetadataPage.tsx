@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ChevronLeft, ChevronRight, FileImage, FilePenLine, Library, RefreshCw, RotateCcw, ScanLine, Search, ShieldCheck, WandSparkles, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, FileImage, FilePenLine, Library, RefreshCw, RotateCcw, ScanLine, Search, ShieldCheck, WandSparkles, X } from 'lucide-react'
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { useToast } from '../components/ToastProvider'
 import { Button, EmptyState, IconButton, InlineNotice, PageHeader, SkeletonRows, StatusBadge } from '../components/ui'
@@ -21,6 +21,7 @@ import type {
 } from '../types'
 import { MetadataReviewPanel } from './MetadataReviewPanel'
 import { t } from '../lib/i18n'
+import { BackLink } from '../components/BackLink'
 
 import '../styles/metadata.css'
 
@@ -212,13 +213,9 @@ function assetSummary(job: MediaMetadataJob) {
 export function MetadataPage() {
   const toast = useToast()
   const queryClient = useQueryClient()
-  const location = useLocation()
-  const navigate = useNavigate()
   const [routeParams] = useSearchParams()
   const routeCode = normalizeMetadataCode(routeParams.get('code') || '') || ''
   const returnPath = libraryReturnPath(routeParams.get('return'))
-  const returnState = location.state as { libraryReturnPath?: unknown } | null
-  const canPopToLibrary = Boolean(returnPath && returnState?.libraryReturnPath === returnPath)
   const [code, setCode] = useState(routeCode)
   const [codeTouched, setCodeTouched] = useState(false)
   const [migrationScope, setMigrationScope] = useState<string | null | undefined>(null)
@@ -433,24 +430,12 @@ export function MetadataPage() {
 
   return (
     <div className="page metadata-page">
+      {returnPath ? <BackLink fallback={returnPath} /> : null}
       <PageHeader
         title={t('元数据补全')}
         description={t('媒体库 NFO 与图片发布任务')}
         actions={(
           <>
-            {returnPath ? (
-              canPopToLibrary ? (
-                <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
-                  <ArrowLeft aria-hidden="true" />
-                  {t('返回媒体库')}
-                </Button>
-              ) : (
-                <Link className="button button-ghost button-normal" to={returnPath}>
-                  <ArrowLeft aria-hidden="true" />
-                  {t('返回媒体库')}
-                </Link>
-              )
-            ) : null}
             <IconButton label={t('刷新元数据任务')} onClick={() => void tasks.refetch()} disabled={tasks.isFetching}>
               <RefreshCw className={tasks.isFetching ? 'spin' : ''} aria-hidden="true" />
             </IconButton>

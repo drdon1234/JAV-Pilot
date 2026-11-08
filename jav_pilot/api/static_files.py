@@ -7,6 +7,9 @@ from functools import lru_cache
 from pathlib import Path, PurePosixPath
 
 APP_ROUTES = {
+    "/player",
+    "/watch",
+    "/favorites",
     "/login",
     "/search",
     "/search-history",

@@ -15,6 +15,9 @@ import type { SearchHistoryItem, SearchKind, SearchMatch, SearchSort } from '../
 import { t } from '../lib/i18n'
 
 import '../styles/searchHistory.css'
+import { HistoryTabs } from '../components/HistoryTabs'
+import { requestJson } from '../lib/api'
+import { useSelection, SelectionTools, SelectionCheck, RemoveSelection } from '../components/SelectionTools'
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value : ''
@@ -36,6 +39,7 @@ export function SearchHistoryPage() {
   const queryClient = useQueryClient()
   const sessions = useSearchSessions()
   const [kind, setKind] = useState<'all' | 'metadata' | 'resource'>('all')
+  const selection = useSelection(kind)
   const [pendingId, setPendingId] = useState('')
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings })
   const history = useQuery({
@@ -56,6 +60,7 @@ export function SearchHistoryPage() {
     onError: (error) => toast.push((error as Error).message, 'error'),
   })
   const [confirmClear, setConfirmClear] = useState(false)
+  const bulk = useMutation({ mutationFn: (ids: string[]) => requestJson('/api/search-history/action', { method: 'POST', body: JSON.stringify({ action: 'remove', ids }) }), onSuccess: () => { selection.finish(); void queryClient.invalidateQueries({ queryKey: ['search-history'] }) }, onError: (error: Error) => toast.push(error.message, 'error') })
 
   const sites = settings.data?.settings.sites ?? []
   const siteName = (id: string) => sites.find((site) => site.id === id)?.name ?? id
@@ -150,7 +155,7 @@ export function SearchHistoryPage() {
   return (
     <div className="page search-history-page">
       <PageHeader
-        title={t('搜索记录')}
+        title={t('历史记录')}
         description={t('自动保存的站点搜索与 Web 搜索，点击即可按原条件重新搜索')}
         actions={(
           <>
@@ -171,11 +176,13 @@ export function SearchHistoryPage() {
           </>
         )}
       />
+      <HistoryTabs />
       <div className="segmented-control search-history-filter" role="group" aria-label={t('记录类型')}>
         {([['all', t('全部')], ['metadata', t('站点搜索')], ['resource', t('Web 搜索')]] as const).map(([value, label]) => (
           <button type="button" className={kind === value ? 'active' : ''} aria-pressed={kind === value} onClick={() => setKind(value)} key={value}>{label}</button>
         ))}
       </div>
+      <SelectionTools selection={selection} ids={items.map(item => item.id)} busy={bulk.isPending}><RemoveSelection count={selection.selected.size} busy={bulk.isPending} onRemove={() => bulk.mutate([...selection.selected])} /></SelectionTools>
       {history.isError ? (
         <InlineNotice tone="warning" role="alert">{serviceErrorMessage(history.error, t('暂时无法读取搜索记录'))}</InlineNotice>
       ) : null}
@@ -186,7 +193,8 @@ export function SearchHistoryPage() {
       {items.length ? (
         <ul className="search-history-list" aria-label={t('搜索记录')}>
           {items.map((item) => (
-            <li className="search-history-card" key={item.id}>
+            <li className={`search-history-card${selection.managing ? ' selection-row' : ''}`} key={item.id}>
+              <SelectionCheck selection={selection} id={item.id} name={item.query} disabled={bulk.isPending} />
               <button type="button" className="search-history-open" onClick={() => void rerun(item)} disabled={Boolean(pendingId)} aria-busy={pendingId === item.id}>
                 <span className="search-history-icon" aria-hidden="true">
                   {item.kind === 'metadata' ? <Database /> : <Clapperboard />}

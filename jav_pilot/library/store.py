@@ -41,6 +41,7 @@ from .filesystem import (
 from .models import PRESENCE_STATES, DirectoryIdentity, FileRecord
 from .nfo import nfo_from_json
 from .schema import initialize_media_library_schema
+from .folders import catalog_prefix
 
 __all__ = [
     "MediaLibraryStore",
@@ -947,6 +948,8 @@ class MediaLibraryStore:
         anomaly: object | None = None,
         min_height: object | None = None,
         max_height: object | None = None,
+        grouped: bool = False,
+        group_key: str | None = None,
     ) -> dict[str, object]:
         clean_limit = bounded_int(limit, "limit", minimum=1, maximum=500)
         clean_offset = bounded_int(offset, "offset", minimum=0, maximum=10_000_000)
@@ -993,9 +996,16 @@ class MediaLibraryStore:
                     clauses = [*base_clauses, "e.code_key = ?"]
                     values = [*base_values, exact_code]
             where = " AND ".join(clauses) if clauses else "1 = 1"
+            group_expression = "library_prefix(e.code)"
+            if group_key is not None:
+                where += f" AND {group_expression} = ?"
+                values = [*values, group_key]
+            count_expression = (
+                f"COUNT(DISTINCT {group_expression})" if grouped else "COUNT(*)"
+            )
             count_row = connection.execute(
                 f"""
-                SELECT COUNT(*)
+                SELECT {count_expression}
                 FROM media_library_entries e
                 JOIN media_library_roots r
                   ON r.root_key = e.root_key
@@ -1003,8 +1013,30 @@ class MediaLibraryStore:
                 """,
                 values,
             ).fetchone()
-            rows = connection.execute(
-                f"""
+            if grouped:
+                rows = connection.execute(
+                    f"""
+                    WITH ranked AS (
+                        SELECT e.*, e.created_generation_id AS generation_id,
+                               r.revision AS library_revision,
+                               {effective_presence} AS effective_presence,
+                               {group_expression} AS folder_prefix,
+                               COUNT(*) OVER (PARTITION BY {group_expression}) AS group_count,
+                               ROW_NUMBER() OVER (PARTITION BY {group_expression}
+                                   ORDER BY e.code_key IS NULL, e.code_key, e.scope_path, e.entry_id) AS group_rank
+                        FROM media_library_entries e
+                        JOIN media_library_roots r ON r.root_key = e.root_key
+                        WHERE e.retired_generation_id IS NULL AND {where}
+                    )
+                    SELECT * FROM ranked WHERE group_rank = 1
+                    ORDER BY code_key IS NULL, code_key, scope_path, entry_id
+                    LIMIT ? OFFSET ?
+                    """,
+                    (*values, clean_limit, clean_offset),
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    f"""
                 SELECT e.*, e.created_generation_id AS generation_id,
                        r.revision AS library_revision,
                        {effective_presence} AS effective_presence
@@ -1015,12 +1047,22 @@ class MediaLibraryStore:
                 ORDER BY e.code_key IS NULL, e.code_key, e.scope_path, e.entry_id
                 LIMIT ? OFFSET ?
                 """,
-                (*values, clean_limit, clean_offset),
-            ).fetchall()
+                    (*values, clean_limit, clean_offset),
+                ).fetchall()
             terms = self._terms_for_rows(connection, rows)
             files = self._files_for_rows(connection, rows)
         items = [
-            _entry_payload(row, terms.get(str(row["entry_id"]), {}), files)
+            {
+                **_entry_payload(row, terms.get(str(row["entry_id"]), {}), files),
+                **(
+                    {
+                        "group_count": int(row["group_count"]),
+                        "group_key": str(row["folder_prefix"]),
+                    }
+                    if grouped
+                    else {}
+                ),
+            }
             for row in rows
         ]
         count = int(count_row[0] if count_row is not None else 0)
@@ -1032,7 +1074,9 @@ class MediaLibraryStore:
             "has_more": clean_offset + len(items) < count,
         }
 
-    def get_entry(self, entry_id: str) -> dict[str, object]:
+    def get_entry(
+        self, entry_id: str, *, root_key: str | None = None
+    ) -> dict[str, object]:
         clean_id = validate_entry_id(entry_id)
         effective_presence = (
             "CASE WHEN r.state = 'available' THEN e.presence ELSE 'unknown' END"
@@ -1047,10 +1091,11 @@ class MediaLibraryStore:
                 JOIN media_library_roots r
                   ON r.root_key = e.root_key
                 WHERE e.retired_generation_id IS NULL AND e.entry_id = ?
+                  AND (? IS NULL OR e.root_key = ?)
                 ORDER BY r.updated_at DESC
                 LIMIT 1
                 """,
-                (clean_id,),
+                (clean_id, root_key, root_key),
             ).fetchone()
             if row is not None:
                 terms = self._terms_for_rows(connection, (row,))
@@ -1129,7 +1174,15 @@ class MediaLibraryStore:
             clauses.append(f"NOT ({complete_sql})")
         anomaly = optional_enum(
             raw["anomaly"],
-            {"duplicate", "unidentified", "missing", "nfo", "portrait", "landscape", "subtitle"},
+            {
+                "duplicate",
+                "unidentified",
+                "missing",
+                "nfo",
+                "portrait",
+                "landscape",
+                "subtitle",
+            },
             "anomaly",
         )
         if anomaly == "duplicate":
@@ -1996,6 +2049,7 @@ class MediaLibraryStore:
     def _connect(self) -> Iterator[sqlite3.Connection]:
         connection = sqlite3.connect(self.path, timeout=30.0, isolation_level=None)
         try:
+            connection.create_function("library_prefix", 1, catalog_prefix, deterministic=True)
             connection.row_factory = sqlite3.Row
             connection.execute("PRAGMA busy_timeout = 30000")
             connection.execute("PRAGMA foreign_keys = ON")

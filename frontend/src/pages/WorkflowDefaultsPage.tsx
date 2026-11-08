@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query'
 import { Captions, Clapperboard, FileImage, History, Languages, RefreshCw, RotateCcw, Save, Search, Sparkles } from 'lucide-react'
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
 import { SettingsSaveError } from '../components/SettingsSaveError'
 import { useToast } from '../components/ToastProvider'
@@ -134,6 +135,7 @@ export function WorkflowDefaultsPage() {
         description={t('搜索、下载、元数据与翻译的默认行为集中在这里设置')}
         actions={(
           <>
+              <Link className="button button-ghost" to="/settings">{t('系统设置')}</Link>
             <Button variant="ghost" onClick={() => void discardChanges()} disabled={!dirty || save.isPending}>
               <RotateCcw aria-hidden="true" />
               {t('放弃修改')}

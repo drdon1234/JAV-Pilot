@@ -20,6 +20,7 @@ from .challenges import (
     is_firewall_block,
     try_age_confirmation,
     try_verification_checkbox,
+    trusted_verification_origin,
 )
 from .network_guard import PublicHostResolver
 
@@ -451,7 +452,7 @@ def _route_without_heavy_resources(
     ):
         frame = getattr(request, "frame", None)
         if not (
-            request_origin == ("https", "challenges.cloudflare.com", 443)
+            trusted_verification_origin(*request_origin)
             and frame is not None
             and getattr(frame, "parent_frame", None) is not None
             and urlsplit(request_url).path.startswith(

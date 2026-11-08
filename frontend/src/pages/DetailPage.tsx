@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, ExternalLink, LoaderCircle, RadioTower, RotateCcw, WandSparkles, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, ExternalLink, LoaderCircle, RadioTower, RotateCcw, WandSparkles, X } from 'lucide-react'
+import { BackLink } from '../components/BackLink'
 import { type KeyboardEvent, type ReactNode, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { useToast } from '../components/ToastProvider'
+import { BookmarkButton, WatchLink } from '../components/WatchActions'
 import { Button, EmptyState, IconButton, InlineNotice, PageHeader, ProgressBar, SkeletonRows, StatusBadge } from '../components/ui'
 import { api, coverImageUrl, workRecoveryScope } from '../lib/api'
 import { externalHttpUrl, formatBytes, formatEta } from '../lib/format'
@@ -496,11 +498,6 @@ export function DetailPage() {
     || navigationState?.returnTo === '/rankings'
     ? navigationState.returnTo
     : fallbackReturnTo
-  const returnLabel = returnTo === '/downloads?view=archive'
-    ? t('返回失败归档')
-    : returnTo === '/rankings'
-      ? t('返回排行榜')
-      : t('返回搜索')
   const sourceScope = canonicalSourceScope(detailSearchParams.get('source') || 'all')
   const recoveryScope = workRecoveryScope(workId, detailSearchParams)
   const navigate = useNavigate()
@@ -985,15 +982,12 @@ export function DetailPage() {
     if (event.key === 'ArrowRight') moveLightbox(1)
   }
 
-  function returnToSearch() {
-    navigate(returnTo, { replace: true })
-  }
-
-  if (workQuery.isLoading && !work) return <div className="page detail-page"><SkeletonRows count={5} /></div>
+  if (workQuery.isLoading && !work) return <div className="page detail-page"><BackLink fallback={returnTo} /><SkeletonRows count={5} /></div>
 
   if (workQuery.isError && !work) {
     return (
       <div className="page detail-page">
+          <BackLink fallback={returnTo} />
         <PageHeader title={lookupCode || workId || t('作品详情')} description={t('聚合作品资料')} />
         <EmptyState
           role="alert"
@@ -1014,11 +1008,14 @@ export function DetailPage() {
   const backdropUrl = backdrop ? coverImageUrl(backdrop.sourceId, backdrop.url, sites) : ''
   return (
     <div className="page detail-page">
+      <BackLink fallback={returnTo} />
       <PageHeader
         title={displayCode}
         description={t('聚合作品详情')}
         actions={
           <>
+            <WatchLink code={displayCode} />
+            <BookmarkButton kind="detail" entry={{ source: '', url: location.pathname + location.search, code: displayCode, title: work.title, cover: cover?.url || '', editions: [] }} />
             {workQuery.isFetching ? (
               <StatusBadge tone="info">
                 <span role="status">{t('正在补充截图与磁链')}</span>
@@ -1033,10 +1030,6 @@ export function DetailPage() {
             >
               <RotateCcw className={workQuery.isFetching ? 'spin' : ''} aria-hidden="true" />
               {t('刷新详情')}
-            </Button>
-            <Button type="button" size="small" variant="secondary" onClick={returnToSearch}>
-              <ArrowLeft aria-hidden="true" />
-              {returnLabel}
             </Button>
           </>
         }

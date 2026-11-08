@@ -6,6 +6,7 @@ import sqlite3
 from http import HTTPStatus
 
 from ...core.guards import QueryError
+from ...core.selection import selected_ids
 from ...search.history import KINDS as SEARCH_HISTORY_KINDS
 from ...search.rankings import RankingError, RankingRequest, fetch_ranking, ranking_boards
 from ...search.detail_prefetch import DetailPrefetchValidationError
@@ -41,13 +42,15 @@ class SearchHistoryRoutes(BaseHandler):
 
     def _handle_search_history_action(self) -> None:
         try:
-            payload = self._read_json_body(4096)
+            payload = self._read_json_body(512 * 1024)
             action = str(payload.get("action") or "")
             store = search_history_store()
             if action == "clear" and set(payload) == {"action"}:
                 result: dict[str, object] = {"cleared": store.clear()}
             elif action == "remove" and set(payload) == {"action", "id"}:
                 result = {"removed": store.remove(str(payload.get("id") or ""))}
+            elif action == "remove" and set(payload) == {"action", "ids"}:
+                result = {"removed": store.remove_many(selected_ids(payload["ids"]))}
             else:
                 raise ValueError("search history action is invalid")
         except ValueError as exc:

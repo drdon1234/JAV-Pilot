@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'
 
 import { SubtitleCandidatesDialog, type SubtitleDialogTarget } from '../components/SubtitleCandidatesDialog'
 import { useToast } from '../components/ToastProvider'
+import { useSelection, SelectionTools, SelectionCheck, RemoveSelection } from '../components/SelectionTools'
 import { Button, EmptyState, IconButton, InlineNotice, PageHeader, SkeletonRows, StatusBadge } from '../components/ui'
 import { api } from '../lib/api'
 import { t } from '../lib/i18n'
@@ -40,6 +41,7 @@ export function SubtitlesPage() {
   const [queryInput, setQueryInput] = useState('')
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
+  const selection = useSelection(`${filter}:${query}:${page}`)
   const [dialog, setDialog] = useState<SubtitleDialogTarget | null>(null)
 
   const jobs = useQuery({
@@ -57,6 +59,22 @@ export function SubtitlesPage() {
     void queryClient.invalidateQueries({ queryKey: ['subtitles'] })
     void queryClient.invalidateQueries({ queryKey: ['media-library'] })
   }
+
+  const selectedAction = useMutation({
+    mutationFn: async (action: 'retry' | 'forget') => {
+      const selected = jobs.data?.jobs.filter(job => selection.selected.has(job.job_id) && !SUBTITLE_ACTIVE_STATUSES.has(job.status)) ?? []
+      let done = 0, failed = 0
+      for (const job of selected) {
+        try { await api.subtitleAction({ action, job_id: job.job_id }); done++ } catch { failed++ }
+      }
+      return { done, failed, skipped: selection.selected.size - selected.length }
+    },
+    onSuccess: result => {
+      toast.push(t('完成 {done} 项，失败 {failed} 项，跳过 {skipped} 项。', result), result.failed ? 'error' : 'success')
+      if (!result.failed) selection.finish()
+      refresh()
+    },
+  })
 
   const batch = useMutation({
     mutationFn: () => api.subtitleAction({ action: 'batch_missing' }),
@@ -165,17 +183,23 @@ export function SubtitlesPage() {
             description={t('影片完成元数据补全后会自动获取字幕，也可以点击上方按钮批量获取。')}
           />
         ) : null}
+        <SelectionTools selection={selection} ids={payload?.jobs.filter(job => !SUBTITLE_ACTIVE_STATUSES.has(job.status)).map(job => job.job_id) ?? []} busy={selectedAction.isPending}>
+          <Button size="small" disabled={!selection.selected.size || selectedAction.isPending} onClick={() => selectedAction.mutate('retry')}>{t('重试')}</Button>
+          <RemoveSelection count={selection.selected.size} busy={selectedAction.isPending} onRemove={() => selectedAction.mutate('forget')} />
+        </SelectionTools>
         {payload?.jobs.length ? (
           <ul className="subtitles-list" aria-label={t('字幕任务')}>
             {payload.jobs.map((job) => (
+              <li key={job.job_id} className={selection.managing ? 'selection-row' : undefined}>
+              <SelectionCheck selection={selection} id={job.job_id} name={job.code} disabled={selectedAction.isPending || SUBTITLE_ACTIVE_STATUSES.has(job.status)} />
               <SubtitleJobRow
-                key={job.job_id}
                 job={job}
                 busy={jobAction.isPending}
                 onOpen={() => setDialog({ kind: 'job', jobId: job.job_id, code: job.code })}
                 onRetry={() => jobAction.mutate({ action: 'retry', job_id: job.job_id })}
                 onForget={() => jobAction.mutate({ action: 'forget', job_id: job.job_id })}
               />
+              </li>
             ))}
           </ul>
         ) : null}
@@ -215,7 +239,7 @@ function SubtitleJobRow({
   const active = SUBTITLE_ACTIVE_STATUSES.has(job.status)
   const path = job.subtitle_path || job.relative_media_path
   return (
-    <li className={`subtitles-row subtitles-status-${job.status}`}>
+    <div className={`subtitles-row subtitles-status-${job.status}`}>
       <div className="subtitles-row-main">
         <div className="subtitles-row-heading">
           <strong>{job.code}</strong>
@@ -242,6 +266,6 @@ function SubtitleJobRow({
           </IconButton>
         ) : null}
       </div>
-    </li>
+    </div>
   )
 }

@@ -84,6 +84,7 @@ export interface SiteParserRules {
 }
 
 export type SiteCapability =
+  | 'online_watch'
   | 'metadata_search'
   | 'metadata_detail'
   | 'torrent_search'
@@ -1747,6 +1748,8 @@ export type MediaLibraryPresence = 'present' | 'missing' | 'unknown'
 export type MediaLibraryAssetStatus = 'present' | 'missing' | 'invalid' | 'unknown'
 
 export interface MediaLibraryEntry {
+  group_count?: number
+  group_key?: string
   entry_id: string
   revision: number
   scope_path: string
@@ -1779,6 +1782,8 @@ export interface MediaLibraryEntry {
 }
 
 export interface MediaLibraryListParams {
+  grouped?: boolean
+  group?: string
   query?: string
   actor?: string
   maker?: string

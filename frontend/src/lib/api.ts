@@ -279,7 +279,7 @@ export function retryTransientApiRequest(failureCount: number, error: unknown): 
   return error.status === 0 || error.status >= 500
 }
 
-async function requestJson<T>(path: string, init?: RequestJsonInit): Promise<T> {
+export async function requestJson<T>(path: string, init?: RequestJsonInit): Promise<T> {
   const { timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS, signal: callerSignal, ...requestInit } = init ?? {}
   const controller = new AbortController()
   let timedOut = false
@@ -819,6 +819,8 @@ export const api = {
       offset: String(params.offset || 0),
     })
     const strings: Array<[string, string | undefined]> = [
+      ['grouped', params.grouped ? '1' : undefined],
+      ['group', params.group],
       ['q', params.query],
       ['actor', params.actor],
       ['maker', params.maker],

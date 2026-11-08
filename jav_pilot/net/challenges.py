@@ -66,6 +66,12 @@ def is_challenge(html: str) -> bool:
     if is_firewall_block(html):
         return False
     title = re.search(r"<title[^>]*>(.*?)</title>", html, re.I | re.S)
+    # Script-only verification shells have no page content or challenge title.
+    # Do not classify the passive Cloudflare script on normal pages as a gate.
+    if (not title and not re.search(r"<(?:h1|main|article)\b", html, re.I)
+            and re.search(r"function\s+_0x[0-9a-f]+\b", html, re.I)
+            and '/cdn-cgi/challenge-platform/' in html):
+        return True
     return bool(
         title
         and re.search(
@@ -88,12 +94,7 @@ def try_verification_checkbox(page: object, deadline: float) -> bool:
     for frame in page.frames:
         parsed = urlsplit(frame.url)
         if (
-            (parsed.scheme, parsed.hostname, parsed.port or 443)
-            != (
-                "https",
-                "challenges.cloudflare.com",
-                443,
-            )
+            not trusted_verification_origin(parsed.scheme, parsed.hostname, parsed.port or 443)
             or parsed.username
             or parsed.password
         ):
@@ -145,3 +146,9 @@ def try_verification_checkbox(page: object, deadline: float) -> bool:
     except Exception:
         pass
     return False
+
+
+def trusted_verification_origin(scheme: str, host: str | None, port: int) -> bool:
+    return scheme == 'https' and port == 443 and bool(host) and (
+        host == 'challenges.cloudflare.com' or host.endswith('.challenges.cloudflare.com')
+    )

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Captions, Clapperboard, Compass, Download, FileImage, Film, FolderCog, Globe2, Library, ListChecks, ListRestart, type LucideIcon, Search, Settings, SlidersHorizontal, Trophy, Wrench } from 'lucide-react'
+import { Captions, Clapperboard, Compass, Download, FileImage, Film, FolderCog, Globe2, Library, ListChecks, ListRestart, type LucideIcon, Search, Settings, Trophy, Wrench } from 'lucide-react'
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigationType } from 'react-router-dom'
 
@@ -9,6 +9,8 @@ import { LanguageSelect } from './LanguageSelect'
 import { ThemeButton } from './ThemeProvider'
 import { StatusBadge } from './ui'
 import { t, tc } from '../lib/i18n'
+import { Bookmark, Play } from 'lucide-react'
+import { PlaybackWorkspace } from './PlaybackWorkspace'
 
 const MAX_SCROLL_POSITIONS = 24
 
@@ -233,7 +235,18 @@ const navigationGroups: NavigationGroup[] = [
     items: [
       { to: '/search', label: t('搜索'), icon: Search },
       { to: '/rankings', label: t('排行榜'), icon: Trophy },
-      { to: '/search-history', label: t('搜索记录'), icon: ListRestart },
+      { to: '/watch', label: t('在线观看'), icon: Play },
+    ],
+  },
+  {
+    id: 'watching',
+    label: t('观看'),
+    icon: Film,
+    items: [
+      { to: '/library', label: t('媒体库'), icon: Library },
+      { to: '/player', label: t('播放器'), icon: Film },
+      { to: '/favorites', label: t('收藏'), icon: Bookmark },
+      { to: '/history', label: t('历史记录'), icon: ListRestart },
     ],
   },
   {
@@ -244,14 +257,6 @@ const navigationGroups: NavigationGroup[] = [
       { to: '/downloads', label: t('下载'), icon: Download },
       { to: '/metadata', label: t('元数据'), icon: FileImage },
       { to: '/subtitles', label: t('字幕'), icon: Captions },
-    ],
-  },
-  {
-    id: 'media',
-    label: t('媒体'),
-    icon: Film,
-    items: [
-      { to: '/library', label: t('媒体库'), icon: Library },
       { to: '/organizer', label: t('整理规则'), icon: FolderCog },
     ],
   },
@@ -261,7 +266,6 @@ const navigationGroups: NavigationGroup[] = [
     icon: Wrench,
     items: [
       { to: '/sites', label: t('站点'), icon: Globe2 },
-      { to: '/workflow-defaults', label: t('默认参数'), icon: SlidersHorizontal },
       { to: '/settings', label: t('设置'), icon: Settings },
     ],
   },
@@ -274,6 +278,7 @@ interface NavigationTargets {
 
 function isItemActive(to: string, pathname: string, searchActive: boolean): boolean {
   if (to === '/search') return searchActive
+  if (to === '/settings' && pathname === '/workflow-defaults') return true
   return pathname === to || pathname.startsWith(`${to}/`)
 }
 
@@ -282,6 +287,7 @@ function NavigationLink({ item, searchTarget, searchActive, onNavigate }: Naviga
   onNavigate?: () => void
 }) {
   const { to, label, icon: Icon } = item
+  const location = useLocation()
   if (to === '/search') {
     return (
       <Link
@@ -298,7 +304,7 @@ function NavigationLink({ item, searchTarget, searchActive, onNavigate }: Naviga
   return (
     <NavLink
       to={to}
-      className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+      className={({ isActive }) => (isActive || isItemActive(to, location.pathname, searchActive) ? 'nav-link active' : 'nav-link')}
       onClick={onNavigate}
     >
       <Icon aria-hidden="true" />
@@ -507,6 +513,7 @@ export function AppShell() {
       </header>
 
       <main className="main-content" ref={mainContentRef}>
+        <PlaybackWorkspace />
         <Outlet />
       </main>
 

@@ -136,6 +136,19 @@ class SearchHistoryStore:
             connection.commit()
         return int(changed)
 
+    def remove_many(self, ids: list[str]) -> int:
+        with _LOCK, closing(self._connect()) as connection:
+            try:
+                connection.execute("BEGIN IMMEDIATE")
+                before = connection.total_changes
+                connection.executemany("DELETE FROM search_history WHERE id=?", ((item,) for item in ids))
+                changed = connection.total_changes - before
+                connection.commit()
+            except Exception:
+                connection.rollback()
+                raise
+        return changed
+
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path, timeout=5.0, isolation_level=None)
         connection.row_factory = sqlite3.Row

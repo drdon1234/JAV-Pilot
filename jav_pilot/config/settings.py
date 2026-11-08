@@ -64,6 +64,7 @@ RESOURCE_SEARCH_CAPABILITY = "resource_search"
 WEB_DOWNLOAD_CAPABILITY = "web_download"
 DESCRIPTION_CAPABILITY = "description"
 SUBTITLE_CAPABILITY = "subtitle"
+ONLINE_WATCH_CAPABILITY = "online_watch"
 SITE_CAPABILITY_ORDER = (
     METADATA_SEARCH_CAPABILITY,
     METADATA_DETAIL_CAPABILITY,
@@ -72,6 +73,7 @@ SITE_CAPABILITY_ORDER = (
     WEB_DOWNLOAD_CAPABILITY,
     DESCRIPTION_CAPABILITY,
     SUBTITLE_CAPABILITY,
+    ONLINE_WATCH_CAPABILITY,
 )
 SITE_CAPABILITIES = frozenset(SITE_CAPABILITY_ORDER)
 MISSAV_CAPABILITIES = (
@@ -239,6 +241,12 @@ DEFAULT_SETTINGS: dict[str, Any] = {
 }
 
 DEFAULT_SETTINGS["sites"].extend(additional_sites())
+DEFAULT_SETTINGS["sites"].append({
+    "id": "av123", "name": "123AV", "base_url": "https://123av.com",
+    "parser_profile": "av123", "enabled": True,
+    "capabilities": [ONLINE_WATCH_CAPABILITY],
+    "search": {"url_template": "{base_url}/"}, "filters": [],
+})
 DEFAULT_SETTINGS["workflow_defaults"] = copy.deepcopy(DEFAULT_WORKFLOW_DEFAULTS)
 
 _LEGACY_BUILTIN_SEARCH_TEMPLATES: dict[str, set[str]] = {
@@ -1171,6 +1179,8 @@ def _normalize_sites(
         if default is None:  # pragma: no cover - guarded by the module default.
             raise SettingsError("built-in Web download site default is unavailable")
         normalized.append(default)
+    if not any(site["id"] == "av123" for site in normalized):
+        normalized.append(copy.deepcopy(_default_site("av123")))
     return normalized
 
 

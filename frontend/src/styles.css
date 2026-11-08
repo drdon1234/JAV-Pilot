@@ -4,3 +4,5 @@
 @import './styles/components.css';
 @import './styles/pages.css';
 @import './styles/responsive.css';
+@import './styles/watching.css';
+@import './styles/interaction.css';

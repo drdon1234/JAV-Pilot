@@ -23,6 +23,9 @@ const SearchHistoryPage = lazy(() => recoverableImport('src/pages/SearchHistoryP
 const RankingsPage = lazy(() => recoverableImport('src/pages/RankingsPage.tsx', 'RankingsPage', () => import('./pages/RankingsPage')).then((module) => ({ default: module.RankingsPage })))
 const SitesPage = lazy(() => recoverableImport('src/pages/SitesPage.tsx', 'SitesPage', () => import('./pages/SitesPage')).then((module) => ({ default: module.SitesPage })))
 const SubtitlesPage = lazy(() => recoverableImport('src/pages/SubtitlesPage.tsx', 'SubtitlesPage', () => import('./pages/SubtitlesPage')).then((module) => ({ default: module.SubtitlesPage })))
+const WatchPage = lazy(() => recoverableImport('src/pages/WatchPage.tsx', 'WatchPage', () => import('./pages/WatchPage')).then(module => ({ default: module.WatchPage })))
+const FavoritesPage = lazy(() => recoverableImport('src/pages/FavoritesPage.tsx', 'FavoritesPage', () => import('./pages/FavoritesPage')).then(module => ({ default: module.FavoritesPage })))
+const PlaybackHistoryPage = lazy(() => recoverableImport('src/pages/PlaybackHistoryPage.tsx', 'PlaybackHistoryPage', () => import('./pages/PlaybackHistoryPage')).then(module => ({ default: module.PlaybackHistoryPage })))
 
 function lazyRoute(element: ReactNode) {
   return <Suspense fallback={<div className="app-loading" role="status" aria-label={t('正在加载页面')} />}>{element}</Suspense>
@@ -113,17 +116,20 @@ export default function App() {
         <Route element={<AuthGate />}>
           <Route element={<AppShell />}>
             <Route index element={<Navigate to="/search" replace />} />
+            <Route path="/player" element={<></>} />
             <Route path="/search" element={lazyRoute(<SearchPage />)} />
             <Route path="/results" element={lazyRoute(<SearchPage />)} />
             <Route path="/works/:workId" element={lazyRoute(<DetailPage />)} />
             <Route path="/search-history" element={lazyRoute(<SearchHistoryPage />)} />
             <Route path="/rankings" element={lazyRoute(<RankingsPage />)} />
+            <Route path="/watch" element={lazyRoute(<WatchPage />)} />
+            <Route path="/favorites" element={lazyRoute(<FavoritesPage />)} />
             <Route path="/downloads" element={lazyRoute(<DownloadsPage />)} />
             <Route path="/library" element={lazyRoute(<LibraryPage />)} />
             <Route path="/metadata" element={lazyRoute(<MetadataPage />)} />
             <Route path="/subtitles" element={lazyRoute(<SubtitlesPage />)} />
             <Route path="/organizer" element={lazyRoute(<OrganizerPage />)} />
-            <Route path="/history" element={<Navigate to="/settings#maintenance" replace />} />
+            <Route path="/history" element={lazyRoute(<PlaybackHistoryPage />)} />
             <Route path="/sites" element={lazyRoute(<SitesPage />)} />
             <Route path="/workflow-defaults" element={lazyRoute(<WorkflowDefaultsPage />)} />
             <Route path="/settings" element={lazyRoute(<SettingsPage />)} />
