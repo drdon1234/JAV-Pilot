@@ -968,6 +968,7 @@ class SearchRoutes(BaseHandler):
         settings = load_settings()
         sources = source_list(single_param(params, "source") or "all", settings)
         source_url = single_param(params, "detail_url").strip()
+        requested_title = single_param(params, "title").strip()[:500]
         linked_work = None
         if source_url:
             try:
@@ -975,6 +976,7 @@ class SearchRoutes(BaseHandler):
                     raise DetailPrefetchValidationError("detail link requires one source")
                 linked_work = work_result_from_snapshot(detail_snapshot_from_url(
                     work_id, requested, sources[0], source_url, settings,
+                    title=requested_title,
                 ))
             except (ValueError, DetailPrefetchValidationError) as exc:
                 self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)

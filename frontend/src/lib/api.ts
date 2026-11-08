@@ -994,7 +994,7 @@ export const api = {
   work: async (workId: string, routeParams?: URLSearchParams, signal?: AbortSignal) => {
     const params = new URLSearchParams({ work_id: workId })
     routeParams?.forEach((value, key) => {
-      if (key === 'code' || key === 'source' || key === 'detail_url' || (workId.startsWith('record:') && isWorkRecoveryParam(key))) {
+      if (key === 'code' || key === 'source' || key === 'detail_url' || key === 'title' || (workId.startsWith('record:') && isWorkRecoveryParam(key))) {
         params.set(key, value)
       }
     })

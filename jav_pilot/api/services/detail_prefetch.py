@@ -234,6 +234,7 @@ MAX_CODE_PREFETCH_ITEMS = 200
 
 def detail_snapshot_from_url(
     work_id: str, code: str, source_id: str, url: str, settings: dict[str, object],
+    *, title: str | None = None,
 ) -> dict[str, object]:
     """Validate a known source link before any network request or cache lookup."""
     if not valid_work_id(work_id) or source_id not in {
@@ -247,14 +248,15 @@ def detail_snapshot_from_url(
         normalized is None or work_id != f"code:{normalized[1]}"
     ):
         raise DetailPrefetchValidationError("work id and code do not match")
+    display_title = str(title or "").strip()[:500] or (normalized[0] if normalized else work_id)
     return _prepare_detail_prefetch_snapshot({
         "work_id": work_id,
         "code": normalized[0] if normalized else None,
         "canonical_code": normalized[1] if normalized else None,
-        "title": normalized[0] if normalized else work_id,
+        "title": display_title,
         "sources": [{
             "source_id": source_id, "raw_code": normalized[0] if normalized else None,
-            "title": normalized[0] if normalized else work_id,
+            "title": display_title,
             "detail_url": url, "images": [], "parse_status": "summary",
         }],
     }, source_id, settings)

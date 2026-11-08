@@ -49,6 +49,7 @@ function detailHref(item: RankingItem, enabled: string[]): string | null {
   if (!item.code && !source) return null
   const params = new URLSearchParams()
   if (item.code) params.set('code', item.code)
+  if (item.title) params.set('title', item.title)
   if (source && item.detail_url) {
     params.set('source', source)
     params.set('detail_url', item.detail_url)
