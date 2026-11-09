@@ -42,13 +42,7 @@ def resource_search_manager() -> ResourceSearchManager:
                 state.RESOURCE_SEARCHES = ResourceSearchManager(
                     resource_search_database_path(),
                     discoverer=RoutedResourceSearcher(
-                        {
-                            "jable": WebProviderResourceSearcher("jable"),
-                            "supjav": WebProviderResourceSearcher("supjav"),
-                            "missav": WebProviderResourceSearcher("missav"),
-                            "kissjav": WebProviderResourceSearcher("kissjav"),
-                            "javnoni": WebProviderResourceSearcher("javnoni"),
-                        }
+                        {source: WebProviderResourceSearcher(source) for source in BUILTIN_WEB_RESOURCE_SITE_IDS}
                     ),
                 )
             except (

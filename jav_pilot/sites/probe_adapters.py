@@ -400,7 +400,7 @@ def build_site_probe_adapters(
                 probe.stage,
             )
         )
-    for site_id in ("jable", "supjav", "missav"):
+    for site_id in WEB_CATALOG:
         code = codes.for_site(site_id)
         probe = _WebDownloadSiteProbe(site_id, code, settings)
         if site_id == "missav":
@@ -421,16 +421,6 @@ def build_site_probe_adapters(
                 probe.stage,
             )
         )
-    for site_id in WEB_CATALOG:
-        if site_by_id(site_id, settings) is None:
-            continue
-        code = codes.for_site(site_id)
-        probe = _WebDownloadSiteProbe(site_id, code, settings)
-        adapters.append(FunctionalProbeAdapter(
-            site_id,
-            ("configuration", "dns", "connection", "search"),
-            probe.stage,
-        ))
     for site_id in SUBTITLE_CATALOG:
         if site_by_id(site_id, settings) is None:
             continue

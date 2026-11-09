@@ -240,6 +240,7 @@ class WebDownloadManager:
         *,
         job_id: str | None = None,
         replaces_job_id: str | None = None,
+        provider: str = AUTO_PROVIDER,
     ) -> dict[str, object]:
         if not self.config.enabled:
             raise WebDownloadDisabledError("web downloads are disabled")
@@ -265,7 +266,7 @@ class WebDownloadManager:
             if self._stopping:
                 raise WebDownloadError("web download manager is shutting down")
             job = self.store.create_or_get(
-                provider=AUTO_PROVIDER,
+                provider=provider,
                 code=display_code,
                 code_key=code_key,
                 variant=clean_variant,
@@ -1011,7 +1012,7 @@ class WebDownloadManager:
             return self.store.update(job_id, **fields)
         if event_type == "source":
             provider = str(event.get("provider") or "").strip().lower()
-            if provider not in {"missav", "jable", "supjav"}:
+            if provider not in {"missav", "jable", "av123"}:
                 raise WebDownloadRunnerError("download source provider is invalid")
             return self.store.update(job_id, resolved_provider=provider)
         if event_type == "progress":

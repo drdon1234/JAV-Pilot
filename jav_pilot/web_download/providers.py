@@ -2,18 +2,12 @@ from __future__ import annotations
 
 import html
 import math
-import os
 import re
-import stat
 import threading
 import time
-import tempfile
 import unicodedata
-from contextlib import contextmanager
-from contextvars import ContextVar
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import BinaryIO, Callable, Iterator, Sequence, TypeVar
+from typing import Callable, Sequence
 from urllib.parse import quote, urljoin, urlsplit
 
 from bs4 import BeautifulSoup
@@ -41,7 +35,6 @@ from ..config.settings import (
     JABLE_SITE_ID,
     MISSAV_SITE_ID,
     RESOURCE_SEARCH_CAPABILITY,
-    SUPJAV_SITE_ID,
     WEB_DOWNLOAD_CAPABILITY,
     load_settings,
     site_by_id,
@@ -49,15 +42,7 @@ from ..config.settings import (
 )
 from .media import MAX_MANIFEST_BYTES
 from ..net.http_client import FetchError
-from ..net.site_fetch import fetch_site_text as fetch_text, fetch_browser_text
-from ..net.challenges import is_challenge, is_firewall_block
-from .source_catalog import (
-    CANDIDATE_WEB_SOURCE_IDS,
-    WebCatalogError,
-    catalog_search_url,
-    parse_catalog_search,
-    probe_catalog_media,
-)
+from ..net.site_fetch import fetch_site_text
 from .variant import (
     DEFAULT_WEB_DOWNLOAD_VARIANT,
     WEB_DOWNLOAD_VARIANTS,
@@ -71,22 +56,10 @@ from .variant import (
 _MAX_PAGE_BYTES = 4 * 1024 * 1024
 _MAX_REDIRECTS = 3
 _REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
-_SUPJAV_GATEWAY_HOST = "lk1.supremejav.com"
-_SUPJAV_EMBED_HOSTS = frozenset({"fc2stream.tv", "www.fc2stream.tv"})
-_SUPJAV_STREAMTAPE_HOSTS = frozenset(
-    {"streamtape.com", "www.streamtape.com", "streamta.pe", "www.streamta.pe"}
-)
 _RESOURCE_DELTA_ITEMS = 64
 _MAX_RESOURCE_PAGE_ITEMS = 128
-_SUPJAV_CAPTURE_SPACING_SECONDS = 3.0
-_SUPJAV_CHALLENGE_COOLDOWN_SECONDS = 30.0
-_SUPJAV_CAPTURE_LOCK = threading.Lock()
-_SUPJAV_CAPTURE_STATE_PATH = (
-    Path(tempfile.gettempdir()) / "jav-pilot-supjav-capture.lock"
-)
 _RESOURCE_SEARCH_CARD_SELECTORS = {
     JABLE_SITE_ID: "div.video-img-box",
-    SUPJAV_SITE_ID: "div.post",
     MISSAV_SITE_ID: "div.thumbnail",
 }
 _RESOURCE_SEARCH_EMPTY_SELECTOR = (
@@ -147,7 +120,6 @@ class ProviderSearchPage:
     document: str = field(repr=False)
 
 
-_CoordinatedResult = TypeVar("_CoordinatedResult")
 
 
 class PriorityWebDownloadProvider:
@@ -180,7 +152,7 @@ class PriorityWebDownloadProvider:
             if isinstance(site, dict)
         }
         requested_provider = str(provider or "auto").strip().lower()
-        if requested_provider in {"auto", MISSAV_SITE_ID}:
+        if requested_provider == "auto":
             raw_priority = settings.get("web_download_provider_priority", [])
             priority = (
                 [str(item) for item in raw_priority]
@@ -250,28 +222,17 @@ class PriorityWebDownloadProvider:
                         ),
                         selected_height=getattr(result, "selected_height", None),
                     )
-                if str(variant) != "original":
-                    if provider_id not in CANDIDATE_WEB_SOURCE_IDS:
-                        raise WebDownloadProviderNotFound()
-                if provider_id in CANDIDATE_WEB_SOURCE_IDS:
-                    return _capture_catalog_provider(
-                        provider_id, code, str(site.get("base_url") or ""),
-                        variant=str(variant), timeout_seconds=timeout_seconds,
-                        requested_height=requested_height, quality_strategy=quality_strategy,
-                    )
-                if provider_id == SUPJAV_SITE_ID:
-                    return _capture_supjav(
-                        code,
-                        str(site.get("base_url") or ""),
-                        timeout_seconds=timeout_seconds,
-                        requested_height=requested_height,
-                        quality_strategy=quality_strategy,
-                        cancel_event=cancel_event,
-                    )
+                if provider_id == "av123":
+                    return _capture_av123(code, str(site.get("base_url") or ""), variant=str(variant),
+                        timeout_seconds=timeout_seconds, requested_height=requested_height,
+                        quality_strategy=quality_strategy, cancel_event=cancel_event)
+                if str(variant) != "original" and provider_id != JABLE_SITE_ID:
+                    raise WebDownloadProviderNotFound()
                 if provider_id == JABLE_SITE_ID:
                     return _capture_jable(
                         code,
                         str(site.get("base_url") or ""),
+                        variant=str(variant),
                         timeout_seconds=timeout_seconds,
                         requested_height=requested_height,
                         quality_strategy=quality_strategy,
@@ -305,15 +266,6 @@ def probe_web_download_provider_connection(
     """Probe a Web provider with the same transport fingerprint as downloads."""
 
     provider_id = str(provider or "").strip().lower()
-    if provider_id not in {
-        JABLE_SITE_ID,
-        SUPJAV_SITE_ID,
-        MISSAV_SITE_ID,
-        *CANDIDATE_WEB_SOURCE_IDS,
-    }:
-        raise WebDownloadProviderError(
-            "Web download provider is invalid", code="configuration"
-        )
     origin = _safe_origin(str(base_url or ""), expected_profile=provider_id)
     query = str(code or "").strip()
     if canonical_catalog_code(query) is None:
@@ -323,16 +275,8 @@ def probe_web_download_provider_connection(
     host = urlsplit(origin).hostname or ""
 
     def fetch() -> str:
-        if provider_id in CANDIDATE_WEB_SOURCE_IDS:
-            return fetch_text(
-                _resource_search_url(provider_id, origin, query, 1),
-                timeout=timeout_seconds, max_bytes=_MAX_PAGE_BYTES,
-                allowed_origin=origin,
-            )
         return _bounded_page(
-            _supjav_session()
-            if provider_id == SUPJAV_SITE_ID
-            else _session(impersonate="chrome"),
+            _session(impersonate="chrome"),
             _resource_search_url(provider_id, origin, query, 1),
             timeout_seconds,
             allowed_hosts={host},
@@ -340,9 +284,7 @@ def probe_web_download_provider_connection(
 
     try:
         document = (
-            _run_supjav_coordinated(fetch, timeout_seconds=timeout_seconds)
-            if provider_id == SUPJAV_SITE_ID
-            else fetch()
+            fetch()
         )
     except WebDownloadProviderNotFound as exc:
         # Resource-search endpoints must return a structured result document,
@@ -375,15 +317,6 @@ def probe_web_download_provider_search(
             "Web provider search page is invalid", code="configuration"
         )
     provider_id = page.provider
-    if provider_id not in {
-        JABLE_SITE_ID,
-        SUPJAV_SITE_ID,
-        MISSAV_SITE_ID,
-        *CANDIDATE_WEB_SOURCE_IDS,
-    }:
-        raise WebDownloadProviderError(
-            "Web download provider is invalid", code="configuration"
-        )
     query = page.query
     wanted = canonical_catalog_code(query)
     if wanted is None:
@@ -486,22 +419,11 @@ def probe_exact_web_download_provider(
 
     provider_id = str(provider or "").strip().lower()
     try:
-        if provider_id in CANDIDATE_WEB_SOURCE_IDS:
-            return _capture_catalog_provider(
-                provider_id, code, str(base_url or ""), variant="original",
-                timeout_seconds=timeout_seconds, requested_height=None,
-                quality_strategy="legacy",
-            )
+        if provider_id == "av123":
+            return _capture_av123(code, str(base_url or ""), variant="original",
+                timeout_seconds=timeout_seconds, requested_height=None, quality_strategy="legacy")
         if provider_id == JABLE_SITE_ID:
             return _capture_jable(
-                code,
-                str(base_url or ""),
-                timeout_seconds=timeout_seconds,
-                requested_height=None,
-                quality_strategy="legacy",
-            )
-        if provider_id == SUPJAV_SITE_ID:
-            return _capture_supjav(
                 code,
                 str(base_url or ""),
                 timeout_seconds=timeout_seconds,
@@ -603,13 +525,6 @@ class WebProviderResourceSearcher:
         *,
         settings_loader: Callable[[], dict[str, object]] = load_settings,
     ) -> None:
-        if source_id not in {
-            JABLE_SITE_ID,
-            SUPJAV_SITE_ID,
-            MISSAV_SITE_ID,
-            *CANDIDATE_WEB_SOURCE_IDS,
-        }:
-            raise ValueError("Web resource search source is invalid")
         self._source_id = source_id
         self._settings_loader = settings_loader
 
@@ -653,9 +568,7 @@ class WebProviderResourceSearcher:
         scanned_pages = work.state.scanned_pages
         emitted = 0
         session = (
-            _supjav_session()
-            if self._source_id == SUPJAV_SITE_ID
-            else _session()
+            _session()
         )
 
         def snapshot() -> ResourceSearchState:
@@ -721,11 +634,7 @@ class WebProviderResourceSearcher:
                 search_url = _resource_search_url(
                     self._source_id, origin, work.query, page_number,
                 )
-                document = (
-                    fetch_text(search_url, timeout=30.0, max_bytes=_MAX_PAGE_BYTES, allowed_origin=origin)
-                    if self._source_id in CANDIDATE_WEB_SOURCE_IDS
-                    else _bounded_page(session, search_url, 30.0, allowed_hosts={urlsplit(origin).hostname or ""})
-                )
+                document = _bounded_page(session, search_url, 30.0, allowed_hosts={urlsplit(origin).hostname or ""})
             except WebDownloadProviderNotFound:
                 # Search endpoints are expected to return a structured 200
                 # page even for zero matches.  A 404 is endpoint/config drift,
@@ -802,19 +711,13 @@ def _resource_search_url(
     page: int,
 ) -> str:
     encoded = quote(query, safe="")
-    if source_id in CANDIDATE_WEB_SOURCE_IDS:
-        return catalog_search_url(source_id, origin, query, page)
+    if source_id == "av123":
+        return f"{origin}/cn/search?keyword={encoded}&sort=relevant&page={page}"
     if source_id == JABLE_SITE_ID:
         return (
             f"{origin}/search/?q={encoded}"
             if page == 1
             else f"{origin}/search/{encoded}/{page}/"
-        )
-    if source_id == SUPJAV_SITE_ID:
-        return (
-            f"{origin}/?s={encoded}"
-            if page == 1
-            else f"{origin}/page/{page}?s={encoded}"
         )
     if source_id == MISSAV_SITE_ID:
         base = f"{origin}/cn/search/{encoded}"
@@ -829,28 +732,43 @@ def _parse_resource_search_page(
     work: ResourceSearchWork,
     page: int,
 ) -> tuple[tuple[ResourceSearchItem, ...], int]:
-    if source_id in CANDIDATE_WEB_SOURCE_IDS:
+    if source_id == "av123":
+        # Share the validated card/identity parser with online browsing.
+        from ..watching.catalog import parse_catalog
+
         try:
-            parsed_page = parse_catalog_search(source_id, document, origin, page=page)
-        except WebCatalogError as exc:
-            raise _ResourceSearchPageError(retryable=exc.retryable) from exc
-        exact_query = canonical_catalog_code(work.query, max_length=32)
+            parsed = parse_catalog(source_id, origin, document, page=page)
+        except WebDownloadProviderError as exc:
+            raise _ResourceSearchPageError(retryable=exc.code != "response_invalid") from exc
+        exact = canonical_catalog_code(work.query, max_length=32) if work.start is None else None
         grouped: dict[str, tuple[str, str, set[MissavVariant]]] = {}
-        for entry in parsed_page.entries:
-            normalized = normalize_catalog_code(entry.code, max_length=32)
-            if normalized is None or (exact_query is not None and normalized[1] != exact_query):
+        edition_variants: dict[str, MissavVariant] = {
+            "中文字幕": "chinese_subtitle",
+            "无码": "uncensored_leak",
+            "无码流出": "uncensored_leak",
+        }
+        for entry in parsed["items"]:
+            normalized = normalize_catalog_code(entry["code"], max_length=32)
+            if normalized is None or (exact is not None and normalized[1] != exact):
                 continue
             if not _resource_code_in_range(normalized[1], work):
                 continue
-            existing = grouped.get(normalized[1])
-            if existing is None:
-                grouped[normalized[1]] = (normalized[0], entry.title, {entry.variant})
+            variants = {
+                edition_variants.get(label, DEFAULT_WEB_DOWNLOAD_VARIANT)
+                for label in entry["editions"]
+            }
+            if normalized[1] in grouped:
+                grouped[normalized[1]][2].update(variants)
             else:
-                existing[2].add(entry.variant)
+                grouped[normalized[1]] = (normalized[0], entry["title"], variants)
         return tuple(
-            ResourceSearchItem(code, tuple(v for v in WEB_DOWNLOAD_VARIANTS if v in variants), _safe_resource_title(title))
+            ResourceSearchItem(
+                code,
+                tuple(v for v in WEB_DOWNLOAD_VARIANTS if v in variants),
+                _safe_resource_title(title),
+            )
             for code, title, variants in grouped.values()
-        ), parsed_page.total_pages
+        ), page + int(parsed["has_more"])
     soup = BeautifulSoup(document, "html.parser")
     card_selector = _RESOURCE_SEARCH_CARD_SELECTORS.get(source_id)
     if card_selector is None:
@@ -900,24 +818,6 @@ def _parse_resource_search_page(
                     str(anchor.get("title") or anchor.get_text(" ", strip=True)),
                     (DEFAULT_WEB_DOWNLOAD_VARIANT,),
                 )
-            )
-    elif source_id == SUPJAV_SITE_ID:
-        for post in result_cards:
-            anchor = post.select_one('h3 a[href$=".html"]')
-            if anchor is None:
-                continue
-            target = urljoin(origin, str(anchor.get("href") or ""))
-            if (
-                _origin(target) != origin
-                or re.fullmatch(r"/\d+\.html", urlsplit(target).path) is None
-            ):
-                continue
-            title = str(anchor.get("title") or anchor.get_text(" ", strip=True))
-            normalized = _first_catalog_code(title)
-            if normalized is None:
-                continue
-            candidates.append(
-                (normalized[0], title, (DEFAULT_WEB_DOWNLOAD_VARIANT,))
             )
     elif source_id == MISSAV_SITE_ID:
         grouped: dict[
@@ -1010,8 +910,6 @@ def _parse_resource_search_page(
                 r"/search/(?:[^/]+/)?([1-9][0-9]{0,2})/",
                 parsed.path,
             )
-        elif source_id == SUPJAV_SITE_ID:
-            match = re.search(r"/page/([1-9][0-9]{0,2})/?$", parsed.path)
         else:
             match = (
                 re.search(
@@ -1108,460 +1006,55 @@ def _safe_resource_title(value: object) -> str | None:
     return clean
 
 
-def _capture_catalog_provider(
-    source_id: str, code: object, base_url: str, *, variant: str,
-    timeout_seconds: float, requested_height: object | None, quality_strategy: object,
-) -> ProviderManifest:
-    origin = _safe_origin(base_url, expected_profile=source_id)
-    deadline = time.monotonic() + max(1.0, min(timeout_seconds, 120.0))
-    def remaining() -> float:
-        value = deadline - time.monotonic()
-        if value <= 0:
-            raise WebDownloadProviderError("Web catalog probe timed out", code="timeout")
-        return value
-    wanted = canonical_catalog_code(code)
-    if wanted is None:
-        raise WebDownloadProviderError("Web provider code is invalid", code="configuration")
-    try:
-        document = fetch_text(
-            catalog_search_url(source_id, origin, str(code), 1),
-            timeout=remaining(), max_bytes=_MAX_PAGE_BYTES, allowed_origin=origin,
-        )
-        page = parse_catalog_search(source_id, document, origin)
-        entries = [entry for entry in page.entries if canonical_catalog_code(entry.code) == wanted and entry.variant == variant]
-        if not entries:
-            raise WebDownloadProviderNotFound()
-        def select(url: str, body: str) -> tuple[str, int | None]:
-            if "#EXT-X-STREAM-INF:" not in body:
-                return url, None
-            return _select_media_playlist(url, body, requested_height=requested_height, quality_strategy=quality_strategy)
-        failure_code = "media_unverified"
-        for entry in entries[:3]:
-            try:
-                detail = fetch_text(entry.detail_url, timeout=remaining(), max_bytes=_MAX_PAGE_BYTES, allowed_origin=origin)
-                media = probe_catalog_media(
-                    source_id, entry, detail, timeout=remaining(),
-                    unpack=_unpack_js_eval, select_playlist=select,
-                )
-            except (WebCatalogError, FetchError) as exc:
-                failure_code = str(getattr(exc, "code", "upstream_unavailable"))
-                continue
-            if not media.full_length_verified:
-                failure_code = "full_length_unverified"
-                continue
-            return ProviderManifest(
-                source_id, media.url, {"Referer": media.referer}, media.page_url,
-                media.selected_height,
-            )
-        raise WebDownloadProviderError(
-            "Web source media or complete-film duration could not be verified",
-            code=failure_code,
-        )
-    except WebCatalogError as exc:
-        raise WebDownloadProviderError("Web catalog media could not be verified", code=exc.code) from exc
-
-
-def _capture_supjav(
-    code: object,
-    base_url: str,
-    *,
-    timeout_seconds: float,
-    requested_height: object | None,
-    quality_strategy: object,
+def _capture_av123(
+    code: object, base_url: str, *, variant: str, timeout_seconds: float,
+    requested_height: object | None, quality_strategy: object,
     cancel_event: threading.Event | None = None,
-    selected_detail_url: str | None = None,
 ) -> ProviderManifest:
-    """Capture SupJav without allowing concurrent retry waves.
+    from ..watching.catalog import parse_catalog, detail_url
+    from ..watching.av123 import capture
+    from .media import fetch_safe_media_resource, media_provider_scope
 
-    SupJav starts returning a challenge page when several Web workers reach
-    discovery together.  Serialize the complete capture, leave a small gap
-    after every attempt, and give an observed challenge a longer quiet
-    window.  The lock deliberately covers the wait and the network exchange:
-    only one caller may become the next probe after a cooldown.
-    """
-
-    return _run_supjav_coordinated(
-        lambda: _capture_supjav_uncoordinated(
-            code,
-            base_url,
-            timeout_seconds=timeout_seconds,
-            requested_height=requested_height,
-            quality_strategy=quality_strategy,
-            cancel_event=cancel_event,
-            selected_detail_url=selected_detail_url,
-        ),
-        timeout_seconds=timeout_seconds,
-        cancel_event=cancel_event,
-    )
-
-
-_PROVIDER_BUDGET: ContextVar[tuple[float, threading.Event | None] | None] = ContextVar(
-    "provider_budget", default=None
-)
+    origin = _safe_origin(base_url, expected_profile="av123")
+    session = _session()
+    deadline = time.monotonic() + timeout_seconds
+    wanted = canonical_catalog_code(code)
+    labels = {"original": "原片", "chinese_subtitle": "中文字幕", "uncensored_leak": "无码流出"}
+    for page in range(1, 6):
+        if cancel_event is not None and cancel_event.is_set():
+            raise WebDownloadProviderError("Capture cancelled", code="interrupted")
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise WebDownloadProviderError("Capture timed out", code="timeout")
+        document = _bounded_page(session, _resource_search_url("av123", origin, str(code), page), remaining, allowed_hosts={urlsplit(origin).hostname or ""})
+        result = parse_catalog("av123", origin, document, page=page)
+        for entry in result["items"]:
+            if canonical_catalog_code(entry["code"]) != wanted:
+                continue
+            editions = entry["editions"]
+            if labels.get(variant) not in editions and not (variant == "uncensored_leak" and "无码" in editions):
+                continue
+            target = detail_url("av123", origin, entry["url"])
+            body = _bounded_page(session, target, max(1, deadline - time.monotonic()), allowed_hosts={urlsplit(origin).hostname or ""})
+            manifest = capture(session, body, target)
+            with media_provider_scope("av123", allowed_hosts=manifest.allowed_media_hosts):
+                playlist = fetch_safe_media_resource(manifest.url, manifest.headers, max_bytes=_MAX_PAGE_BYTES, timeout_seconds=max(1, deadline - time.monotonic()))
+                text = playlist.body.decode("utf-8-sig")
+                if "#EXT-X-STREAM-INF:" in text:
+                    url, height = _select_media_playlist(manifest.url, text, requested_height=requested_height, quality_strategy=quality_strategy)
+                    return ProviderManifest("av123", url, manifest.headers, target, height, allowed_media_hosts=manifest.allowed_media_hosts)
+                if requested_height is not None:
+                    raise WebDownloadProviderError("Requested quality is unavailable", code="quality_unavailable")
+            return manifest
+        if not result["has_more"]:
+            break
+    raise WebDownloadProviderNotFound()
 
 
 def _provider_timeout(seconds: float) -> float:
     if seconds <= 0 or not math.isfinite(seconds):
         raise WebDownloadProviderError("Provider operation timed out", code="timeout")
-    budget = _PROVIDER_BUDGET.get()
-    if budget is not None:
-        deadline, cancel_event = budget
-        _raise_if_provider_cancelled(cancel_event)
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            raise WebDownloadProviderError("Provider operation timed out", code="timeout")
-        seconds = min(seconds, remaining)
     return max(0.001, min(float(seconds), 120.0))
-
-
-def _run_supjav_coordinated(
-    operation: Callable[[], _CoordinatedResult],
-    *,
-    timeout_seconds: float,
-    cancel_event: threading.Event | None = None,
-) -> _CoordinatedResult:
-    if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
-        raise WebDownloadProviderError("Invalid provider timeout", code="configuration")
-    deadline = time.monotonic() + min(timeout_seconds, 120.0)
-    parent = _PROVIDER_BUDGET.get()
-    if parent is not None:
-        deadline = min(deadline, parent[0])
-    token = _PROVIDER_BUDGET.set((deadline, cancel_event))
-    try:
-        result = _run_supjav_locked(operation, cancel_event=cancel_event)
-        _provider_timeout(timeout_seconds)
-        return result
-    except Exception:
-        _provider_timeout(timeout_seconds)
-        raise
-    finally:
-        _PROVIDER_BUDGET.reset(token)
-
-
-def _run_supjav_locked(
-    operation: Callable[[], _CoordinatedResult],
-    *,
-    cancel_event: threading.Event | None = None,
-) -> _CoordinatedResult:
-    """Run any SupJav request wave under the shared pacing coordinator."""
-
-    while not _SUPJAV_CAPTURE_LOCK.acquire(timeout=_provider_timeout(0.1)):
-        _raise_if_provider_cancelled(cancel_event)
-    try:
-        with _locked_supjav_capture_state(cancel_event=cancel_event) as state:
-            _raise_if_provider_cancelled(cancel_event)
-            delay = min(
-                _SUPJAV_CHALLENGE_COOLDOWN_SECONDS,
-                max(0.0, _read_supjav_next_at(state) - time.time()),
-            )
-            _wait_for_provider_delay(delay, cancel_event)
-            _raise_if_provider_cancelled(cancel_event)
-            _write_supjav_next_at(
-                state,
-                time.time() + _SUPJAV_CAPTURE_SPACING_SECONDS,
-            )
-            try:
-                result = operation()
-            except WebDownloadProviderError as exc:
-                cooldown = (
-                    _SUPJAV_CHALLENGE_COOLDOWN_SECONDS
-                    if exc.code in {"challenge_active", "rate_limited"}
-                    else _SUPJAV_CAPTURE_SPACING_SECONDS
-                )
-                _write_supjav_next_at(state, time.time() + cooldown)
-                raise
-            except BaseException:
-                _write_supjav_next_at(
-                    state,
-                    time.time() + _SUPJAV_CAPTURE_SPACING_SECONDS,
-                )
-                raise
-            _write_supjav_next_at(
-                state,
-                time.time() + _SUPJAV_CAPTURE_SPACING_SECONDS,
-            )
-            return result
-    finally:
-        _SUPJAV_CAPTURE_LOCK.release()
-
-
-@contextmanager
-def _locked_supjav_capture_state(
-    *, cancel_event: threading.Event | None = None
-) -> Iterator[BinaryIO]:
-    path = _SUPJAV_CAPTURE_STATE_PATH
-    path.parent.mkdir(parents=True, exist_ok=True)
-    flags = os.O_RDWR | os.O_CREAT
-    nofollow = getattr(os, "O_NOFOLLOW", 0)
-    descriptor = os.open(path, flags | nofollow, 0o600)
-    try:
-        if not stat.S_ISREG(os.fstat(descriptor).st_mode):
-            raise WebDownloadProviderError(
-                "SupJav capture coordinator is invalid", code="configuration"
-            )
-        state = os.fdopen(descriptor, "r+b", closefd=False)
-        locked = False
-        try:
-            if os.name == "nt":
-                import msvcrt
-
-                state.seek(0, os.SEEK_END)
-                if state.tell() == 0:
-                    state.write(b"0\n")
-                    state.flush()
-                while not locked:
-                    state.seek(0)
-                    try:
-                        msvcrt.locking(state.fileno(), msvcrt.LK_NBLCK, 1)
-                        locked = True
-                    except OSError as exc:
-                        if getattr(exc, "errno", None) != 13:
-                            raise
-                        _wait_for_provider_delay(0.1, cancel_event)
-            else:
-                import fcntl
-
-                while not locked:
-                    try:
-                        fcntl.flock(state.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                        locked = True
-                    except BlockingIOError:
-                        _wait_for_provider_delay(0.1, cancel_event)
-            try:
-                yield state
-            finally:
-                if locked and os.name == "nt":
-                    import msvcrt
-
-                    state.seek(0)
-                    msvcrt.locking(state.fileno(), msvcrt.LK_UNLCK, 1)
-                elif locked:
-                    import fcntl
-
-                    fcntl.flock(state.fileno(), fcntl.LOCK_UN)
-        finally:
-            state.close()
-    finally:
-        os.close(descriptor)
-
-
-def _read_supjav_next_at(state: BinaryIO) -> float:
-    state.seek(0)
-    raw = state.read(64).strip()
-    try:
-        value = float(raw or b"0")
-    except ValueError:
-        return 0.0
-    return value if math.isfinite(value) and value >= 0.0 else 0.0
-
-
-def _write_supjav_next_at(state: BinaryIO, value: float) -> None:
-    state.seek(0)
-    state.write(f"{max(0.0, value):.6f}\n".encode("ascii"))
-    state.truncate()
-    state.flush()
-    os.fsync(state.fileno())
-
-
-def _wait_for_provider_delay(
-    delay: float, cancel_event: threading.Event | None
-) -> None:
-    _provider_timeout(120.0)
-    if delay <= 0:
-        return
-    delay = _provider_timeout(delay)
-    if cancel_event is not None:
-        if cancel_event.wait(delay):
-            _raise_if_provider_cancelled(cancel_event)
-        _provider_timeout(120.0)
-        return
-    time.sleep(delay)
-    _provider_timeout(120.0)
-
-
-def _capture_supjav_uncoordinated(
-    code: object,
-    base_url: str,
-    *,
-    timeout_seconds: float,
-    requested_height: object | None,
-    quality_strategy: object,
-    cancel_event: threading.Event | None = None,
-    selected_detail_url: str | None = None,
-) -> ProviderManifest:
-    origin = _safe_origin(base_url, expected_profile=SUPJAV_SITE_ID)
-    session = _supjav_session()
-    _raise_if_provider_cancelled(cancel_event)
-    if selected_detail_url is None:
-        search_url = f"{origin}/?s={quote(str(code), safe='')}"
-        search = _bounded_page(
-            session, search_url, timeout_seconds,
-            allowed_hosts={urlsplit(origin).hostname or ""},
-        )
-        detail_url = _supjav_exact_result(search, origin, code)
-    else:
-        detail_url = selected_detail_url
-    _raise_if_provider_cancelled(cancel_event)
-    detail = _bounded_page(
-        session,
-        detail_url,
-        timeout_seconds,
-        allowed_hosts={urlsplit(origin).hostname or ""},
-    )
-    soup = BeautifulSoup(detail, "html.parser")
-    _raise_if_provider_cancelled(cancel_event)
-    servers: dict[str, str] = {}
-    for anchor in soup.select("a.btn-server[data-link]"):
-        name = anchor.get_text(" ", strip=True).upper()
-        token = str(anchor.get("data-link") or "")
-        if name in {"FST", "ST"} and re.fullmatch(r"[A-Za-z0-9]{32,512}", token):
-            servers.setdefault(name, token)
-    if not servers:
-        raise WebDownloadProviderNotFound()
-
-    fst_error: WebDownloadProviderError | None = None
-    fst = servers.get("FST")
-    if fst is not None:
-        try:
-            _raise_if_provider_cancelled(cancel_event)
-            return _capture_supjav_fst(
-                session,
-                fst,
-                origin=origin,
-                detail_url=detail_url,
-                timeout_seconds=timeout_seconds,
-                requested_height=requested_height,
-                quality_strategy=quality_strategy,
-            )
-        except WebDownloadProviderError as exc:
-            if exc.code in {"timeout", "cancelled"}:
-                raise
-            fst_error = exc
-        except Exception:
-            fst_error = WebDownloadProviderError(
-                "SupJav FST source is temporarily unavailable",
-                code="upstream_unavailable",
-            )
-
-    # Streamtape is a progressive MP4 fallback.  It is intentionally used
-    # only for legacy/automatic quality because the source exposes no trusted
-    # height label.  The worker downloads it through the same allowlisted
-    # curl-cffi handler and never hands the network URL to ffmpeg.
-    streamtape = servers.get("ST")
-    if (
-        streamtape is not None
-        and requested_height is None
-        and str(quality_strategy) == "legacy"
-    ):
-        try:
-            _raise_if_provider_cancelled(cancel_event)
-            return _capture_supjav_streamtape(
-                session,
-                streamtape,
-                origin=origin,
-                detail_url=detail_url,
-                timeout_seconds=timeout_seconds,
-            )
-        except WebDownloadProviderError as exc:
-            if exc.code in {"timeout", "cancelled"}:
-                raise
-        except Exception:
-            pass
-    if fst_error is not None:
-        raise fst_error
-    raise WebDownloadProviderError(
-        "SupJav sources are temporarily unavailable", code="upstream_unavailable"
-    )
-
-
-def _raise_if_provider_cancelled(cancel_event: threading.Event | None) -> None:
-    if cancel_event is not None and cancel_event.is_set():
-        raise WebDownloadProviderError(
-            "Web source discovery was cancelled", code="cancelled"
-        )
-
-
-def _capture_supjav_fst(
-    session: object,
-    token: str,
-    *,
-    origin: str,
-    detail_url: str,
-    timeout_seconds: float,
-    requested_height: object | None,
-    quality_strategy: object,
-) -> ProviderManifest:
-    gateway = f"https://{_SUPJAV_GATEWAY_HOST}/supjav.php?c={token[::-1]}"
-    embed, final_url = _bounded_get_with_redirects(
-        session,
-        gateway,
-        timeout_seconds,
-        allowed_hosts={_SUPJAV_GATEWAY_HOST, *_SUPJAV_EMBED_HOSTS},
-        headers={"Referer": f"{origin}/"},
-    )
-    manifest_url = _extract_packed_manifest(embed)
-    media_host = (urlsplit(manifest_url).hostname or "").lower()
-    if not any(
-        _host_matches(media_host, suffix)
-        for suffix in ("cdn-centaurus.com", "premilkyway.com")
-    ):
-        raise WebDownloadProviderError(
-            "SupJav media host was rejected", code="host_policy"
-        )
-    referer = _origin(final_url)
-    master = _bounded_get(
-        session,
-        manifest_url,
-        timeout_seconds,
-        allowed_hosts={media_host},
-        headers={"Referer": final_url, "Origin": referer},
-        max_bytes=MAX_MANIFEST_BYTES,
-    )
-    media_url, selected_height = _select_media_playlist(
-        manifest_url,
-        master,
-        requested_height=requested_height,
-        quality_strategy=quality_strategy,
-    )
-    return ProviderManifest(
-        provider=SUPJAV_SITE_ID,
-        url=media_url,
-        headers={"Referer": final_url, "Origin": referer},
-        page_url=detail_url,
-        selected_height=selected_height,
-    )
-
-
-def _capture_supjav_streamtape(
-    session: object,
-    token: str,
-    *,
-    origin: str,
-    detail_url: str,
-    timeout_seconds: float,
-) -> ProviderManifest:
-    gateway = f"https://{_SUPJAV_GATEWAY_HOST}/supjav.php?c={token[::-1]}"
-    embed, final_url = _bounded_get_with_redirects(
-        session,
-        gateway,
-        timeout_seconds,
-        allowed_hosts={_SUPJAV_GATEWAY_HOST, *_SUPJAV_STREAMTAPE_HOSTS},
-        headers={"Referer": f"{origin}/"},
-    )
-    direct_url = _extract_streamtape_direct_url(embed)
-    direct_host = (urlsplit(direct_url).hostname or "").lower()
-    if direct_host not in _SUPJAV_STREAMTAPE_HOSTS:
-        raise WebDownloadProviderError(
-            "SupJav progressive host was rejected", code="host_policy"
-        )
-    return ProviderManifest(
-        provider=SUPJAV_SITE_ID,
-        url=direct_url,
-        headers={"Referer": final_url},
-        page_url=detail_url,
-        selected_height=None,
-        media_kind="progressive",
-    )
 
 
 def _capture_missav(
@@ -1708,6 +1201,7 @@ def _capture_jable(
     code: object,
     base_url: str,
     *,
+    variant: str = "original",
     timeout_seconds: float,
     requested_height: object | None,
     quality_strategy: object,
@@ -1744,6 +1238,16 @@ def _capture_jable(
         detail = _bounded_page(
             session, detail_url, timeout_seconds, allowed_hosts={host}
         )
+    if variant != "original":
+        from bs4 import BeautifulSoup
+        from ..watching.catalog import identity
+        soup = BeautifulSoup(detail, "html.parser")
+        title = soup.select_one('meta[property="og:title"]')
+        labels = " ".join(item.get_text(" ", strip=True) for item in soup.select(".video-info .tags"))
+        _, editions = identity(str(title.get("content") or "") + " " + labels if title else labels)
+        expected = "中文字幕" if variant == "chinese_subtitle" else "无码流出"
+        if expected not in editions and not (expected == "无码流出" and "无码" in editions):
+            raise WebDownloadProviderNotFound()
     matches = re.findall(r"https://[^\s\"']+\.m3u8[^\s\"']*", detail, re.IGNORECASE)
     if len(matches) != 1:
         raise WebDownloadProviderNotFound()
@@ -1793,40 +1297,34 @@ def _session(*, impersonate: str = "chrome"):
     return requests.Session(impersonate=impersonate)
 
 
-def _supjav_session():
-    # One stable HTTP session; challenged documents recover in the persistent
-    # browser instead of issuing a burst with nine unrelated fingerprints.
-    return _session(impersonate="chrome")
-
-
 def _bounded_page(
     session: object, url: str, timeout_seconds: float, *, allowed_hosts: set[str],
     headers: dict[str, str] | None = None,
 ) -> str:
-    deadline = time.monotonic() + _provider_timeout(timeout_seconds)
-    try:
-        try:
-            document = _bounded_get(session, url, timeout_seconds, allowed_hosts=allowed_hosts, headers=headers)
-        except WebDownloadProviderError as exc:
-            if exc.code != "redirect_policy":
-                raise
-            document, _ = _bounded_get_with_redirects(
-                session, url, _provider_timeout(deadline - time.monotonic()),
-                allowed_hosts=allowed_hosts, headers=headers or {},
-            )
-    except WebDownloadProviderError as exc:
-        if exc.code != "challenge_active":
-            raise
-    else:
-        if is_firewall_block(document):
-            raise WebDownloadProviderError("Source firewall blocked this network", code="upstream_unavailable")
-        if not is_challenge(document):
-            return document
+    def fetch() -> str:
+        return _fetch_provider_page(session, url, _provider_timeout(timeout_seconds), allowed_hosts=allowed_hosts, headers=headers)
+    return fetch()
+
+
+def _fetch_provider_page(session: object, url: str, timeout_seconds: float, *, allowed_hosts: set[str], headers: dict[str, str] | None) -> str:
+    deadline = time.monotonic() + timeout_seconds
     _require_allowed_public_host(url, allowed_hosts, "Provider request host was rejected")
-    remaining = _provider_timeout(deadline - time.monotonic())
+    def http_fetch(request_url: str, **kwargs: object) -> str:
+        try:
+            try:
+                return _bounded_get(session, request_url, _provider_timeout(deadline - time.monotonic()), allowed_hosts=allowed_hosts, headers=headers)
+            except WebDownloadProviderError as exc:
+                if exc.code != "redirect_policy":
+                    raise
+                document, _ = _bounded_get_with_redirects(session, request_url, _provider_timeout(deadline - time.monotonic()), allowed_hosts=allowed_hosts, headers=headers or {})
+                return document
+        except WebDownloadProviderError as exc:
+            if exc.code == "challenge_active":
+                raise FetchError("HTTP 403") from exc
+            raise
     try:
-        return fetch_browser_text(url, timeout=remaining, max_bytes=_MAX_PAGE_BYTES,
-                                  allowed_origins=(_origin(url),), headers=headers)
+        return fetch_site_text(url, timeout=timeout_seconds, max_bytes=_MAX_PAGE_BYTES,
+                               allowed_origins=(_origin(url),), headers=headers, http_fetch=http_fetch)
     except FetchError as exc:
         message = str(exc).lower()
         code = "upstream_unavailable"
@@ -1945,30 +1443,6 @@ def _bounded_get_with_redirects(
     )
 
 
-def _supjav_exact_result(document: str, origin: str, code: object) -> str:
-    wanted = canonical_catalog_code(code)
-    if wanted is None:
-        raise WebDownloadProviderNotFound()
-    soup = BeautifulSoup(document, "html.parser")
-    candidates: list[str] = []
-    for post in soup.select("div.post"):
-        anchor = post.select_one('a[href*=".html"]')
-        if anchor is None:
-            continue
-        title = html.unescape(
-            str(anchor.get("title") or anchor.get_text(" ", strip=True))
-        )
-        if wanted not in _catalog_codes_in_text(title):
-            continue
-        target = urljoin(origin, str(anchor.get("href") or ""))
-        parsed = urlsplit(target)
-        if _origin(target) == origin and re.fullmatch(r"/\d+\.html", parsed.path):
-            candidates.append(target)
-    if not candidates:
-        raise WebDownloadProviderNotFound()
-    return candidates[0]
-
-
 def _jable_exact_result(document: str, origin: str, code: object) -> str:
     wanted = canonical_catalog_code(code)
     if wanted is None:
@@ -1996,61 +1470,6 @@ def _catalog_codes_in_text(value: str) -> set[str]:
         for item in candidates
         if (code := canonical_catalog_code(item)) is not None
     }
-
-
-def _extract_packed_manifest(document: str) -> str:
-    for script in re.findall(
-        r"<script[^>]*>(.*?)</script>", document, re.DOTALL | re.IGNORECASE
-    ):
-        if "eval(function" not in script:
-            continue
-        unpacked = _unpack_js_eval(script)
-        if not unpacked:
-            continue
-        match = re.search(r"https?://[^'\"\\;\s]+\.m3u8[^'\"\\;\s]*", unpacked)
-        if match:
-            return html.unescape(match.group(0))
-    raise WebDownloadProviderNotFound()
-
-
-def _extract_streamtape_direct_url(document: str) -> str:
-    """Resolve Streamtape's bounded static ``robotlink`` expression."""
-
-    match = re.search(
-        r"getElementById\(\s*['\"]robotlink['\"]\s*\)\.innerHTML\s*=\s*"
-        r"['\"]([^'\"]*)['\"]\s*\+\s*(?:['\"]{2}\s*\+\s*)?"
-        r"\(\s*['\"]([^'\"]*)['\"]\s*\)((?:\.substring\(\s*\d+\s*\))+)",
-        document,
-    )
-    if match is None:
-        raise WebDownloadProviderError(
-            "SupJav progressive source was not found", code="response_invalid"
-        )
-    suffix = match.group(2)
-    for raw_offset in re.findall(r"substring\(\s*(\d+)\s*\)", match.group(3)):
-        offset = int(raw_offset)
-        if offset > len(suffix):
-            raise WebDownloadProviderError(
-                "SupJav progressive source was rejected", code="response_invalid"
-            )
-        suffix = suffix[offset:]
-    link = (match.group(1) + suffix).lstrip("/")
-    if len(link) > 8192 or "get_video" not in link:
-        raise WebDownloadProviderError(
-            "SupJav progressive source was rejected", code="response_invalid"
-        )
-    candidate = f"https://{link}"
-    parsed = urlsplit(candidate)
-    if (
-        parsed.scheme != "https"
-        or not parsed.hostname
-        or parsed.username
-        or parsed.password
-    ):
-        raise WebDownloadProviderError(
-            "SupJav progressive source was rejected", code="response_invalid"
-        )
-    return candidate
 
 
 def _extract_missav_manifest(document: str) -> str:
@@ -2177,7 +1596,5 @@ def _provider_label(provider: str) -> str:
     return {
         MISSAV_SITE_ID: "MissAV",
         JABLE_SITE_ID: "JableTV",
-        SUPJAV_SITE_ID: "SupJav",
-        "kissjav": "KissJAV",
-        "javnoni": "JAV-NONI",
+        "av123": "123AV",
     }.get(provider, "Web")

@@ -7,6 +7,7 @@ import { usePlaybackActivity } from '../lib/playbackActivity'
 import { t } from '../lib/i18n'
 import type { MediaLibraryEntry } from '../types'
 import { Button, InlineNotice, StatusBadge } from './ui'
+import { PlaybackPreview } from './PlaybackPreview'
 import { VideoControls } from './VideoControls'
 import '../styles/localPlayback.css'
 import type { SubtitleSource } from '../lib/playbackSubtitles'
@@ -21,6 +22,7 @@ interface LocalPlayback {
 }
 
 export function LocalPlayer({ entry, file }: { entry: string; file: number }) {
+  const activity = usePlaybackActivity()
   const query = useQuery({
     queryKey: ['local-playback', entry, file],
     queryFn: async ({ signal }) => { await waitForPlaybackSaves(); return requestJson<LocalPlayback>(`/api/library/playback?${new URLSearchParams({ entry, file: String(file) })}`, { signal }) },
@@ -28,6 +30,7 @@ export function LocalPlayer({ entry, file }: { entry: string; file: number }) {
   })
   return <section className="local-playback">
     {query.isPending || query.isFetching ? <p role="status">{t('正在加载')}</p> : query.isError ? <InlineNotice tone="danger">{t('本地文件不可用，请检查存储连接后重试。')} <Button onClick={() => void query.refetch()}>{t('重试')}</Button></InlineNotice> : null}
+    {(query.isPending || query.isFetching) && activity.snapshot ? <PlaybackPreview /> : null}
     {query.data && !query.isFetching ? <LocalVideo key={`${entry}:${file}:${query.data.identity}`} playback={query.data} /> : null}
   </section>
 }
@@ -88,7 +91,8 @@ function LocalVideo({ playback }: { playback: LocalPlayback }) {
           const element = video.current!
           if (ready.current) return
           ready.current = true
-          if (position > 0 && Number.isFinite(element.duration)) element.currentTime = Math.min(position, Math.max(0, element.duration - 1))
+          const resume = activity.snapshot?.position ?? position
+          if (resume > 0 && Number.isFinite(element.duration)) element.currentTime = Math.min(resume, Math.max(0, element.duration - 1))
           if (activity.current.current && activity.autoplay.current && !document.hidden) void element.play().catch(() => setAutoplayBlocked(true))
         }}
         onPlay={() => setAutoplayBlocked(false)} onError={() => setError(true)} />

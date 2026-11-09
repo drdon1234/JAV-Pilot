@@ -20,9 +20,9 @@ export type WebDownloadActionName = 'pause' | 'resume' | 'cancel' | 'retry' | 'r
 
 function webProviderLabel(provider: WebDownloadJob['provider'] | WebDownloadJob['resolved_provider']): string {
   if (provider === 'jable') return 'JableTV'
-  if (provider === 'supjav') return 'SupJav'
+  if (provider === 'av123') return '123AV'
   if (provider === 'missav') return 'MissAV'
-  return t('自动选择')
+  return provider && provider !== 'auto' ? provider : t('自动选择')
 }
 
 function webJobProviderLabel(job: WebDownloadJob): string {

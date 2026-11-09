@@ -674,7 +674,7 @@ export const api = {
   addWebDownload: async (
     code: string,
     idempotencyKey: string,
-    options: { variant?: string; replacementId?: string } = {},
+    options: { variant?: string; replacementId?: string; provider?: string } = {},
   ) => {
     const payload = await requestJson<{ ok: boolean; job: WebDownloadJob }>('/api/web-downloads', {
       method: 'POST',
@@ -682,6 +682,7 @@ export const api = {
         code,
         idempotency_key: idempotencyKey,
         ...(options.variant ? { variant: options.variant } : {}),
+        ...(options.provider ? { provider: options.provider } : {}),
         ...(options.replacementId ? { replacement_id: options.replacementId } : {}),
       }),
     })

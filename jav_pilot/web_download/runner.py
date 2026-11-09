@@ -620,17 +620,18 @@ def _manifest_payload_for_worker(manifest: object) -> dict[str, object]:
                 "MissAV browser capture returned invalid headers"
             )
         clean_headers[name] = value
-    if provider not in {"missav", "jable", "supjav"}:
+    if provider not in {"missav", "jable", "av123"}:
         raise WebDownloadRunnerError("Web source provider is invalid")
     if media_kind not in {"hls", "progressive"}:
         raise WebDownloadRunnerError("Web source media kind is invalid")
-    if media_kind == "progressive" and provider != "supjav":
+    if media_kind == "progressive":
         raise WebDownloadRunnerError("Web source media kind is invalid")
     payload: dict[str, object] = {
         "manifest_url": url,
         "manifest_headers": clean_headers,
         "manifest_provider": provider,
         "manifest_media_kind": media_kind,
+        "manifest_allowed_media_hosts": list(getattr(manifest, "allowed_media_hosts", ())),
     }
     if selected_height is not None:
         payload["manifest_selected_height"] = selected_height

@@ -105,22 +105,8 @@ export function SearchHistoryPage() {
         return
       }
       const params = item.params
-      const start = text(params.start) || (typeof params.start === 'number' ? String(params.start) : '')
-      const end = text(params.end) || (typeof params.end === 'number' ? String(params.end) : '')
-      const resultLimit = typeof params.result_limit === 'number' ? params.result_limit : 100
-      const payload = await api.createResourceSearch({
-        source_id: text(params.source_id) || 'all',
-        query: text(params.query) || item.query,
-        result_limit: resultLimit,
-        exact_match: params.exact_match === true,
-        ...(start && end ? { start, end, suffix_width: typeof params.suffix_width === 'number' ? params.suffix_width : Math.max(start.length, end.length) } : {}),
-      })
-      const routeParams = new URLSearchParams({
-        workspace: 'resource',
-        resource_id: payload.search.session_id,
-        resource_query: text(params.query) || item.query,
-        result_limit: String(resultLimit),
-      })
+      const source = text(params.source_id)
+      const routeParams = new URLSearchParams({ workspace: 'resource', q: text(params.query) || item.query, ...(source && source !== 'all' ? { source } : {}) })
       navigate(`/search?${routeParams.toString()}`)
     } catch (error) {
       toast.push(serviceErrorMessage(error, t('无法重新搜索，请稍后重试')), 'error')

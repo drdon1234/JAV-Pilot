@@ -72,7 +72,7 @@ export function WatchPlayer({ entry }: { entry: WatchEntry }) {
       try {
         // Let an in-flight resolve finish so navigation can close its session.
         const [playback, history] = await Promise.all([watching.resolve(entry), waitForPlaybackSaves().then(() => requestJson<{ items: { position: number }[] }>(`/api/playback-history?${new URLSearchParams({ source: entry.source, url: entry.url })}`)).catch(() => null)])
-        if (!attempt) resume.current = history?.items[0]?.position ?? 0
+        if (!attempt) resume.current = activity.snapshot?.position ?? history?.items[0]?.position ?? 0
         session = playback.session
         if (disposed || !element) { void watching.close(session).catch(() => undefined); return }
         setHeight(playback.height)

@@ -2,7 +2,7 @@ import { createContext, useContext, useLayoutEffect, useRef, type MutableRefObje
 
 export const PlaybackActivity = createContext(true)
 export interface PlaybackSnapshot { image: string; position: number; duration: number; aspect: number }
-export const PlaybackSession = createContext<{ autoplay: MutableRefObject<boolean>; capture: (snapshot: PlaybackSnapshot) => void; snapshot?: PlaybackSnapshot | null }>({ autoplay: { current: true }, capture: () => undefined })
+export const PlaybackSession = createContext<{ autoplay: MutableRefObject<boolean>; capture: (snapshot: PlaybackSnapshot) => void; snapshot?: PlaybackSnapshot | null; exit?: () => void }>({ autoplay: { current: true }, capture: () => undefined })
 
 export function usePlaybackActivity() {
   const active = useContext(PlaybackActivity)

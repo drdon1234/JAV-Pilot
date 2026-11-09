@@ -56,7 +56,7 @@ JAV Pilot es una aplicación autoalojada para buscar, descargar y gestionar una 
 11. 🔔 **Notificaciones**: envía avisos mediante Webhook, Gotify, Telegram o las notificaciones del NAS cuando una descarga termina o falla, queda poco espacio en disco o un sitio falla.
 12. 📱 **Interfaz multilingüe y adaptable**: disponible en 简体中文, 繁體中文, English, 日本語, Français, Español, Русский y العربية, y sigue por defecto el idioma del navegador y del sistema; funciona en escritorio y en móviles, con temas claro y oscuro.
 
-13. ▶️ **Reproducción en línea y favoritos**: Explora JableTV, SupJav, MissAV y 123AV, reproduce la edición elegida y guarda por separado fichas, obras del sitio y accesos de reproducción.
+13. ▶️ **Reproducción en línea y favoritos**: Explora JableTV, MissAV y 123AV, reproduce la edición elegida y guarda por separado fichas, obras del sitio y accesos de reproducción.
 14. 🎬 **Reproducción local e historial**: Explora carpetas de la biblioteca y elige sus carátulas. La reproducción local y en línea comparten subtítulos, velocidad, desplazamiento horizontal, pantalla completa e historial para continuar. El volumen y el brillo se ajustan en el dispositivo o navegador.
 
 ## 🚀 Inicio rápido
@@ -198,7 +198,7 @@ Consulte la [guía de uso](../guide/usage.md) para el procedimiento completo.
 | --- | --- |
 | Metadatos y enlaces magnet | JavBus, JavDB, FC2 (activados por defecto); FANZA, MGS, AVBase, FC2DB (se pueden activar en «Sitios») |
 | Indexadores de torrents | Sukebei, Tokyo Toshokan (mediante Jackett, que puede desplegarse junto con JAV Pilot) |
-| Descargas de vídeo | JableTV, SupJav, MissAV |
+| Descargas de vídeo | JableTV, MissAV, 123AV |
 | Clasificaciones | JavDB, FANZA, FC2, MGStage, JavMenu, Netflav y los sitios oficiales de estudios sin censura como 1Pondo y Caribbeancom |
 | Cliente de descargas | qBittorrent |
 | Servidores multimedia | Jellyfin, Emby, Kodi (leen NFO, pósteres e imágenes de fondo) |

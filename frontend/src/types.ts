@@ -116,7 +116,7 @@ export interface SiteSettings {
   }
 }
 
-export type SiteDiagnosticSite = 'javbus' | 'javdb' | 'fc2' | 'fanza' | 'mgs' | 'avbase' | 'fc2db' | 'jable' | 'supjav' | 'missav' | 'kissjav' | 'javnoni' | 'xunlei' | 'subtitlecat'
+export type SiteDiagnosticSite = 'javbus' | 'javdb' | 'fc2' | 'fanza' | 'mgs' | 'avbase' | 'fc2db' | 'jable' | 'missav' | 'av123' | 'xunlei' | 'subtitlecat'
 
 export type SiteDiagnosticStage =
   | 'configuration'
@@ -266,8 +266,8 @@ export interface AppSettings {
   site_diagnostic_codes?: SiteDiagnosticCodes
   detail_default_site_id?: string
   metadata_search_site_priority?: string[]
-  web_resource_search_provider_priority?: Array<'jable' | 'supjav' | 'missav' | 'kissjav' | 'javnoni'>
-  web_download_provider_priority?: Array<'jable' | 'supjav' | 'missav'>
+  web_resource_search_provider_priority?: Array<'jable' | 'missav' | 'av123'>
+  web_download_provider_priority?: Array<'jable' | 'missav' | 'av123'>
   metadata_scraper_site_priority?: string[]
   sites: SiteSettings[]
   organizer: {
@@ -864,7 +864,7 @@ export interface DownloadReplacement {
   magnet_count: number
   magnets?: WorkMagnet[]
   web_status: 'pending' | 'available' | 'not_found' | 'unavailable'
-  web_provider_ids: Array<'missav' | 'jable' | 'supjav' | string>
+  web_provider_ids: Array<'missav' | 'jable' | 'av123' | string>
   web_variant: WebDownloadVariant | null
   magnet_error_code: string | null
   web_error_code: string | null
@@ -1139,8 +1139,8 @@ export type WebDownloadVariant = 'original' | 'chinese_subtitle' | 'uncensored_l
 
 export interface WebDownloadJob {
   job_id: string
-  provider: 'auto' | 'missav' | 'jable' | 'supjav'
-  resolved_provider?: 'missav' | 'jable' | 'supjav' | null
+  provider: string
+  resolved_provider?: string | null
   code: string
   variant: WebDownloadVariant
   requested_height: number | null
@@ -1206,7 +1206,7 @@ export interface WebDownloadListPayload {
   enabled?: boolean
   available?: boolean
   reason?: string | null
-  providers?: Array<{ id: 'jable' | 'supjav' | 'missav'; name: string; available: boolean }>
+  providers?: Array<{ id: 'jable' | 'missav' | 'av123'; name: string; available: boolean }>
   tasks: WebDownloadJob[]
   intent?: WebDownloadBatch | null
   intents?: WebDownloadBatch[]

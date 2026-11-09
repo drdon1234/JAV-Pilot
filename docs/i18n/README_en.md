@@ -56,7 +56,7 @@ JAV Pilot is a self-hosted application for searching, downloading and organizing
 11. 🔔 **Notifications**: notifies through Webhook, Gotify, Telegram or NAS notifications when a download completes or fails, disk space runs low, or a site fails.
 12. 📱 **Multilingual, responsive interface**: available in 简体中文, 繁體中文, English, 日本語, Français, Español, Русский and العربية, following the browser and system language by default; works on desktop and mobile, with light and dark themes.
 
-13. ▶️ **Online viewing and bookmarks**: Browse JableTV, SupJav, MissAV and 123AV, play selected editions in the app, and save metadata pages, site entries or playback bookmarks.
+13. ▶️ **Online viewing and bookmarks**: Browse JableTV, MissAV and 123AV, play selected editions in the app, and save metadata pages, site entries or playback bookmarks.
 14. 🎬 **Local playback and history**: Browse library folders and choose folder posters. Online and local playback share subtitles, speed, horizontal seek gestures, fullscreen and resume history. Volume and brightness use device or browser controls.
 
 ## 🚀 Quick start
@@ -198,7 +198,7 @@ See the [usage guide](../guide/usage.md) for the complete walkthrough.
 | --- | --- |
 | Metadata and magnets | JavBus, JavDB, FC2 (enabled by default); FANZA, MGS, AVBase, FC2DB (can be enabled under “Sites”) |
 | Torrent indexers | Sukebei, Tokyo Toshokan (through Jackett, which can be deployed with JAV Pilot) |
-| Video downloads | JableTV, SupJav, MissAV |
+| Video downloads | JableTV, MissAV, 123AV |
 | Rankings | JavDB, FANZA, FC2, MGStage, JavMenu, Netflav, and the official sites of uncensored studios such as 1Pondo and Caribbeancom |
 | Download client | qBittorrent |
 | Media servers | Jellyfin, Emby, Kodi (reading NFO, posters and fanart) |

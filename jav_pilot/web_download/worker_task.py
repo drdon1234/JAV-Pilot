@@ -62,6 +62,7 @@ class WorkerTask:
     bandwidth: BandwidthClientConfig | None = None
     manifest: ManifestRequest | None = None
     media_kind: str = "hls"
+    allowed_media_hosts: tuple[str, ...] = ()
 
     @classmethod
     def from_payload(cls, payload: object) -> "WorkerTask":
@@ -80,9 +81,9 @@ class WorkerTask:
         )
         if provider == "auto" and payload.get("manifest_url") in (None, ""):
             provider = "missav"
-        if provider not in {"missav", "jable", "supjav", "javnoni", "kissjav"}:
+        if provider not in {"missav", "jable", "av123"}:
             raise WebDownloadWorkerError("invalid worker provider")
-        if provider in {"javnoni", "kissjav"} and payload.get("manifest_url") in (None, ""):
+        if provider != "missav" and payload.get("manifest_url") in (None, ""):
             raise WebDownloadWorkerError("catalog providers require a verified media manifest")
         try:
             variant = normalize_web_download_variant(
@@ -169,12 +170,19 @@ class WorkerTask:
             raise WebDownloadWorkerError(
                 "invalid shared bandwidth broker configuration"
             ) from exc
-        with media_provider_scope(provider):
+        raw_hosts = payload.get("manifest_allowed_media_hosts", [])
+        if not isinstance(raw_hosts, list) or len(raw_hosts) > 2 or any(
+            not isinstance(host, str) or not re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)*", host) or len(host) > 253
+            for host in raw_hosts
+        ):
+            raise WebDownloadWorkerError("invalid worker media hosts")
+        allowed_hosts = tuple(raw_hosts)
+        with media_provider_scope(provider, allowed_hosts=allowed_hosts):
             manifest = _manifest_from_payload(payload)
         media_kind = str(payload.get("manifest_media_kind") or "hls").strip().lower()
         if media_kind not in {"hls", "progressive"}:
             raise WebDownloadWorkerError("invalid worker media kind")
-        if media_kind == "progressive" and (provider != "supjav" or manifest is None):
+        if media_kind == "progressive":
             raise WebDownloadWorkerError("invalid worker media kind")
         return cls(
             job_id=job_id,
@@ -195,6 +203,7 @@ class WorkerTask:
             incumbent_output_path=incumbent_output_path,
             manifest=manifest,
             media_kind=media_kind,
+            allowed_media_hosts=allowed_hosts,
         )
 
 

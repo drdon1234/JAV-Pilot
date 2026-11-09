@@ -53,6 +53,7 @@ from .job_schema import (
     migrate_web_download_v7,
     migrate_web_download_v8,
     migrate_web_download_v9,
+    migrate_web_download_providers,
     normalize_pending_queue_positions,
     verify_web_download_schema,
 )
@@ -940,7 +941,7 @@ class WebDownloadStore:
                     )
         if "resolved_provider" in fields:
             value = str(fields["resolved_provider"] or "").strip().lower()
-            if value not in {"missav", "jable", "supjav"}:
+            if value not in {"missav", "jable", "supjav", "av123"}:
                 raise WebDownloadError("web download source provider is invalid")
             fields["resolved_provider"] = value
         if "output_path" in fields and fields["output_path"] is not None:
@@ -1894,6 +1895,7 @@ class WebDownloadStore:
                         SQLiteMigration(7, migrate_web_download_v7),
                         SQLiteMigration(8, migrate_web_download_v8),
                         SQLiteMigration(9, migrate_web_download_v9),
+                        SQLiteMigration(10, migrate_web_download_providers),
                     ),
                     clock=self._clock,
                     verify_current=verify_web_download_schema,

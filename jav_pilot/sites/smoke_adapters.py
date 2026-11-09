@@ -185,7 +185,7 @@ def build_production_smoke_adapters(
                 # fetch_cover performs both initial and final URL policy checks.
                 image_url_validator=lambda _url: None,
             )
-        elif site in {"jable", "supjav"}:
+        elif site in {"jable", "av123"}:
             adapter = _DiagnosticWebSmokeAdapter(
                 site,
                 display_code,

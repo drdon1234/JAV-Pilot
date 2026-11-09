@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Play } from 'lucide-react'
 import { SelectedWork } from '../pages/WatchPage'
 import { t } from '../lib/i18n'
 import { Button, PageHeader } from './ui'
 import { LocalPlayer } from './LocalPlayer'
 import { PlaybackActivity, PlaybackSession, type PlaybackSnapshot } from '../lib/playbackActivity'
 import { PlaybackStart } from './PlaybackStart'
-import { playbackTime } from './VideoControls'
+import { PlaybackPreview } from './PlaybackPreview'
 import { BackLink } from './BackLink'
 
 type PlayingWork = { source: string; url: string; entry?: never; file?: never } | { entry: string; file: number; source?: never; url?: never }
@@ -50,11 +49,13 @@ export function PlaybackWorkspace() {
 }
 
 function PlaybackSurface({ work, visible, fresh }: { work: PlayingWork; visible: boolean; fresh: boolean }) {
+  const navigate = useNavigate()
+  const exit = useCallback(() => navigate(work.entry ? '/library' : '/watch'), [navigate, work.entry])
   const [live, setLive] = useState(true)
   const [snapshot, setSnapshot] = useState<PlaybackSnapshot | null>(null)
   const autoplay = useRef(fresh)
   const capture = useCallback((next: PlaybackSnapshot) => setSnapshot(previous => ({ ...next, image: next.image || previous?.image || '' })), [])
-  const session = useMemo(() => ({ autoplay, capture, snapshot }), [capture, snapshot])
+  const session = useMemo(() => ({ autoplay, capture, snapshot, exit }), [capture, snapshot, exit])
   useLayoutEffect(() => {
     if (visible) return
     autoplay.current = false
@@ -62,10 +63,6 @@ function PlaybackSurface({ work, visible, fresh }: { work: PlayingWork; visible:
     return () => window.clearTimeout(timer)
   }, [visible])
   return <PlaybackSession.Provider value={session}><PlaybackActivity.Provider value={visible}>
-    {live ? work.entry ? <LocalPlayer entry={work.entry} file={work.file!} /> : <SelectedWork source={work.source!} url={work.url!} play onPlay={() => undefined} /> : <section className="playback-frozen video-stage controls-visible" style={{ aspectRatio: snapshot?.aspect || 16 / 9 }} aria-label={t('应用内播放器')}>
-      {snapshot?.image ? <img className="playback-frozen-frame" src={snapshot.image} alt={t('暂停画面')} /> : null}
-      <button type="button" className="playback-frozen-play" aria-label={t('继续播放')} onClick={() => { autoplay.current = true; setLive(true) }}><Play aria-hidden="true" /></button>
-      <div className="video-controls"><div className="video-progress-row"><span>{playbackTime(snapshot?.position || 0)}</span><progress aria-label={t('播放进度')} max={snapshot?.duration || 1} value={snapshot?.position || 0} /><span>{playbackTime(snapshot?.duration || 0)}</span></div><p>{t('已暂停，点击继续播放')}</p></div>
-    </section>}
+    {live ? work.entry ? <LocalPlayer entry={work.entry} file={work.file!} /> : <SelectedWork source={work.source!} url={work.url!} play onPlay={() => undefined} /> : <PlaybackPreview onResume={() => { autoplay.current = true; setLive(true) }} />}
   </PlaybackActivity.Provider></PlaybackSession.Provider>
 }

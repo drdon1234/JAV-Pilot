@@ -5,15 +5,16 @@ import { t } from '../lib/i18n'
 export function PlayerMenu({ label, value, children, wide = false }: { label: string; value: ReactNode; children: ReactNode; wide?: boolean }) {
   const root = useRef<HTMLDetailsElement>(null)
   const id = useId()
+  const closeMenu = () => { root.current?.removeAttribute('open') }
   useEffect(() => {
-    const close = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) root.current?.removeAttribute('open') }
+    const close = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) closeMenu() }
     document.addEventListener('pointerdown', close)
     return () => document.removeEventListener('pointerdown', close)
   }, [])
   return <details ref={root} className={`player-menu${wide ? ' player-menu-wide' : ''}`} onToggle={event => {
     if (!event.currentTarget.open) return
     event.currentTarget.closest('.video-stage')?.querySelectorAll('details[open]').forEach(item => { if (item !== event.currentTarget) item.removeAttribute('open') })
-  }} onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) root.current?.removeAttribute('open') }} onKeyDown={event => {
+  }} onBlur={event => { if (!wide && event.relatedTarget && !event.currentTarget.contains(event.relatedTarget as Node)) closeMenu() }} onKeyDown={event => {
     if (event.key === 'Escape') { event.stopPropagation(); root.current?.removeAttribute('open'); root.current?.querySelector('summary')?.focus() }
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       if ((event.target as HTMLElement).closest('input')) return
@@ -25,8 +26,14 @@ export function PlayerMenu({ label, value, children, wide = false }: { label: st
     }
   }}>
     <summary aria-label={label} aria-controls={id}>{value}</summary>
-    <div id={id} className="player-menu-panel" aria-label={label}>{wide ? <div className="player-menu-heading"><strong>{label}</strong><button type="button" aria-label={t('关闭')} onClick={() => { root.current?.removeAttribute('open'); root.current?.querySelector('summary')?.focus() }}><X aria-hidden="true" /></button></div> : null}{children}</div>
+    <div id={id} className="player-menu-panel" role={wide ? 'dialog' : undefined} aria-label={label}
+      onPointerDown={event => event.stopPropagation()} onPointerMove={event => event.stopPropagation()} onPointerUp={event => event.stopPropagation()}
+      onTouchStart={event => event.stopPropagation()} onTouchMove={event => event.stopPropagation()} onTouchEnd={event => event.stopPropagation()}>
+      {wide ? <div className="player-menu-heading"><strong>{label}</strong><button type="button" aria-label={t('关闭')} onClick={closeMenu}><X aria-hidden="true" /></button></div> : null}
+      {children}
+    </div>
   </details>
+
 }
 
 export function PlayerChoice({ label, value, options, onChange }: { label: string; value: number; options: { value: number; label: string }[]; onChange: (value: number) => void }) {

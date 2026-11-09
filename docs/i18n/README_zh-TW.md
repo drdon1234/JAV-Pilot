@@ -56,7 +56,7 @@ JAV Pilot 是一款自架的影片搜尋、下載與媒體庫管理應用程式�
 11. 🔔 **通知推播**：在下載完成或失敗、磁碟空間不足、站點異常時，透過 Webhook、Gotify、Telegram 或 NAS 通知推播。
 12. 📱 **多語言響應式介面**：提供简体中文、繁體中文、English、日本語、Français、Español、Русский、العربية 八種介面語言，預設跟隨瀏覽器與系統語言；適配桌面與行動裝置，支援淺色與深色主題。
 
-13. ▶️ **線上觀看與收藏**: 瀏覽 JableTV、SupJav、MissAV 與 123AV，在應用程式內播放所選版本，分別收藏資料頁、站點作品及播放入口。
+13. ▶️ **線上觀看與收藏**: 瀏覽 JableTV、MissAV 與 123AV，在應用程式內播放所選版本，分別收藏資料頁、站點作品及播放入口。
 14. 🎬 **本機播放與紀錄**: 媒體庫以目錄瀏覽並可自選封面；線上與本機播放器共用字幕、倍速、左右拖動進度、全螢幕和續播紀錄。音量與亮度由裝置或瀏覽器控制。
 
 ## 🚀 快速開始
@@ -198,7 +198,7 @@ npm --prefix frontend run build
 | --- | --- |
 | 資料與磁力連結 | JavBus、JavDB、FC2（預設啟用）；FANZA、MGS、AVBase、FC2DB（可在「站點」中啟用） |
 | 種子索引 | Sukebei、Tokyo Toshokan（透過 Jackett，可與 JAV Pilot 一同部署） |
-| 影片下載 | JableTV、SupJav、MissAV |
+| 影片下載 | JableTV、MissAV、123AV |
 | 排行榜 | JavDB、FANZA、FC2、MGStage、JavMenu、Netflav，以及一本道、加勒比等無碼廠商官網 |
 | 下載器 | qBittorrent |
 | 媒體伺服器 | Jellyfin、Emby、Kodi（讀取 NFO、海報與背景圖） |

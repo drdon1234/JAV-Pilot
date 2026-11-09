@@ -75,9 +75,13 @@ class WatchingRoutes(BaseHandler):
             source = _param(query, "source")
             term = _param(query, "q").strip()
             page = int(_param(query, "page", "1"))
-            if len(term) > 120 or not 1 <= page <= 100 or any(ord(c) < 32 for c in term):
+            if len(term) > 120 or not 1 <= page <= 9999 or any(ord(c) < 32 for c in term):
                 raise ValueError("检索条件无效")
-            self._send_json(catalog.browse(source, term, page))
+            result = catalog.browse(source, term, page)
+            if term and page == 1:
+                from ..services.search_history import record_search_history
+                record_search_history("resource", term, {"source_id": source, "query": term})
+            self._send_json(result)
         except Exception as exc:
             self._watch_error(exc)
         finally:

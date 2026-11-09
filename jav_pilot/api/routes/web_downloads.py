@@ -256,7 +256,7 @@ class WebDownloadRoutes(CommonErrorResponses):
     def _handle_web_download_start(self) -> None:
         try:
             payload = self._read_json_body(32 * 1024)
-            allowed = {"code", "idempotency_key", "variant", "replacement_id"}
+            allowed = {"code", "idempotency_key", "variant", "replacement_id", "provider"}
             if not set(payload).issubset(allowed) or not {
                 "code",
                 "idempotency_key",
@@ -276,17 +276,18 @@ class WebDownloadRoutes(CommonErrorResponses):
                     variant=payload.get("variant"),
                 )
             else:
-                if "variant" in payload:
-                    job = manager.start(
-                        payload.get("code"),
-                        payload.get("idempotency_key"),
-                        variant=payload.get("variant"),
-                    )
-                else:
-                    job = manager.start(
-                        payload.get("code"),
-                        payload.get("idempotency_key"),
-                    )
+                provider = payload.get("provider", "auto")
+                from ...config.settings import BUILTIN_WEB_DOWNLOAD_SITE_IDS, load_settings, site_by_id
+                if provider != "auto":
+                    if provider not in BUILTIN_WEB_DOWNLOAD_SITE_IDS:
+                        raise ValueError("web download provider is invalid")
+                    site = site_by_id(provider, load_settings())
+                    if not site or not site.get("enabled"):
+                        raise ValueError("web download provider is unavailable")
+                job = manager.start(
+                    payload.get("code"), payload.get("idempotency_key"),
+                    variant=payload.get("variant", "original"), provider=provider,
+                )
         except ValueError as exc:
             self._send_json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_REQUEST)
             return

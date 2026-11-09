@@ -20,6 +20,14 @@ _BROWSER_ORIGINS: OrderedDict[str, float] = OrderedDict()
 _LOCK = threading.Lock()
 
 
+def _remember_browser_origin(origin: str) -> None:
+    with _LOCK:
+        _BROWSER_ORIGINS[origin] = time.monotonic() + 600
+        _BROWSER_ORIGINS.move_to_end(origin)
+        while len(_BROWSER_ORIGINS) > 64:
+            _BROWSER_ORIGINS.popitem(last=False)
+
+
 def fetch_browser_text(
     url: str,
     *,
@@ -78,11 +86,7 @@ def fetch_browser_text(
             BROWSER_SLOTS.release()
     if len(html.encode("utf-8")) > max_bytes:
         raise FetchError(f"response exceeded {max_bytes} bytes")
-    with _LOCK:
-        _BROWSER_ORIGINS[origin] = time.monotonic() + 600
-        _BROWSER_ORIGINS.move_to_end(origin)
-        while len(_BROWSER_ORIGINS) > 64:
-            _BROWSER_ORIGINS.popitem(last=False)
+    _remember_browser_origin(origin)
     return html
 
 
@@ -129,6 +133,10 @@ def fetch_site_text(
     remaining = deadline - time.monotonic()
     if remaining < 1:
         raise FetchError("source verification timed out")
+    # A known browser gate remains one even when this verification attempt times out.
+    # Keep subsequent requests on the same browser profile instead of probing it
+    # again with a fresh HTTP fingerprint.
+    _remember_browser_origin(origin)
     return fetch_browser_text(
         url,
         timeout=remaining,

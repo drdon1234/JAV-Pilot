@@ -130,8 +130,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     smoke_parser.add_argument(
         "--sites",
-        default="javbus,javdb,jable,supjav,missav",
-        help="comma-separated subset of javbus,javdb,jable,supjav,missav",
+        default="javbus,javdb,jable,missav,av123",
+        help="comma-separated subset of javbus,javdb,jable,missav,av123",
     )
     smoke_parser.add_argument("--no-retry", action="store_true")
 

@@ -732,3 +732,11 @@ def verify_web_download_schema(connection: sqlite3.Connection) -> None:
             or str(row["code_key"]) != expected_key
         ):
             raise MigrationError("web download job catalog identity is invalid")
+
+
+def migrate_web_download_providers(connection: sqlite3.Connection) -> None:
+    """Extend provider identity without losing jobs, indexes or queue state."""
+    connection.execute("ALTER TABLE web_download_jobs RENAME COLUMN resolved_provider TO previous_resolved_provider")
+    connection.execute("ALTER TABLE web_download_jobs ADD COLUMN resolved_provider TEXT CHECK (resolved_provider IS NULL OR resolved_provider IN ('missav', 'jable', 'supjav', 'av123'))")
+    connection.execute("UPDATE web_download_jobs SET resolved_provider = previous_resolved_provider")
+    connection.execute("ALTER TABLE web_download_jobs DROP COLUMN previous_resolved_provider")

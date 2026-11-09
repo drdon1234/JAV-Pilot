@@ -28,7 +28,7 @@ import type {
 } from '../types'
 import { t } from '../lib/i18n'
 
-const BUILTIN_WEB_SITE_IDS = ['jable', 'supjav', 'missav', 'kissjav', 'javnoni', 'av123'] as const
+const BUILTIN_WEB_SITE_IDS = ['jable', 'missav', 'av123'] as const
 const BUILTIN_SUBTITLE_SITE_IDS = ['xunlei', 'subtitlecat'] as const
 const DEFAULT_METADATA_SEARCH_PRIORITY = ['javdb', 'javbus', 'fc2'] as const
 const DEFAULT_METADATA_SCRAPER_PRIORITY = ['javbus', 'javdb', 'fc2'] as const
@@ -57,10 +57,8 @@ const DIAGNOSTIC_SITES: Array<{ id: SiteDiagnosticSite; label: string; stages: S
     stages: ['configuration', 'dns', 'connection', 'detail', 'image'] as SiteDiagnosticStage[],
   })),
   { id: 'jable', label: 'JableTV', stages: ['configuration', 'dns', 'connection', 'search', 'detail', 'manifest'] },
-  { id: 'supjav', label: 'SupJav', stages: ['configuration', 'dns', 'connection', 'search', 'detail', 'manifest'] },
   { id: 'missav', label: 'MissAV', stages: ['configuration', 'dns', 'connection', 'quality', 'manifest'] },
-  { id: 'kissjav', label: 'KissJAV', stages: ['configuration', 'dns', 'connection', 'search'] },
-  { id: 'javnoni', label: 'JAV-NONI', stages: ['configuration', 'dns', 'connection', 'search'] },
+  { id: 'av123', label: '123AV', stages: ['configuration', 'dns', 'connection', 'search', 'detail', 'manifest'] },
   { id: 'xunlei', label: t('迅雷字幕'), stages: ['configuration', 'dns', 'connection', 'search'] },
   { id: 'subtitlecat', label: 'SubtitleCat', stages: ['configuration', 'dns', 'connection', 'search'] },
 ]
@@ -945,9 +943,6 @@ function SiteEditor({ site, onChange, onRemove }: { site: SiteSettings; onChange
       ) : null}
       {site.id === 'xunlei' && subtitleSource ? (
         <InlineNotice>{t('字幕文件从迅雷的下载服务器获取。')}</InlineNotice>
-      ) : null}
-      {site.id === 'kissjav' || site.id === 'javnoni' ? (
-        <InlineNotice>{t('此来源提供资源发现。完整片源与版本尚未验收，暂不用于自动下载。')}</InlineNotice>
       ) : null}
       {site.parser_profile === 'fc2db' ? (
         <InlineNotice>{t('仅按带 FC2 前缀的番号查询详情，不参与自由关键词发现。')}</InlineNotice>

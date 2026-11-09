@@ -79,11 +79,17 @@
   .video-controls-row button svg, .video-controls-row .player-menu summary svg { width: 18px; height: 18px; }
   .video-controls-row .player-menu { font-size: 12px; }
   .video-controls-row .video-resolution { min-height: 32px; padding-inline: 5px; font-size: 12px; }
-  .video-controls .player-menu-panel button { min-height: 36px; padding: 6px 10px; }
-  .video-controls .player-menu-heading button { width: 32px; min-width: 32px; min-height: 32px; }
+  .player-menu-panel button { min-height: 36px; padding: 6px 10px; }
+  .player-menu-heading button { width: 32px; min-width: 32px; min-height: 32px; }
   .video-progress-row { gap: 6px; font-size: 11px; }
   .video-controls .video-progress-row input[type=range] { min-height: 20px; }
   .selection-tools, .selection-all { min-height: 32px; font-size: 12px; }
   .selection-check input, .selection-all input { width: 16px; height: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { .video-buffering-spinner { animation: none; } }
+
+.selection-check input, .selection-all input { appearance: none; display: grid; place-content: center; width: 20px; height: 20px; border: 1px solid var(--ink-soft); border-radius: 6px; background: var(--surface); }
+.selection-check input:checked, .selection-all input:checked { background: var(--primary); border-color: var(--primary); }
+.selection-check input:checked::after, .selection-all input:checked::after { content: ''; width: 9px; height: 5px; border: solid var(--primary-ink); border-width: 0 0 2px 2px; transform: translateY(-1px) rotate(-45deg); }
+.selection-check input:focus-visible, .selection-all input:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.selection-check input:disabled, .selection-all input:disabled { opacity: 0.5; cursor: wait; }

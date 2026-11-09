@@ -74,7 +74,7 @@ def run_task(
     so a durable publication always ends with a ``completed`` event.
     """
 
-    with media_provider_scope(task.provider):
+    with media_provider_scope(task.provider, allowed_hosts=task.allowed_media_hosts):
         return _run_task_scoped(
             task,
             emitter=emitter,

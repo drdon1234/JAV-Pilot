@@ -1,4 +1,5 @@
 .app-shell {
+  display: flow-root;
   min-height: 100dvh;
 }
 

@@ -40,10 +40,6 @@ class SiteDiagnosticCodes:
         if site_id == "mgs":
             # MGS has a different catalogue; the general FANZA sample is absent.
             return self.jav or DEFAULT_MGS_DIAGNOSTIC_CODE
-        if site_id == "kissjav":
-            return self.jav or DEFAULT_FC2_DIAGNOSTIC_CODE
-        if site_id == "javnoni":
-            return self.jav or "TO-5181"
         return self.jav or DEFAULT_JAV_DIAGNOSTIC_CODE
 
     def public_dict(self) -> dict[str, str]:

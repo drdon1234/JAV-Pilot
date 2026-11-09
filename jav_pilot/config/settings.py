@@ -43,10 +43,9 @@ SUPPORTED_SEARCH_PROFILES = SEARCH_PROFILES
 RULE_BASED_SEARCH_PROFILES = frozenset({"javbus", "javdb"})
 MISSAV_SITE_ID = "missav"
 JABLE_SITE_ID = "jable"
-SUPJAV_SITE_ID = "supjav"
 FC2_SITE_ID = "fc2"
-BUILTIN_WEB_DOWNLOAD_SITE_IDS = (JABLE_SITE_ID, SUPJAV_SITE_ID, MISSAV_SITE_ID)
-BUILTIN_WEB_RESOURCE_SITE_IDS = (*BUILTIN_WEB_DOWNLOAD_SITE_IDS, *WEB_CATALOG)
+BUILTIN_WEB_DOWNLOAD_SITE_IDS = tuple(WEB_CATALOG)
+BUILTIN_WEB_RESOURCE_SITE_IDS = BUILTIN_WEB_DOWNLOAD_SITE_IDS
 DEFAULT_METADATA_SEARCH_SITE_IDS = ("javdb", "javbus", FC2_SITE_ID)
 DEFAULT_METADATA_SCRAPER_SITE_IDS = ("javbus", "javdb", FC2_SITE_ID)
 SITE_DIAGNOSTIC_SITE_IDS = (
@@ -80,10 +79,12 @@ MISSAV_CAPABILITIES = (
     RESOURCE_SEARCH_CAPABILITY,
     WEB_DOWNLOAD_CAPABILITY,
     DESCRIPTION_CAPABILITY,
+    ONLINE_WATCH_CAPABILITY,
 )
 WEB_RESOURCE_CAPABILITIES = (
     RESOURCE_SEARCH_CAPABILITY,
     WEB_DOWNLOAD_CAPABILITY,
+    ONLINE_WATCH_CAPABILITY,
 )
 TORZNAB_REQUIRED_MESSAGE = "启用种子索引前，请填写 Torznab 地址与 API 密钥"
 _BASE_URL_TEMPLATE_FIELD_RE = re.compile(r"(?<!\{)\{base_url\}(?!\})")
@@ -198,14 +199,6 @@ DEFAULT_SETTINGS: dict[str, Any] = {
             "parser_profile": "jable",
         },
         {
-            "id": SUPJAV_SITE_ID,
-            "name": "SupJav",
-            "capabilities": list(WEB_RESOURCE_CAPABILITIES),
-            "enabled": True,
-            "base_url": "https://supjav.com",
-            "parser_profile": "supjav",
-        },
-        {
             "id": MISSAV_SITE_ID,
             "name": "MissAV",
             "capabilities": list(MISSAV_CAPABILITIES),
@@ -244,7 +237,7 @@ DEFAULT_SETTINGS["sites"].extend(additional_sites())
 DEFAULT_SETTINGS["sites"].append({
     "id": "av123", "name": "123AV", "base_url": "https://123av.com",
     "parser_profile": "av123", "enabled": True,
-    "capabilities": [ONLINE_WATCH_CAPABILITY],
+    "capabilities": list(WEB_RESOURCE_CAPABILITIES),
     "search": {"url_template": "{base_url}/"}, "filters": [],
 })
 DEFAULT_SETTINGS["workflow_defaults"] = copy.deepcopy(DEFAULT_WORKFLOW_DEFAULTS)
@@ -789,7 +782,7 @@ def _verify_settings_v8(payload: dict[str, Any]) -> None:
     )
     if payload.get("sites") != sites:
         raise SettingsError("settings v8 Web resource search migration is incomplete")
-    for site_id in (JABLE_SITE_ID, SUPJAV_SITE_ID):
+    for site_id in (JABLE_SITE_ID,):
         site = next((item for item in sites if item.get("id") == site_id), None)
         if site is None or not site_has_capability(site, RESOURCE_SEARCH_CAPABILITY):
             raise SettingsError(
@@ -1086,6 +1079,8 @@ def _normalize_sites(
         if not isinstance(site, dict):
             raise SettingsError("site must be an object")
         site_id = _safe_id(site.get("id"))
+        if site_id in {"kissjav", "javnoni", "supjav"}:
+            continue
         if site_id in seen_ids:
             raise SettingsError(f"duplicate site id: {site_id}")
         seen_ids.add(site_id)
@@ -1179,8 +1174,6 @@ def _normalize_sites(
         if default is None:  # pragma: no cover - guarded by the module default.
             raise SettingsError("built-in Web download site default is unavailable")
         normalized.append(default)
-    if not any(site["id"] == "av123" for site in normalized):
-        normalized.append(copy.deepcopy(_default_site("av123")))
     return normalized
 
 

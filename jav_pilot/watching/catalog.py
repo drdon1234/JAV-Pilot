@@ -10,7 +10,7 @@ from urllib.parse import quote, urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 
-from ..config.settings import load_settings, site_has_capability
+from ..config.settings import BUILTIN_WEB_DOWNLOAD_SITE_IDS, load_settings, site_has_capability
 from ..core.catalog_code import canonical_catalog_code, normalize_catalog_code
 from ..net.challenges import is_challenge
 from ..web_download.providers import (
@@ -18,7 +18,7 @@ from ..web_download.providers import (
     _extract_missav_manifest, _origin, _safe_origin, _session,
 )
 
-PROVIDERS = ("jable", "supjav", "missav", "av123")
+PROVIDERS = BUILTIN_WEB_DOWNLOAD_SITE_IDS
 _RECOMMENDATION_VISITOR = str(uuid.uuid4())
 _CODE = re.compile(r"(?<![a-z0-9])(?:fc2[-_ ]*(?:ppv[-_ ]*)?\d{2,9}|[a-z]{2,12}[-_]\d{2,8})(?![a-z0-9])", re.I)
 _EDITION_SUFFIX = re.compile(r"(?:-(?:chinese-subtitle|english-subtitle|uncensored(?:-leak(?:ed)?)?|leak))+$", re.I)
@@ -48,7 +48,6 @@ def detail_url(source: str, origin: str, value: object) -> str:
     parsed = urlsplit(raw)
     patterns = {
         "jable": r"/videos/[a-z0-9][a-z0-9._-]{1,150}/?",
-        "supjav": r"/(?:zh/)?\d+\.html",
         "av123": r"/cn/v/[a-z0-9][a-z0-9_-]{1,120}",
         "missav": r"/(?:dm\d*/)?(?:cn/)?[a-z0-9][a-z0-9._-]{1,150}",
     }
@@ -81,7 +80,7 @@ def parse_catalog(source: str, origin: str, document: str, query: str = "", page
     if is_challenge(document):
         raise WebDownloadProviderError("站点验证尚未完成", code="challenge_active")
     soup = BeautifulSoup(document, "html.parser")
-    selectors = {"jable": ".video-img-box", "supjav": ".post", "missav": ".thumbnail", "av123": ".card"}
+    selectors = {"jable": ".video-img-box", "missav": ".thumbnail", "av123": ".card"}
     cards = soup.select(selectors[source])
     entries, seen = [], set()
     valid_cards = 0
@@ -135,8 +134,6 @@ def browse(source: str, query: str, page: int) -> dict:
     encoded = quote(query, safe="")
     if source == "jable":
         path = (f"/search/{encoded}/" if query else "/latest-updates/") + (f"{page}/" if page > 1 else "")
-    elif source == "supjav":
-        path = ("/" if page == 1 else f"/page/{page}/") + (f"?s={encoded}" if query else "")
     elif source == "av123":
         path = (f"/cn/search?keyword={encoded}&sort=relevant&" if query else "/cn/recent?") + f"page={page}"
     else:
@@ -149,9 +146,6 @@ def capture(source: str, url: str) -> ProviderManifest:
     site = enabled_site(source)
     origin = site["base_url"]
     url = detail_url(source, origin, url)
-    if source == "supjav":
-        from .supjav import capture as capture_supjav
-        return capture_supjav(url)
     session = _session()
     document = _bounded_page(session, url, 40, allowed_hosts={urlsplit(origin).hostname})
     if source == "av123":

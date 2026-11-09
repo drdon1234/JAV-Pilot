@@ -42,11 +42,11 @@ import '../styles/search.css'
 import { type DownloadState, magnetDownloadAddedMessage, magnetDownloadRequest } from './WorkUi'
 import { t } from '../lib/i18n'
 
-const ResourceSearchWorkspace = lazy(() => recoverableImport(
-  'src/pages/ResourceSearchWorkspace.tsx',
-  'ResourceSearchWorkspace',
-  () => import('./ResourceSearchWorkspace'),
-).then((module) => ({ default: module.ResourceSearchWorkspace })))
+const WebCatalogWorkspace = lazy(() => recoverableImport(
+  'src/pages/WatchPage.tsx',
+  'WebCatalogWorkspace',
+  () => import('./WatchPage'),
+).then((module) => ({ default: module.WebCatalogWorkspace })))
 
 type SearchStatus = 'idle' | SearchSessionStatus
 type ResultSort = SearchSort | 'rating_desc'
@@ -1024,7 +1024,7 @@ export function SearchPage() {
     <div className="page search-page">
       <PageHeader
         title={t('作品搜索')}
-        description={resourceWorkspace ? t('发现可下载的 Web 视频资源') : t('跨站聚合资料与磁链')}
+        description={resourceWorkspace ? t('按站点浏览，选择作品播放或下载。') : t('跨站聚合资料与磁链')}
         actions={!resourceWorkspace ? (
           <>
             {status !== 'idle' || !mobileFilters ? <StatusBadge tone={statusTone}>{statusLabel[status]}</StatusBadge> : null}
@@ -1064,7 +1064,7 @@ export function SearchPage() {
       </nav>
 
       {resourceWorkspace ? (
-        <Suspense fallback={<SkeletonRows count={4} />}><ResourceSearchWorkspace /></Suspense>
+        <Suspense fallback={<SkeletonRows count={4} />}><WebCatalogWorkspace /></Suspense>
       ) : <div className="search-workspace">
         <form className="search-controls" onSubmit={submit}>
 

@@ -24,16 +24,7 @@ MEDIA_HOST = "surrit.com"
 _PROVIDER_MEDIA_SUFFIXES = {
     "missav": ("surrit.com",),
     "av123": (),
-    "supjav": (
-        "cdn-centaurus.com",
-        "premilkyway.com",
-        "streamtape.com",
-        "streamta.pe",
-        "tapecontent.net",
-    ),
     "jable": ("mushroomtrack.com",),
-    "javnoni": ("tnmr.org",),
-    "kissjav": ("kissjav.li",),
 }
 MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_PROBE_SEGMENT_BYTES = 32 * 1024 * 1024
@@ -79,7 +70,7 @@ def media_provider_scope(provider: object, *, allowed_hosts: tuple[str, ...] = (
     if clean not in _PROVIDER_MEDIA_SUFFIXES:
         raise SafeMediaError("media provider was rejected")
     token = _ACTIVE_MEDIA_PROVIDER.set(clean)
-    hosts_token = _SESSION_MEDIA_HOSTS.set(allowed_hosts if clean in {'av123', 'supjav'} else ())
+    hosts_token = _SESSION_MEDIA_HOSTS.set(allowed_hosts if clean in {'av123'} else ())
     try:
         yield
     finally:
@@ -173,11 +164,8 @@ def allowlisted_youtube_dl_type(yt_dlp_module: object):
 
     class SurritOnlyCurlCFFIRH(CurlCFFIRH):
         def __init__(self, *args: object, **kwargs: object) -> None:
-            # Streamtape resolves its allowlisted landing host to one
-            # allowlisted tapecontent CDN host.  Other providers retain the
-            # stricter single-host budget.
             self._media_resolver = PublicHostResolver(
-                max_hosts=2 if _ACTIVE_MEDIA_PROVIDER.get() == "supjav" else 1
+                max_hosts=1
             )
             super().__init__(*args, **kwargs)
 
@@ -295,7 +283,7 @@ def require_allowed_media_url(
         hostname == suffix or (suffix != MEDIA_HOST and hostname.endswith(f".{suffix}"))
         for suffix in suffixes
     )
-    if provider in {'av123', 'supjav'}:
+    if provider in {'av123'}:
         allowed_host = allowed_host or hostname in _SESSION_MEDIA_HOSTS.get()
     if (
         parsed.scheme != "https"

@@ -56,7 +56,7 @@ JAV Pilot est une application auto-hébergée de recherche, de téléchargement 
 11. 🔔 **Notifications** : envoie des notifications via Webhook, Gotify, Telegram ou le système de notification du NAS lorsqu’un téléchargement se termine ou échoue, que l’espace disque est insuffisant ou qu’un site est défaillant.
 12. 📱 **Interface multilingue et adaptative** : disponible en 简体中文, 繁體中文, English, 日本語, Français, Español, Русский et العربية, en suivant par défaut la langue du navigateur et du système ; fonctionne sur ordinateur et sur mobile, avec thèmes clair et sombre.
 
-13. ▶️ **Lecture en ligne et favoris**: Parcourez JableTV, SupJav, MissAV et 123AV, lisez la version choisie dans l’application et enregistrez séparément les fiches, les œuvres des sites et les accès à la lecture.
+13. ▶️ **Lecture en ligne et favoris**: Parcourez JableTV, MissAV et 123AV, lisez la version choisie dans l’application et enregistrez séparément les fiches, les œuvres des sites et les accès à la lecture.
 14. 🎬 **Lecture locale et historique**: Parcourez les dossiers de la médiathèque et choisissez leurs affiches. Sous-titres, vitesse, glissement horizontal, plein écran et reprise sont communs aux lectures locale et en ligne. Le volume et la luminosité se règlent sur l’appareil ou le navigateur.
 
 ## 🚀 Démarrage rapide
@@ -198,7 +198,7 @@ Consultez le [guide d’utilisation](../guide/usage.md) pour la procédure compl
 | --- | --- |
 | Métadonnées et liens magnet | JavBus, JavDB, FC2 (activés par défaut) ; FANZA, MGS, AVBase, FC2DB (activables dans « Sites ») |
 | Indexeurs de torrents | Sukebei, Tokyo Toshokan (via Jackett, déployable avec JAV Pilot) |
-| Téléchargements vidéo | JableTV, SupJav, MissAV |
+| Téléchargements vidéo | JableTV, MissAV, 123AV |
 | Classements | JavDB, FANZA, FC2, MGStage, JavMenu, Netflav, ainsi que les sites officiels de studios non censurés tels que 1Pondo et Caribbeancom |
 | Client de téléchargement | qBittorrent |
 | Serveurs multimédias | Jellyfin, Emby, Kodi (lecture des NFO, affiches et images de fond) |

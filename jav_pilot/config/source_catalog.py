@@ -13,8 +13,9 @@ TORRENT_CATALOG = {
     "tokyotoshokan": ("Tokyo Toshokan", "https://www.tokyotosho.se"),
 }
 WEB_CATALOG = {
-    "kissjav": ("KissJAV", "https://kissjav.li"),
-    "javnoni": ("JAV-NONI", "https://javnoni.com"),
+    "jable": ("JableTV", "https://fs1.app"),
+    "missav": ("MissAV", "https://missav.ai"),
+    "av123": ("123AV", "https://123av.com"),
 }
 SUBTITLE_CATALOG = {
     "xunlei": ("迅雷字幕", "https://api-shoulei-ssl.xunlei.com"),
@@ -44,12 +45,6 @@ def additional_sites() -> list[dict]:
             "search": {"url_template": "{base_url}/"}, "filters": [],
             "torznab": {"endpoint": "", "api_key": "", "pinned_addresses": [],
                         "categories": []},
-        })
-    for source_id, (name, origin) in WEB_CATALOG.items():
-        sites.append({
-            "id": source_id, "name": name, "base_url": origin,
-            "parser_profile": source_id, "enabled": False,
-            "capabilities": ["resource_search"],
         })
     for source_id, (name, origin) in SUBTITLE_CATALOG.items():
         sites.append({
