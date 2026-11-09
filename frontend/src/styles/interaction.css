@@ -29,7 +29,11 @@
 .selection-check input, .selection-all input { width: 18px; height: 18px; accent-color: var(--primary); }
 @media (max-width: 700px) {
   .watch-page { gap: 12px; }
-  .mobile-header { min-height: 54px; }
+  .mobile-header { min-height: 44px; padding-block: 2px; box-shadow: none; }
+  .mobile-header .brand.compact { gap: 8px; }
+  .mobile-header .brand.compact strong { font-size: 15px; }
+  .mobile-header .brand.compact .brand-mark { width: 26px; height: 26px; flex-basis: 26px; border-radius: 6px; }
+  .mobile-header .brand-mark svg { width: 17px; height: 17px; }
   .mobile-header-actions { gap: 6px; }
   .mobile-header .language-select { width: 36px; height: 36px; }
   .mobile-header .language-select svg { inset-inline-start: 9px; }

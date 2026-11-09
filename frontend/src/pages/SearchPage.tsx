@@ -429,7 +429,7 @@ export function SearchPage() {
   const [clearingSearch, setClearingSearch] = useState(false)
   const clearingSearchRef = useRef(false)
   const [filtersOpen, setFiltersOpen] = useState(
-    () => !(isResultsRoute && (globalThis.matchMedia?.('(max-width: 720px)')?.matches ?? false)),
+    () => !(globalThis.matchMedia?.('(max-width: 720px)')?.matches ?? false),
   )
   const [mobileFilters, setMobileFilters] = useState(
     () => globalThis.matchMedia?.('(max-width: 720px)')?.matches ?? false,
@@ -1030,17 +1030,17 @@ export function SearchPage() {
         description={resourceWorkspace ? t('发现可下载的 Web 视频资源') : t('跨站聚合资料与磁链')}
         actions={!resourceWorkspace ? (
           <>
-            <StatusBadge tone={statusTone}>{statusLabel[status]}</StatusBadge>
+            {status !== 'idle' || !mobileFilters ? <StatusBadge tone={statusTone}>{statusLabel[status]}</StatusBadge> : null}
             {!isResultsRoute && latestMetadataSearch.data ? (
-              <Button type="button" size="small" variant="secondary" onClick={restoreLatestSearch}>
+              <Button type="button" size="small" variant="secondary" className="search-history-action" aria-label={t('恢复上次搜索')} title={t('恢复上次搜索')} onClick={restoreLatestSearch}>
                 <History aria-hidden="true" />
-                {t('恢复上次搜索')}
+                <span>{t('恢复上次搜索')}</span>
               </Button>
             ) : null}
             {(isResultsRoute && session) || (!isResultsRoute && latestMetadataSearch.data) ? (
-              <Button type="button" size="small" variant="ghost" disabled={clearingSearch} onClick={() => void clearSearchResults()}>
+              <Button type="button" size="small" variant="ghost" className="search-history-action" aria-label={t('清空搜索结果')} title={t('清空搜索结果')} disabled={clearingSearch} onClick={() => void clearSearchResults()}>
                 <Trash2 aria-hidden="true" />
-                {clearingSearch ? t('正在清空') : t('清空搜索结果')}
+                <span>{clearingSearch ? t('正在清空') : t('清空搜索结果')}</span>
               </Button>
             ) : null}
           </>
@@ -1158,7 +1158,7 @@ export function SearchPage() {
                   label={t('结果上限')}
                   error={resultLimitError}
                   errorId="search-result-limit-error"
-                  hint={match === 'exact' ? t('按精确匹配后的作品数计算') : undefined}
+                  hint={!mobileFilters && match === 'exact' ? t('按精确匹配后的作品数计算') : undefined}
                 >
                   <input
                     type="number"
@@ -1197,7 +1197,7 @@ export function SearchPage() {
                 {sites.map((site) => (
                   <label className={`source-option ${selectedSources.includes(site.id) ? 'selected' : ''}`} key={site.id}>
                     <input type="checkbox" checked={selectedSources.includes(site.id)} onChange={() => toggleSource(site.id)} />
-                    <span>{site.name}</span>
+                    <span title={site.name}>{site.id === 'fc2' ? 'FC2' : site.name}</span>
                   </label>
                 ))}
                 {sourceSelectionError ? <span className="field-error" id="source-selection-error" role="alert">{sourceSelectionError}</span> : null}
@@ -1218,7 +1218,7 @@ export function SearchPage() {
                     onChange={(event) => translation.update({ showOriginal: event.target.checked })}
                   />
                 ) : null}
-                <span className="field-hint" id="search-exact-hint">{t('精确匹配只保留与输入番号前缀完全一致的作品，例如输入前缀时不会混入前缀相近的其他系列。')}</span>
+                <span className="field-hint" id="search-exact-hint" hidden={mobileFilters}>{t('精确匹配只保留与输入番号前缀完全一致的作品，例如输入前缀时不会混入前缀相近的其他系列。')}</span>
                 {!isResultsRoute ? (
                   <Button type="button" size="small" variant="ghost" className="search-restore-defaults" onClick={restoreDefaultPreferences}>
                     <RotateCcw aria-hidden="true" />

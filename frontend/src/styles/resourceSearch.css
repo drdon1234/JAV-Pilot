@@ -545,3 +545,19 @@
   color: var(--ink-soft);
   font-size: 12px;
 }
+
+@media (max-width: 720px) {
+  .resource-search-workspace .resource-search-form { padding: 12px; }
+  .resource-search-form .resource-search-form-primary { grid-template-columns: minmax(0, 1fr) 92px; gap: 10px 8px; }
+  .resource-search-form-primary > .resource-search-query { grid-column: 1; grid-row: 1; }
+  .resource-search-form-primary > .button { grid-column: 2; grid-row: 1; min-width: 0; min-height: 40px; padding-inline: 8px; }
+  .resource-search-form-primary > .button svg { display: none; }
+  .resource-search-form-primary > .field:first-child { grid-column: 1; grid-row: 2; }
+  .resource-search-form-primary > .field:nth-child(3) { grid-column: 2; grid-row: 2; }
+  .resource-search-form-primary .field-label { font-size: 12px; }
+  .resource-search-form-primary input, .resource-search-form-primary select { min-height: 40px; padding-block: 6px; }
+  .resource-search-form-primary .resource-search-query > .field-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .resource-search-form .resource-search-options { gap: 4px; }
+  .resource-search-form .resource-search-query-hint { font-size: 12px; line-height: 1.5; }
+  .resource-search-range > summary { min-height: 36px; font-size: 12px; }
+}
