@@ -30,34 +30,24 @@
 
 <br>
 
-JAV Pilot est une application auto-hébergée de recherche, de téléchargement et de gestion de médiathèque vidéo. Elle s’exécute sur un NAS, un serveur Linux ou un ordinateur personnel. Elle agrège les résultats de plusieurs sites de métadonnées, télécharge via qBittorrent ou directement depuis des sites vidéo, puis classe chaque téléchargement terminé dans la médiathèque avec affiches et métadonnées NFO reconnues directement par Jellyfin, Emby et Kodi. Tous les paramètres, historiques et fichiers restent sur votre propre machine, et l’interface web fonctionne sur les navigateurs de bureau et mobiles.
+JAV Pilot est une application vidéo auto-hébergée sur NAS, serveur ou ordinateur. Recherchez, regardez en ligne, téléchargez, organisez votre médiathèque et reprenez la lecture au même endroit. La bibliothèque organisée fonctionne aussi avec Jellyfin, Emby et Kodi. Accessible sur ordinateur et mobile, elle conserve paramètres, historique et fichiers sur votre appareil.
 
 > [!NOTE]
 > La documentation détaillée du dossier `docs/` n’est actuellement disponible qu’en chinois simplifié. L’interface web est disponible en français et suit par défaut la langue du navigateur et du système.
 
-<p align="center">
-  <img src="../images/search-en.png" alt="Résultats de recherche de JAV Pilot" width="92%">
-  <br>
-  <sub>Toutes les captures d’écran utilisent des données d’exemple fictives.</sub>
-</p>
 
 ## ✨ Fonctionnalités
 
-1. 🔍 **Recherche multisite** : interroge en parallèle JavBus, JavDB, FC2 et d’autres sites de métadonnées, fusionne les résultats d’une même œuvre par code catalogue (番号) et conserve la source de chaque champ.
-2. 🧲 **Agrégation des liens magnet** : affiche la taille, la source et les sous-titres, avec dédoublonnage par info hash ; Sukebei et Tokyo Toshokan peuvent être ajoutés via Jackett.
-3. ⬇️ **Deux canaux de téléchargement** : les liens magnet sont transmis à qBittorrent ; les téléchargements web choisissent automatiquement la qualité et privilégient, dans cet ordre, la version originale, sous-titrée en chinois puis non censurée.
-4. 🔁 **Détection des doublons** : avant de créer une tâche, les tâches qBittorrent, les téléchargements web et la médiathèque sont vérifiés afin d’éviter les téléchargements en double.
-5. 🗂️ **Classement automatique** : les téléchargements terminés sont classés par code catalogue, avec génération des affiches, des images de fond et des métadonnées NFO.
-6. 💬 **Sous-titres chinois** : une fois la vidéo classée et ses métadonnées complétées, des sous-titres chinois externes sont récupérés depuis Xunlei et SubtitleCat ; le meilleur choix selon le code catalogue, la durée et la langue est enregistré à côté de la vidéo et peut être converti en chinois simplifié ou traditionnel. La médiathèque permet une récupération en lot ou le choix d'un autre candidat.
-7. 📚 **Gestion de la médiathèque** : analyse le dossier des vidéos, y compris les fichiers ajoutés manuellement, et complète les affiches et métadonnées manquantes.
-8. 🏆 **Classements** : classements des œuvres, des actrices et des catégories issus de JavDB, FANZA, FC2, MGStage et d’autres sources, avec analyse groupée des fiches en arrière-plan.
-9. 🌐 **Traduction des titres** : service de traduction public intégré, avec prise en charge de services d’IA tels que les API compatibles OpenAI, Claude, Gemini et Ollama ; les traductions utilisent par défaut la langue de l’interface.
-10. 🩺 **Diagnostic des sites** : vérifie périodiquement la disponibilité des sites et distingue les échecs DNS, de connexion, TLS, de vérification anti-robot et de changement de structure des pages.
-11. 🔔 **Notifications** : envoie des notifications via Webhook, Gotify, Telegram ou le système de notification du NAS lorsqu’un téléchargement se termine ou échoue, que l’espace disque est insuffisant ou qu’un site est défaillant.
-12. 📱 **Interface multilingue et adaptative** : disponible en 简体中文, 繁體中文, English, 日本語, Français, Español, Русский et العربية, en suivant par défaut la langue du navigateur et du système ; fonctionne sur ordinateur et sur mobile, avec thèmes clair et sombre.
-
-13. ▶️ **Lecture en ligne et favoris**: Parcourez JableTV, MissAV et 123AV, lisez la version choisie dans l’application et enregistrez séparément les fiches, les œuvres des sites et les accès à la lecture.
-14. 🎬 **Lecture locale et historique**: Parcourez les dossiers de la médiathèque et choisissez leurs affiches. Sous-titres, vitesse, glissement horizontal, plein écran et reprise sont communs aux lectures locale et en ligne. Le volume et la luminosité se règlent sur l’appareil ou le navigateur.
+1. 🔍 **Rechercher des vidéos** : Retrouvez fiches, liens magnet et vidéos en ligne par code ou mot-clé.
+2. ▶️ **Regarder en ligne** : Parcourez et filtrez chaque site, chargez la suite en défilant et lisez la version choisie dans l’application.
+3. ⬇️ **Gérer les téléchargements** : Téléchargez par magnet ou depuis un site vidéo, suivez la progression, gérez les échecs et évitez les doublons.
+4. 📚 **Organiser la médiathèque** : Gérez vos fichiers et nouveaux téléchargements, complétez affiches et métadonnées pour Jellyfin, Emby ou Kodi.
+5. 🎬 **Lire et reprendre** : Sous-titres, vitesse, plein écran et historique sont disponibles en lecture locale et en ligne.
+6. 💬 **Sous-titres chinois** : Recherchez ou récupérez des sous-titres par lot, changez de candidat, importez vos fichiers et ajustez l’affichage et le décalage.
+7. ⭐ **Enregistrer et découvrir** : Ajoutez des favoris et explorez les classements d’œuvres, d’actrices et de catégories.
+8. 🌐 **Traduire les titres** : Lisez les titres dans la langue de l’interface ou connectez votre service de traduction IA.
+9. 🔔 **Notifications et état des sites** : Recevez les résultats des téléchargements et les alertes de stockage ou de sites indisponibles.
+10. 📱 **Ordinateur et mobile** : Interface adaptée aux navigateurs, avec huit langues et des thèmes clair et sombre.
 
 ## 🚀 Démarrage rapide
 
@@ -210,6 +200,12 @@ Les sites externes peuvent modifier leur structure, restreindre l’accès selon
 ## 📸 Captures d’écran
 
 <p align="center">
+  <img src="../images/search-en.png" alt="Résultats de recherche de JAV Pilot" width="92%">
+  <br>
+  <sub>Toutes les captures d’écran utilisent des données d’exemple fictives.</sub>
+</p>
+
+<p align="center">
   <img src="../images/detail-en.png" alt="Fiche d’une œuvre" width="49%">
   <img src="../images/downloads-en.png" alt="Tâches de téléchargement" width="49%">
 </p>
@@ -219,6 +215,15 @@ Les sites externes peuvent modifier leur structure, restreindre l’accès selon
   <img src="../images/mobile-detail-en.png" alt="Fiche d’une œuvre sur mobile" width="16%">
   <br>
   <sub>Fiche d’une œuvre · Tâches de téléchargement · Médiathèque · Mobile</sub>
+</p>
+
+<p align="center">
+  <img src="../images/web-sites-en.png" alt="Web · JableTV / MissAV / 123AV" width="72%">
+  <img src="../images/mobile-web-sites-en.png" alt="Web · Mobile" width="24%">
+</p>
+<p align="center">
+  <img src="../images/web-grid-en.png" alt="JableTV · Grid" width="72%">
+  <img src="../images/mobile-web-grid-en.png" alt="JableTV · Mobile grid" width="24%">
 </p>
 
 ## 📖 Documentation
@@ -235,7 +240,7 @@ La documentation est rédigée en chinois simplifié.
 
 ## 🔒 Données et confidentialité
 
-Les paramètres, historiques et bases de données sont stockés dans `data/` du dossier de déploiement, et les identifiants de connexion dans `.env` ; ne partagez ni l’un ni l’autre. JAV Pilot ne contacte que les sites activés. En dehors de cela, seuls les éléments suivants sont envoyés à des services externes : le texte des titres lorsque la traduction des titres est activée (envoyé à un service de traduction public, désactivable), les titres envoyés au service d’IA configuré lors d’un clic sur « Traduction IA », et les notifications configurées.
+Les paramètres, l’historique et les bases sont dans `data/`, les identifiants dans `.env` ; ne les partagez pas. Recherche, classements, sous-titres, lecture et téléchargements contactent les sites et services concernés. La traduction envoie les titres au service choisi et les notifications à vos destinataires configurés. Gérez ces fonctions dans les paramètres.
 
 ## ⚖️ Avertissement
 

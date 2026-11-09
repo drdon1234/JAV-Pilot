@@ -30,34 +30,24 @@
 
 <br>
 
-JAV Pilot is a self-hosted application for searching, downloading and organizing a video library. It runs on a NAS, a Linux server or a personal computer. It aggregates results from multiple metadata sites, downloads through qBittorrent or directly from video sites, and files each completed download into the media library with posters and NFO metadata that Jellyfin, Emby and Kodi recognize directly. All settings, records and media files stay on your own machine, and the web interface works in desktop and mobile browsers.
+JAV Pilot is a self-hosted video application for your NAS, server or personal computer. Search, watch online, download, organize your library and resume playback in one place. Your organized library also works with Jellyfin, Emby and Kodi. Access it from desktop or mobile browsers, with settings, records and media files stored on your own device.
 
 > [!NOTE]
 > The detailed documentation under `docs/` is currently available in Simplified Chinese only. The web interface is available in English and follows your browser and system language by default.
 
-<p align="center">
-  <img src="../images/search-en.png" alt="JAV Pilot search results" width="92%">
-  <br>
-  <sub>All screenshots use fictional sample data.</sub>
-</p>
 
 ## ✨ Features
 
-1. 🔍 **Multi-site search**: queries JavBus, JavDB, FC2 and other metadata sites in parallel, merges results for the same work by catalog code (番号), and records the source of every field.
-2. 🧲 **Magnet aggregation**: shows file size, source and subtitle information, deduplicated by info hash; Sukebei and Tokyo Toshokan can be added through Jackett.
-3. ⬇️ **Two download channels**: magnet tasks are sent to qBittorrent; web downloads select the quality automatically and prefer the original, Chinese-subtitled and uncensored versions in that order.
-4. 🔁 **Duplicate check**: before a task is created, qBittorrent tasks, web download tasks and the media library are checked to avoid downloading a work twice.
-5. 🗂️ **Automatic organization**: completed downloads are filed by catalog code, with posters, fanart and NFO metadata generated.
-6. 💬 **Chinese subtitles**: after a download is filed and its metadata completed, external Chinese subtitles are fetched from Xunlei and SubtitleCat; the best match by catalog code, duration and language is saved next to the video and can be converted to Simplified or Traditional Chinese. The library can fetch missing subtitles in bulk or switch to another candidate.
-7. 📚 **Media library**: scans the video directory, including manually added files, and fills in missing posters and metadata.
-8. 🏆 **Rankings**: work, actress and genre rankings from JavDB, FANZA, FC2, MGStage and other sources, with batch detail parsing in the background.
-9. 🌐 **Title translation**: a built-in public translation service, plus support for AI services such as OpenAI-compatible APIs, Claude, Gemini and Ollama; translations use the interface language by default.
-10. 🩺 **Site diagnostics**: checks site availability periodically and distinguishes DNS, connection, TLS, anti-bot challenge and page-structure failures.
-11. 🔔 **Notifications**: notifies through Webhook, Gotify, Telegram or NAS notifications when a download completes or fails, disk space runs low, or a site fails.
-12. 📱 **Multilingual, responsive interface**: available in 简体中文, 繁體中文, English, 日本語, Français, Español, Русский and العربية, following the browser and system language by default; works on desktop and mobile, with light and dark themes.
-
-13. ▶️ **Online viewing and bookmarks**: Browse JableTV, MissAV and 123AV, play selected editions in the app, and save metadata pages, site entries or playback bookmarks.
-14. 🎬 **Local playback and history**: Browse library folders and choose folder posters. Online and local playback share subtitles, speed, horizontal seek gestures, fullscreen and resume history. Volume and brightness use device or browser controls.
+1. 🔍 **Find videos**: Search by catalog code or keyword and browse metadata, magnets and playable web sources together.
+2. ▶️ **Watch online**: Browse and filter by site, scroll to load more, and play the edition you choose inside the app.
+3. ⬇️ **Download and avoid duplicates**: Download magnets or web videos, follow progress, manage failed tasks and avoid downloading films you already have.
+4. 📚 **Organize your library**: Manage existing files and new downloads, complete posters and metadata, and use the library with Jellyfin, Emby or Kodi.
+5. 🎬 **Play and resume**: Online and local playback support subtitles, speed controls, fullscreen and viewing history.
+6. 💬 **Chinese subtitles**: Find or batch-fetch subtitles, choose another candidate, import your own files and adjust their appearance and timing.
+7. ⭐ **Save and discover**: Bookmark works and playback entries, and explore work, actress and category rankings.
+8. 🌐 **Translate titles**: Read titles in the interface language or connect your preferred AI translation service.
+9. 🔔 **Notifications and site checks**: Get download results, low-space and site-error alerts, and check which sources are available.
+10. 📱 **Desktop and mobile**: Use desktop or mobile browsers with eight interface languages and light or dark themes.
 
 ## 🚀 Quick start
 
@@ -210,6 +200,12 @@ External sites may change their layout, restrict access by region or require ant
 ## 📸 Screenshots
 
 <p align="center">
+  <img src="../images/search-en.png" alt="JAV Pilot search results" width="92%">
+  <br>
+  <sub>All screenshots use fictional sample data.</sub>
+</p>
+
+<p align="center">
   <img src="../images/detail-en.png" alt="Work details" width="49%">
   <img src="../images/downloads-en.png" alt="Download tasks" width="49%">
 </p>
@@ -219,6 +215,15 @@ External sites may change their layout, restrict access by region or require ant
   <img src="../images/mobile-detail-en.png" alt="Mobile work details" width="16%">
   <br>
   <sub>Work details · Download tasks · Media library · Mobile</sub>
+</p>
+
+<p align="center">
+  <img src="../images/web-sites-en.png" alt="Web · JableTV / MissAV / 123AV" width="72%">
+  <img src="../images/mobile-web-sites-en.png" alt="Web · Mobile" width="24%">
+</p>
+<p align="center">
+  <img src="../images/web-grid-en.png" alt="JableTV · Grid" width="72%">
+  <img src="../images/mobile-web-grid-en.png" alt="JableTV · Mobile grid" width="24%">
 </p>
 
 ## 📖 Documentation
@@ -235,7 +240,7 @@ The documentation is written in Simplified Chinese.
 
 ## 🔒 Data and privacy
 
-Settings, records and databases are stored in `data/` under the deployment directory, and login credentials in `.env`; do not share either of them. JAV Pilot only contacts the sites that are enabled. Beyond that, only the following is sent to external services: title text when title translation is enabled (sent to a public translation service; can be turned off), titles sent to the configured AI service when “AI translate” is clicked, and the configured notifications.
+Settings, records and databases are stored in `data/`, and login credentials in `.env`; do not share them. Search, rankings, subtitles, online playback and downloads contact the relevant sites and media services. Translation sends titles to the selected translation service; notifications go to your configured recipients. Manage these features and services in settings.
 
 ## ⚖️ Disclaimer
 

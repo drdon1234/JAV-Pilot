@@ -30,34 +30,24 @@
 
 <br>
 
-JAV Pilot es una aplicación autoalojada para buscar, descargar y gestionar una biblioteca de vídeos. Se ejecuta en un NAS, un servidor Linux o un ordenador personal. Agrega los resultados de varios sitios de metadatos, descarga mediante qBittorrent o directamente desde sitios de vídeo y, al terminar cada descarga, la archiva en la biblioteca multimedia con pósteres y metadatos NFO que Jellyfin, Emby y Kodi reconocen directamente. Toda la configuración, los registros y los archivos multimedia permanecen en su propio equipo, y la interfaz web funciona en navegadores de escritorio y móviles.
+JAV Pilot es una aplicación de vídeo autoalojada en NAS, servidor u ordenador. Busca, mira en línea, descarga, organiza tu biblioteca y continúa la reproducción desde un mismo lugar. La biblioteca organizada también funciona con Jellyfin, Emby y Kodi. Accede desde el navegador del ordenador o móvil y guarda ajustes, historial y archivos en tu propio dispositivo.
 
 > [!NOTE]
 > La documentación detallada de la carpeta `docs/` solo está disponible actualmente en chino simplificado. La interfaz web está disponible en español y sigue por defecto el idioma del navegador y del sistema.
 
-<p align="center">
-  <img src="../images/search-en.png" alt="Resultados de búsqueda de JAV Pilot" width="92%">
-  <br>
-  <sub>Todas las capturas de pantalla usan datos de ejemplo ficticios.</sub>
-</p>
 
 ## ✨ Funciones
 
-1. 🔍 **Búsqueda multisitio**: consulta en paralelo JavBus, JavDB, FC2 y otros sitios de metadatos, combina los resultados de una misma obra por código de catálogo (番号) y conserva el origen de cada campo.
-2. 🧲 **Agregación de enlaces magnet**: muestra el tamaño, el origen y la información de subtítulos, sin duplicados gracias al info hash; Sukebei y Tokyo Toshokan pueden añadirse mediante Jackett.
-3. ⬇️ **Dos canales de descarga**: los enlaces magnet se envían a qBittorrent; las descargas web seleccionan la calidad automáticamente y priorizan, en este orden, la versión original, la subtitulada en chino y la sin censura.
-4. 🔁 **Detección de duplicados**: antes de crear una tarea se comprueban las tareas de qBittorrent, las descargas web y la biblioteca para evitar descargar dos veces la misma obra.
-5. 🗂️ **Organización automática**: las descargas completadas se archivan por código de catálogo y se generan pósteres, imágenes de fondo y metadatos NFO.
-6. 💬 **Subtítulos en chino**: tras archivar la descarga y completar sus metadatos, se obtienen subtítulos chinos externos de Xunlei y SubtitleCat; el mejor según el código de catálogo, la duración y el idioma se guarda junto al vídeo y puede convertirse a chino simplificado o tradicional. Desde la biblioteca se pueden obtener en lote o cambiar de candidato.
-7. 📚 **Gestión de la biblioteca**: analiza la carpeta de vídeos, incluidos los archivos añadidos manualmente, y completa los pósteres y metadatos que faltan.
-8. 🏆 **Clasificaciones**: clasificaciones de obras, actrices y categorías de JavDB, FANZA, FC2, MGStage y otras fuentes, con análisis de fichas por lotes en segundo plano.
-9. 🌐 **Traducción de títulos**: servicio de traducción público integrado y compatibilidad con servicios de IA como las API compatibles con OpenAI, Claude, Gemini y Ollama; las traducciones usan por defecto el idioma de la interfaz.
-10. 🩺 **Diagnóstico de sitios**: comprueba periódicamente la disponibilidad de los sitios y distingue fallos de DNS, de conexión, de TLS, de verificación antibots y de cambios en la estructura de las páginas.
-11. 🔔 **Notificaciones**: envía avisos mediante Webhook, Gotify, Telegram o las notificaciones del NAS cuando una descarga termina o falla, queda poco espacio en disco o un sitio falla.
-12. 📱 **Interfaz multilingüe y adaptable**: disponible en 简体中文, 繁體中文, English, 日本語, Français, Español, Русский y العربية, y sigue por defecto el idioma del navegador y del sistema; funciona en escritorio y en móviles, con temas claro y oscuro.
-
-13. ▶️ **Reproducción en línea y favoritos**: Explora JableTV, MissAV y 123AV, reproduce la edición elegida y guarda por separado fichas, obras del sitio y accesos de reproducción.
-14. 🎬 **Reproducción local e historial**: Explora carpetas de la biblioteca y elige sus carátulas. La reproducción local y en línea comparten subtítulos, velocidad, desplazamiento horizontal, pantalla completa e historial para continuar. El volumen y el brillo se ajustan en el dispositivo o navegador.
+1. 🔍 **Buscar vídeos**: Encuentra fichas, enlaces magnet y vídeos en línea por código o palabra clave.
+2. ▶️ **Ver en línea**: Explora y filtra por sitio, carga más al desplazarte y reproduce la edición elegida dentro de la aplicación.
+3. ⬇️ **Gestionar descargas**: Descarga por magnet o desde sitios de vídeo, consulta el progreso, gestiona errores y evita duplicados.
+4. 📚 **Organizar la biblioteca**: Gestiona archivos existentes y nuevas descargas y completa carátulas y metadatos para Jellyfin, Emby o Kodi.
+5. 🎬 **Reproducir y continuar**: Subtítulos, velocidad, pantalla completa e historial tanto en reproducción local como en línea.
+6. 💬 **Subtítulos chinos**: Busca o descarga subtítulos por lotes, elige otro candidato, importa archivos y ajusta su aspecto y sincronización.
+7. ⭐ **Guardar y descubrir**: Guarda favoritos y explora clasificaciones de obras, actrices y categorías.
+8. 🌐 **Traducir títulos**: Lee los títulos en el idioma de la interfaz o conecta tu servicio de traducción con IA.
+9. 🔔 **Avisos y estado de sitios**: Recibe resultados de descargas y alertas de espacio o sitios no disponibles.
+10. 📱 **Ordenador y móvil**: Interfaz adaptable con ocho idiomas y temas claro y oscuro.
 
 ## 🚀 Inicio rápido
 
@@ -210,6 +200,12 @@ Los sitios externos pueden cambiar su estructura, restringir el acceso por regi�
 ## 📸 Capturas de pantalla
 
 <p align="center">
+  <img src="../images/search-en.png" alt="Resultados de búsqueda de JAV Pilot" width="92%">
+  <br>
+  <sub>Todas las capturas de pantalla usan datos de ejemplo ficticios.</sub>
+</p>
+
+<p align="center">
   <img src="../images/detail-en.png" alt="Ficha de una obra" width="49%">
   <img src="../images/downloads-en.png" alt="Tareas de descarga" width="49%">
 </p>
@@ -219,6 +215,15 @@ Los sitios externos pueden cambiar su estructura, restringir el acceso por regi�
   <img src="../images/mobile-detail-en.png" alt="Ficha de una obra en móvil" width="16%">
   <br>
   <sub>Ficha de una obra · Tareas de descarga · Biblioteca multimedia · Móvil</sub>
+</p>
+
+<p align="center">
+  <img src="../images/web-sites-en.png" alt="Web · JableTV / MissAV / 123AV" width="72%">
+  <img src="../images/mobile-web-sites-en.png" alt="Web · Mobile" width="24%">
+</p>
+<p align="center">
+  <img src="../images/web-grid-en.png" alt="JableTV · Grid" width="72%">
+  <img src="../images/mobile-web-grid-en.png" alt="JableTV · Mobile grid" width="24%">
 </p>
 
 ## 📖 Documentación
@@ -235,7 +240,7 @@ La documentación está escrita en chino simplificado.
 
 ## 🔒 Datos y privacidad
 
-La configuración, los registros y las bases de datos se guardan en `data/` dentro de la carpeta de despliegue, y las credenciales de inicio de sesión en `.env`; no comparta ninguno de ellos. JAV Pilot solo accede a los sitios activados. Aparte de eso, solo se envía lo siguiente a servicios externos: el texto de los títulos cuando la traducción de títulos está activada (se envía a un servicio de traducción público y puede desactivarse), los títulos enviados al servicio de IA configurado al hacer clic en «Traducir con IA» y las notificaciones configuradas.
+Los ajustes, registros y bases de datos se guardan en `data/`, y las credenciales en `.env`; no los compartas. Las búsquedas, clasificaciones, subtítulos, reproducción y descargas contactan con los sitios y servicios correspondientes. La traducción envía títulos al servicio elegido y las notificaciones a los destinatarios configurados. Gestiona estas funciones en los ajustes.
 
 ## ⚖️ Aviso legal
 
