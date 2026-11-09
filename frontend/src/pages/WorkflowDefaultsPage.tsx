@@ -1,3 +1,4 @@
+import { AdaptiveDisclosure } from '../components/AdaptiveDisclosure'
 import { useMutation } from '@tanstack/react-query'
 import { Captions, Clapperboard, FileImage, History, Languages, RefreshCw, RotateCcw, Save, Search, Sparkles } from 'lucide-react'
 import { useEffect } from 'react'
@@ -27,7 +28,7 @@ const EXISTING_POLICIES: Array<{ value: WebDownloadExistingPolicy; label: string
 
 function Section({ id, icon, title, description, children }: { id?: string; icon: ReactNode; title: string; description: string; children: ReactNode }) {
   return (
-    <section className="settings-section workflow-defaults-section" id={id}>
+    <AdaptiveDisclosure id={id} title={<>{icon}<span>{title}</span></>} className="workflow-defaults-section"><section className="settings-section">
       <div className="settings-section-header">
         <div>
           {icon}
@@ -38,7 +39,7 @@ function Section({ id, icon, title, description, children }: { id?: string; icon
         </div>
       </div>
       {children}
-    </section>
+    </section></AdaptiveDisclosure>
   )
 }
 

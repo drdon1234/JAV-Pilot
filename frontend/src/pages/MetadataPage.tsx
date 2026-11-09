@@ -1,3 +1,4 @@
+import { AdaptiveDisclosure } from '../components/AdaptiveDisclosure'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, FileImage, FilePenLine, Library, RefreshCw, RotateCcw, ScanLine, Search, ShieldCheck, WandSparkles, X } from 'lucide-react'
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
@@ -459,9 +460,11 @@ export function MetadataPage() {
             <WandSparkles aria-hidden="true" />
             {completeAll.isPending ? t('正在补全') : t('一键补全')}
           </Button>
+          <AdaptiveDisclosure title={t('补全元数据与海报')}>
           <span>
             {t('检查整个媒体库（包括手动放入的文件夹），为缺少 NFO、封面或背景图的作品自动补全，并重新尝试之前失败的任务。 默认来源取不到资料时会自动换用其他站点。')}
           </span>
+          </AdaptiveDisclosure>
         </div>
         {completeReport ? (
           <InlineNotice tone={completeReport.unidentified ? 'warning' : 'success'} role="status">

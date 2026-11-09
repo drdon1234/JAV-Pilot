@@ -1,3 +1,4 @@
+import { AdaptiveDisclosure } from '../components/AdaptiveDisclosure'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Activity, Braces, ChevronDown, LockKeyhole, Play, Plus, RefreshCw, Save, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -511,7 +512,7 @@ export function SitesPage() {
         }
       />
 
-      <section className="site-priority-panel" aria-labelledby="site-priority-title">
+      <AdaptiveDisclosure title={t('首选站点与优先级')}><section className="site-priority-panel" aria-labelledby="site-priority-title">
         <header>
           <h2 id="site-priority-title">{t('首选站点与优先级')}</h2>
         </header>
@@ -572,6 +573,8 @@ export function SitesPage() {
         </div>
       </section>
 
+      </AdaptiveDisclosure>
+      <AdaptiveDisclosure title={t('站点诊断')}>
       <SiteDiagnosticsPanel
         codes={diagnosticCodes}
         onCodesChange={setDiagnosticCodes}
@@ -589,6 +592,7 @@ export function SitesPage() {
         onRetry={() => void diagnostics.refetch()}
       />
 
+      </AdaptiveDisclosure>
       <section className="editor-workspace" aria-label={t('站点配置编辑器')}>
         <div className="sites-toolbar">
           <div className="sites-toolbar-context">

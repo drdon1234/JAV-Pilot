@@ -1,0 +1,110 @@
+/* Mobile task hierarchy: content first, secondary tools disclosed in place.
+   Scope to the app shell so late-loaded page styles cannot restore desktop spacing. */
+.adaptive-disclosure { min-width: 0; }
+.adaptive-disclosure > summary { display: none; }
+.adaptive-disclosure-content { min-width: 0; }
+@media (max-width: 720px) {
+  .app-shell .page { padding: 12px 12px 20px; }
+  .app-shell .page > .page-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding-bottom: 8px; margin-bottom: 12px; min-height: 36px; }
+  .app-shell .page-header h1 { font-size: 18px; line-height: 1.4; }
+  .app-shell .page-header > div:first-child > p { display: none; }
+  .app-shell .page-header .page-actions { width: auto; flex: 0 1 auto; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+  .app-shell .page-actions .button { font-size: 12px; min-height: 32px; padding-inline: 8px; }
+  .app-shell .page-actions .status-badge { font-size: 10px; }
+  .app-shell .page-back { margin-bottom: 4px; }
+  .app-shell .section-toolbar { min-height: 38px; gap: 6px; padding: 8px 10px; }
+  .app-shell .section-toolbar h2, .app-shell .section-toolbar h3 { font-size: 13px; }
+  .app-shell .empty-state { min-height: 160px; padding: 24px 12px; }
+  .app-shell .empty-state p { font-size: 12px; line-height: 1.6; }
+  .app-shell .selection-tools { margin-bottom: 8px; gap: 4px 8px; }
+  .app-shell .history-tabs { margin-bottom: 8px; gap: 18px; }
+  .app-shell .adaptive-disclosure { border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); margin-bottom: 12px; }
+  .app-shell .adaptive-disclosure > summary { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 10px; font-size: 13px; font-weight: 600; list-style: none; cursor: pointer; }
+  .adaptive-disclosure > summary::-webkit-details-marker { display: none; }
+  .adaptive-disclosure > summary > svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .adaptive-disclosure > summary > svg:last-child { margin-inline-start: auto; }
+  .adaptive-disclosure[open] > summary > svg:last-child { transform: rotate(180deg); }
+  .app-shell .adaptive-disclosure-content { border-top: 1px solid var(--border); padding: 10px; }
+  .app-shell .adaptive-disclosure-content > section { border: 0; box-shadow: none; padding: 0; }
+  .app-shell .adaptive-disclosure-content > section > header:first-child,
+  .app-shell .adaptive-disclosure-content > .settings-section > .settings-section-header { display: none; }
+  .app-shell .adaptive-disclosure-content .inline-notice { margin: 0; }
+  .app-shell .summary-strip { display: flex; overflow-x: auto; flex-wrap: nowrap; margin-block: 10px; }
+  .app-shell .summary-strip > div { flex: 1 0 78px; padding: 8px 10px; gap: 3px; }
+  .app-shell .summary-strip strong { font-size: 16px; }
+  .app-shell .summary-strip span { font-size: 11px; }
+  .app-shell .library-filter-primary { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  .app-shell .library-filter-primary > .button { grid-column: auto; width: auto; min-height: 38px; }
+  .app-shell .library-search-field > span:first-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .app-shell .library-search-field input { min-height: 38px; }
+  .app-shell .library-filter-form { padding: 10px; gap: 4px; }
+  .app-shell .library-filter-more > summary { min-height: 32px; font-size: 12px; }
+  .app-shell .library-filter-advanced { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .app-shell .library-filter-field > select, .app-shell .library-filter-field > input { min-height: 36px; padding: 5px 6px; }
+  .app-shell .library-poster-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 8px; padding: 10px; }
+  .app-shell .library-poster-meta { padding-top: 6px; }
+  .app-shell .library-poster-meta h2 { font-size: 11px; line-height: 1.4; }
+  .app-shell .library-poster-meta p, .app-shell .library-poster-meta .status-badge { font-size: 10px; }
+  .app-shell .library-poster-meta strong { font-size: 12px; }
+  .app-shell .watch-search { min-height: 42px; padding: 4px 4px 4px 10px; gap: 6px; }
+  .app-shell .watch-search input { min-height: 32px; padding-block: 4px; }
+  .app-shell .watch-search .button { min-height: 32px; font-size: 12px; }
+  .app-shell .watch-source-tabs { gap: 4px; overflow-x: auto; flex-wrap: nowrap; }
+  .app-shell .watch-source-tabs .button { flex-shrink: 0; font-size: 12px; padding-inline: 7px; }
+  .app-shell .watch-site-summary { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 10px 12px; }
+  .app-shell .watch-summary-state { grid-column: 1; gap: 4px; font-size: 11px; }
+  .app-shell .watch-summary-actions { grid-column: 2; grid-row: 1 / 3; }
+  .app-shell .watch-summary-actions .button { min-height: 32px; font-size: 12px; }
+  .app-shell .watch-site-name h2 { font-size: 13px; }
+  .app-shell .watch-grid { gap: 12px 8px; }
+  .app-shell .watch-card-body { padding: 8px 8px 4px; }
+  .app-shell .watch-card h3 { margin-block: 4px; font-size: 12px; line-height: 1.4; }
+  .app-shell .watch-card-actions { padding: 6px 8px 8px; gap: 4px; }
+  .app-shell .watch-card-actions .button { min-height: 30px; font-size: 11px; padding-inline: 5px; }
+  .app-shell .playback-history-row { grid-template-columns: 104px minmax(0, 1fr); gap: 6px 10px; padding: 12px 0; align-items: start; }
+  .app-shell .playback-history-cover { align-self: start; }
+  .app-shell .playback-history-body h2 { font-size: 12px; line-height: 1.45; margin-block: 4px; }
+  .app-shell .playback-history-body p, .app-shell .playback-history-body time { font-size: 11px; margin-block: 4px; }
+  .app-shell .playback-history-actions { gap: 6px; }
+  .app-shell .playback-history-actions .button { min-height: 30px; font-size: 12px; }
+  .app-shell .search-history-list { gap: 8px; }
+  .app-shell .search-history-open { padding: 10px; gap: 8px; }
+  .app-shell .search-history-icon { width: 28px; height: 28px; }
+  .app-shell .search-history-main > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 11px; }
+  .app-shell .search-history-main strong { font-size: 13px; }
+  .app-shell .subtitles-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--border); border-radius: var(--radius-control); overflow: hidden; }
+  .app-shell .subtitles-summary > div { border: 0; border-radius: 0; padding: 6px 10px; display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+  .app-shell .subtitles-summary dt { font-size: 11px; }
+  .app-shell .subtitles-summary dd { font-size: 15px; margin: 0; }
+  .app-shell .subtitles-filters { grid-template-columns: 100px minmax(0, 1fr) auto; gap: 6px; padding: 10px; }
+  .app-shell .subtitles-filters input, .app-shell .subtitles-filters select { min-height: 36px; padding-inline: 6px; }
+  .app-shell .subtitles-filters > .button { min-height: 36px; grid-column: auto; }
+  .app-shell .metadata-command-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
+  .app-shell .metadata-command-bar input { min-height: 38px; }
+  .app-shell .metadata-code-field { grid-column: auto; }
+  .app-shell .metadata-command-bar > .button { min-height: 38px; }
+  .app-shell .metadata-primary-action { display: flex; align-items: start; gap: 8px; flex-wrap: wrap; }
+  .app-shell .metadata-primary-action > .adaptive-disclosure { flex: 1; margin-bottom: 0; }
+  .app-shell .metadata-primary-action .adaptive-disclosure-content { font-size: 12px; line-height: 1.6; }
+  .app-shell .metadata-job-note { margin-block: 10px; font-size: 11px; }
+  .app-shell .settings-section { padding: 12px; }
+  .app-shell .settings-section-header { gap: 8px; margin-bottom: 10px; }
+  .app-shell .settings-section-header h2 { font-size: 14px; }
+  .app-shell .settings-index { gap: 2px; padding: 3px; }
+  .app-shell .settings-index a { min-height: 36px; font-size: 12px; gap: 5px; padding-inline: 7px; }
+  .app-shell .settings-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 0; gap: 10px; }
+  .app-shell .settings-form-grid .field:has(input[type=url]), .app-shell .settings-form-grid .field:has(input[placeholder^='/']), .app-shell .field-span-full { grid-column: 1 / -1; }
+  .app-shell .settings-form-grid .field-label { font-size: 12px; }
+  .app-shell .settings-form-grid input, .app-shell .settings-form-grid select { min-height: 36px; padding-block: 6px; }
+  .app-shell .settings-form-grid .field-hint { font-size: 11px; line-height: 1.5; }
+  .app-shell .workflow-defaults-grid { gap: 0; }
+  .app-shell .workflow-defaults-section .settings-section { padding: 0; }
+  .app-shell .site-priority-grid { gap: 10px; }
+  .app-shell .site-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .app-shell .site-form-grid .field-span-2 { grid-column: 1 / -1; }
+  .app-shell .rankings-segmented { flex-wrap: nowrap; overflow-x: auto; }
+  .app-shell .rankings-segmented > button { flex-shrink: 0; min-height: 32px; padding-inline: 10px; }
+  .app-shell .rankings-toolbar, .app-shell .rankings-selectors { gap: 8px; }
+  .app-shell .mobile-nav-panel-links { gap: 4px; }
+  .app-shell .mobile-nav-panel .nav-link { min-height: 40px; padding: 8px 10px; font-size: 13px; }
+}

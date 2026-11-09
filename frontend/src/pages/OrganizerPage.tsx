@@ -1,3 +1,4 @@
+import { AdaptiveDisclosure } from '../components/AdaptiveDisclosure'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, Braces, ChevronDown, ChevronRight, Globe2, Plus, RefreshCw, Save, SlidersHorizontal, TestTube2, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -217,12 +218,14 @@ export function OrganizerPage() {
         setAdvancedError('')
         save.reset()
       }} />
+      <AdaptiveDisclosure title={t('整理做什么')}>
       <InlineNotice tone="info">
         <strong>{t('整理做什么')}</strong>
         <span>
           {t('通过搜索页加入 qBittorrent 的作品会先下载到 JAV 暂存目录，完成后自动移入媒体库并补全元数据。 大多数情况下只需打开“启用自动整理”；只有想把不同作品放进不同子文件夹或加上不同标签时，才需要添加规则。 规则从上到下依次匹配，第一条命中的生效，都不命中时使用暂存根目录。')}
         </span>
       </InlineNotice>
+      </AdaptiveDisclosure>
       <section className="editor-workspace" aria-label={t('整理规则编辑器')}>
         <div className="organizer-toolbar">
           <Toggle

@@ -1,3 +1,4 @@
+import { AdaptiveDisclosure } from '../components/AdaptiveDisclosure'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, RefreshCw, Search, Settings, X } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
@@ -161,7 +162,7 @@ export function TorrentDownloadsView({
       />
       {navigation}
       <div id="bt-download-panel" role="tabpanel" aria-labelledby="download-view-bt" tabIndex={0}>
-      <TorrentImportTool downloaderOnline={downloaderOnline} downloaderChecking={status.isLoading} />
+      <AdaptiveDisclosure title={t('添加 BT 下载')}><TorrentImportTool downloaderOnline={downloaderOnline} downloaderChecking={status.isLoading} /></AdaptiveDisclosure>
       {tasks.data?.ok ? (
         <section className="summary-strip" aria-label={t('任务摘要')}>
           <div>

@@ -1,3 +1,4 @@
+import { AdaptiveDisclosure } from '../components/AdaptiveDisclosure'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, RefreshCw, RotateCcw, Search, Trash2, X } from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
@@ -290,7 +291,7 @@ export function WebDownloadsView() {
       ) : null}
 
       <Suspense fallback={<section className="web-batch-tool" role="status" aria-label={t('正在加载 Web 批量下载工具')}><SkeletonRows count={2} /></section>}>
-        <WebDownloadBatchTool serviceReady={serviceReady} />
+        <AdaptiveDisclosure title={t('批量下载')}><WebDownloadBatchTool serviceReady={serviceReady} /></AdaptiveDisclosure>
       </Suspense>
 
       {tasks.data?.control ? (

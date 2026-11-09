@@ -184,7 +184,7 @@ function LibraryBrowser() {
   const count = library.data?.count ?? 0
   const hasFilters = activeFilterCount(appliedDraft) > 0
   const advancedCount = FILTER_KEYS
-    .filter((key) => !['q', 'presence', 'completeness', 'anomaly'].includes(key))
+    .filter((key) => key !== 'q')
     .filter((key) => draft[key]).length
   const returnPath = `${location.pathname}${location.search}`
   const [batchResult, setBatchResult] = useState('')
@@ -293,6 +293,20 @@ function LibraryBrowser() {
                 />
               </span>
             </label>
+            <Button type="submit" variant="primary" disabled={library.isFetching}>
+              <Filter aria-hidden="true" />
+              {t('筛选')}
+            </Button>
+          </div>
+
+          <details className="library-filter-more" open={advancedCount > 0 || undefined}>
+            <summary>
+              <Filter aria-hidden="true" />
+              <span>{t('更多筛选')}</span>
+              {advancedCount ? <small>{t('{advancedCount} 项', { advancedCount })}</small> : null}
+              <ChevronDown aria-hidden="true" />
+            </summary>
+            <div className="library-filter-advanced">
             <label className="library-filter-field">
               <span>{t('文件')}</span>
               <select value={draft.presence} onChange={(event) => updateDraft('presence', event.target.value)}>
@@ -311,20 +325,6 @@ function LibraryBrowser() {
                 {anomalyOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
               </select>
             </label>
-            <Button type="submit" variant="primary" disabled={library.isFetching}>
-              <Filter aria-hidden="true" />
-              {t('筛选')}
-            </Button>
-          </div>
-
-          <details className="library-filter-more" open={advancedCount > 0 || undefined}>
-            <summary>
-              <Filter aria-hidden="true" />
-              <span>{t('更多筛选')}</span>
-              {advancedCount ? <small>{t('{advancedCount} 项', { advancedCount })}</small> : null}
-              <ChevronDown aria-hidden="true" />
-            </summary>
-            <div className="library-filter-advanced">
               <label className="library-filter-field">
                 <span>{t('演员')}</span>
                 <input value={draft.actor} maxLength={80} onChange={(event) => updateDraft('actor', event.target.value)} />
