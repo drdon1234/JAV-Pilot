@@ -20,7 +20,7 @@ docker compose exec jav-pilot python -m jav_pilot.cli smoke-sites --code '<确�
 
 ## 更新
 
-见[安装指南](getting-started.md#更新)。
+见[安装指南](getting-started.md#更新)。拉取或构建好新镜像后，先执行 `docker compose stop -t 120 jav-pilot`，确认旧服务停止，再启动新容器。更新后检查 `/healthz`、`/readyz` 和镜像 revision；保留旧镜像以便回退。没有数据迁移的普通更新不需要默认全量备份；发生不兼容迁移时按实际风险保存必要的数据快照。
 
 ## 备份与恢复
 

@@ -136,7 +136,7 @@ export function WatchPlayer({ entry }: { entry: WatchEntry }) {
       setQuality(selected)
       if (hlsRef.current) hlsRef.current.currentLevel = selected
     }} options={[{ value: -1, label: t('自动') }, ...qualities.map(level => ({ value: level.index, label: `${level.height}p` }))]} /> : height ? <span className="video-resolution">{height}p</span> : undefined}>
-    <video ref={video} poster={activity.snapshot?.image || undefined} controls playsInline preload="auto" aria-label={entry.title || t('在线观看')}
+    <video ref={video} poster={activity.snapshot?.image || undefined} controls={false} playsInline preload="auto" aria-label={entry.title || t('在线观看')}
       onError={() => { setError(t('播放资源无法加载，请重新解析或切换站点。')); setStatus('') }} />
     </VideoControls>
     <div className="watch-player-toolbar">

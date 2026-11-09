@@ -36,7 +36,7 @@ JAV Pilot est une application auto-hébergée de recherche, de téléchargement 
 > La documentation détaillée du dossier `docs/` n’est actuellement disponible qu’en chinois simplifié. L’interface web est disponible en français et suit par défaut la langue du navigateur et du système.
 
 <p align="center">
-  <img src="../images/search.png" alt="Résultats de recherche de JAV Pilot" width="92%">
+  <img src="../images/search-en.png" alt="Résultats de recherche de JAV Pilot" width="92%">
   <br>
   <sub>Toutes les captures d’écran utilisent des données d’exemple fictives.</sub>
 </p>
@@ -55,6 +55,9 @@ JAV Pilot est une application auto-hébergée de recherche, de téléchargement 
 10. 🩺 **Diagnostic des sites** : vérifie périodiquement la disponibilité des sites et distingue les échecs DNS, de connexion, TLS, de vérification anti-robot et de changement de structure des pages.
 11. 🔔 **Notifications** : envoie des notifications via Webhook, Gotify, Telegram ou le système de notification du NAS lorsqu’un téléchargement se termine ou échoue, que l’espace disque est insuffisant ou qu’un site est défaillant.
 12. 📱 **Interface multilingue et adaptative** : disponible en 简体中文, 繁體中文, English, 日本語, Français, Español, Русский et العربية, en suivant par défaut la langue du navigateur et du système ; fonctionne sur ordinateur et sur mobile, avec thèmes clair et sombre.
+
+13. ▶️ **Lecture en ligne et favoris**: Parcourez JableTV, SupJav, MissAV et 123AV, lisez la version choisie dans l’application et enregistrez séparément les fiches, les œuvres des sites et les accès à la lecture.
+14. 🎬 **Lecture locale et historique**: Parcourez les dossiers de la médiathèque et choisissez leurs affiches. Sous-titres, vitesse, glissement horizontal, plein écran et reprise sont communs aux lectures locale et en ligne. Le volume et la luminosité se règlent sur l’appareil ou le navigateur.
 
 ## 🚀 Démarrage rapide
 
@@ -116,7 +119,7 @@ Modifiez ensuite `.env` (par exemple avec `nano .env`) :
 docker compose up -d
 ```
 
-Le premier démarrage télécharge une image d’environ 1,1 Go. Ouvrez ensuite `http://<IP de l’hôte>:8766` dans un navigateur et connectez-vous avec l’utilisateur `admin` et le mot de passe défini à l’étape précédente.
+Le premier démarrage télécharge une image contenant Chromium et FFmpeg ; sa taille et la durée dépendent de la version et du réseau. Ouvrez ensuite `http://<IP de l’hôte>:8766` dans un navigateur et connectez-vous avec l’utilisateur `admin` et le mot de passe défini à l’étape précédente.
 
 Si un paramètre obligatoire manque, `docker compose` l’indique explicitement. Pour les autres problèmes, consultez le [guide d’installation](../guide/getting-started.md#启动失败时). Pour qBittorrent et Jackett, consultez le [guide d’installation](../guide/getting-started.md#同时部署-qbittorrent-或-jackett) et les [indexeurs de torrents](../guide/indexers.md).
 
@@ -159,6 +162,7 @@ Ouvrez ensuite `http://127.0.0.1:8766`. Par défaut, le service n’écoute que 
 
 ```bash
 docker compose pull
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
@@ -167,6 +171,7 @@ docker compose up -d
 ```bash
 git pull
 docker build -t jav-pilot:local .
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
@@ -205,13 +210,13 @@ Les sites externes peuvent modifier leur structure, restreindre l’accès selon
 ## 📸 Captures d’écran
 
 <p align="center">
-  <img src="../images/detail.png" alt="Fiche d’une œuvre" width="49%">
-  <img src="../images/downloads.png" alt="Tâches de téléchargement" width="49%">
+  <img src="../images/detail-en.png" alt="Fiche d’une œuvre" width="49%">
+  <img src="../images/downloads-en.png" alt="Tâches de téléchargement" width="49%">
 </p>
 <p align="center">
-  <img src="../images/library.png" alt="Médiathèque" width="64%">
-  <img src="../images/mobile-search.png" alt="Recherche sur mobile" width="16%">
-  <img src="../images/mobile-detail.png" alt="Fiche d’une œuvre sur mobile" width="16%">
+  <img src="../images/library-en.png" alt="Médiathèque" width="64%">
+  <img src="../images/mobile-search-en.png" alt="Recherche sur mobile" width="16%">
+  <img src="../images/mobile-detail-en.png" alt="Fiche d’une œuvre sur mobile" width="16%">
   <br>
   <sub>Fiche d’une œuvre · Tâches de téléchargement · Médiathèque · Mobile</sub>
 </p>

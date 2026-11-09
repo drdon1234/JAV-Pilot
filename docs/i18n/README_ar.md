@@ -36,7 +36,7 @@
 > الوثائق التفصيلية في المجلد `docs/`‎ متوفرة حاليًا باللغة الصينية المبسطة فقط. أما واجهة الويب فمتوفرة بالعربية وتتبع لغة المتصفح والنظام افتراضيًا.
 
 <p align="center">
-  <img src="../images/search.png" alt="نتائج البحث في JAV Pilot" width="92%">
+  <img src="../images/search-en.png" alt="نتائج البحث في JAV Pilot" width="92%">
   <br>
   <sub>تستخدم جميع لقطات الشاشة بيانات نموذجية وهمية.</sub>
 </p>
@@ -55,6 +55,9 @@
 10. 🩺 **تشخيص المواقع**: يتحقق دوريًا من توفّر المواقع ويميّز بين إخفاقات DNS والاتصال وTLS والتحقق من البشر وتغيّر بنية الصفحات.
 11. 🔔 **الإشعارات**: يرسل إشعارات عبر Webhook أو Gotify أو Telegram أو إشعارات NAS عند اكتمال التنزيل أو فشله، أو انخفاض مساحة القرص، أو تعطّل أحد المواقع.
 12. 📱 **واجهة متجاوبة متعددة اللغات**: متوفرة بثماني لغات (العربية والإنجليزية والصينية المبسطة والتقليدية واليابانية والفرنسية والإسبانية والروسية) وتتبع لغة المتصفح والنظام افتراضيًا؛ تعمل على أجهزة الحاسوب والأجهزة المحمولة، مع سمتين فاتحة وداكنة.
+
+13. ▶️ **المشاهدة عبر الإنترنت والمفضلة**: تصفح JableTV وSupJav وMissAV و123AV وشغّل النسخة المختارة داخل التطبيق، واحفظ صفحات المعلومات وأعمال المواقع ومداخل التشغيل بصورة منفصلة.
+14. 🎬 **التشغيل المحلي والسجل**: تصفح مجلدات المكتبة واختر أغلفتها. يدعم المشغل المحلي وعبر الإنترنت الترجمة والسرعة والسحب الأفقي وملء الشاشة واستئناف المشاهدة. يُضبط الصوت والسطوع من الجهاز أو المتصفح.
 
 ## 🚀 البدء السريع
 
@@ -124,7 +127,7 @@ sed -i "s/^JAV_PILOT_AUTH_SECRET=.*/JAV_PILOT_AUTH_SECRET=$(openssl rand -hex 32
 docker compose up -d
 ```
 
-يسحب التشغيل الأول صورة يبلغ حجمها نحو 1.1 غيغابايت. بعد ذلك افتح `http://<host-ip>:8766` في المتصفح (حيث ‎`<host-ip>`‎ هو عنوان IP للمضيف)، وسجّل الدخول باسم المستخدم `admin` وكلمة المرور التي حدّدتها في الخطوة السابقة.
+يسحب التشغيل الأول صورة تحتوي على Chromium وFFmpeg؛ ويعتمد الحجم ووقت التنزيل على الإصدار والشبكة. بعد ذلك افتح `http://<host-ip>:8766` في المتصفح (حيث ‎`<host-ip>`‎ هو عنوان IP للمضيف)، وسجّل الدخول باسم المستخدم `admin` وكلمة المرور التي حدّدتها في الخطوة السابقة.
 
 إذا كان أحد الإعدادات الإلزامية مفقودًا، فسيشير إليه `docker compose` صراحةً. للمشكلات الأخرى، راجع [دليل التثبيت](../guide/getting-started.md#启动失败时). وللتفاصيل حول qBittorrent وJackett، راجع [دليل التثبيت](../guide/getting-started.md#同时部署-qbittorrent-或-jackett) و[فهارس التورنت](../guide/indexers.md).
 
@@ -167,6 +170,7 @@ jav-pilot serve
 
 ```bash
 docker compose pull
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
@@ -175,6 +179,7 @@ docker compose up -d
 ```bash
 git pull
 docker build -t jav-pilot:local .
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
@@ -217,13 +222,13 @@ npm --prefix frontend run build
 ## 📸 لقطات الشاشة
 
 <p align="center">
-  <img src="../images/detail.png" alt="تفاصيل العمل" width="49%">
-  <img src="../images/downloads.png" alt="مهام التنزيل" width="49%">
+  <img src="../images/detail-en.png" alt="تفاصيل العمل" width="49%">
+  <img src="../images/downloads-en.png" alt="مهام التنزيل" width="49%">
 </p>
 <p align="center">
-  <img src="../images/library.png" alt="مكتبة الوسائط" width="64%">
-  <img src="../images/mobile-search.png" alt="البحث على الجوال" width="16%">
-  <img src="../images/mobile-detail.png" alt="تفاصيل العمل على الجوال" width="16%">
+  <img src="../images/library-en.png" alt="مكتبة الوسائط" width="64%">
+  <img src="../images/mobile-search-en.png" alt="البحث على الجوال" width="16%">
+  <img src="../images/mobile-detail-en.png" alt="تفاصيل العمل على الجوال" width="16%">
   <br>
   <sub>تفاصيل العمل · مهام التنزيل · مكتبة الوسائط · الجوال</sub>
 </p>

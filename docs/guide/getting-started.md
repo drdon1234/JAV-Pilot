@@ -54,7 +54,7 @@ docker compose up -d
 docker compose ps
 ```
 
-缺少必填项时 `docker compose` 会直接报错并说明缺少哪一项。第一次启动需要拉取约 1.1 GB 的镜像。
+缺少必填项时 `docker compose` 会直接报错并说明缺少哪一项。第一次启动需要拉取包含 Chromium 和 FFmpeg 的镜像，大小与耗时以镜像仓库和网络情况为准。
 
 请始终通过 Compose 启动，不要直接 `docker run` 镜像：Compose 配置提供了目录准备所需的启动方式、浏览器需要的共享内存和安全限制。
 
@@ -92,10 +92,11 @@ Jackett 无需任何设置，见[种子索引](indexers.md)。已有 qBittorrent
 
 ```bash
 docker compose pull
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
-默认跟随 `latest`；需要固定版本时，把 `.env` 中的 `JAV_PILOT_IMAGE` 改成例如 `drdon1234/jav-pilot:0.2.0`。发布说明提到部署配置有变化时，重新下载 `docker-compose.yml`，`.env` 保持不变。更新前的备份方法见[备份与运维](operations.md#备份与恢复)。
+默认跟随 `latest`；需要固定版本时，把 `.env` 中的 `JAV_PILOT_IMAGE` 改成例如 `drdon1234/jav-pilot:0.3.5`。发布说明提到部署配置有变化时，重新下载 `docker-compose.yml`，`.env` 保持不变。更新前的备份方法见[备份与运维](operations.md#备份与恢复)。
 
 ## 方式二：从源码构建镜像
 
@@ -164,6 +165,7 @@ jav-pilot serve
 监听局域网地址（例如 `--host 0.0.0.0`）时必须配置完整的登录，否则服务拒绝启动。这种方式不读取 `.env`，配置通过环境变量提供，常用项如下：
 
 ```bash
+export JAV_PILOT_AUTH_PASSWORD JAV_PILOT_AUTH_SECRET JAV_PILOT_MEDIA_LIBRARY_PATH JAV_PILOT_MEDIA_METADATA_LIBRARY_PATH JAV_PILOT_PROXY HTTP_PROXY HTTPS_PROXY NO_PROXY
 # 必填：登录密码至少 12 个字符；会话密钥至少 32 个随机字符（openssl rand -hex 32）
 JAV_PILOT_AUTH_PASSWORD=
 JAV_PILOT_AUTH_SECRET=
@@ -180,6 +182,7 @@ NO_PROXY=127.0.0.1,localhost
 Web 下载默认关闭，需要先安装 FFmpeg，再设置：
 
 ```bash
+export JAV_PILOT_WEB_DOWNLOAD_ENABLED JAV_PILOT_WEB_DOWNLOAD_STAGING_PATH JAV_PILOT_WEB_DOWNLOAD_LIBRARY_PATH
 JAV_PILOT_WEB_DOWNLOAD_ENABLED=1
 JAV_PILOT_WEB_DOWNLOAD_STAGING_PATH=/srv/downloads/jav-web
 JAV_PILOT_WEB_DOWNLOAD_LIBRARY_PATH=/srv/media/JAV

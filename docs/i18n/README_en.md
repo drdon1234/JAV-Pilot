@@ -36,7 +36,7 @@ JAV Pilot is a self-hosted application for searching, downloading and organizing
 > The detailed documentation under `docs/` is currently available in Simplified Chinese only. The web interface is available in English and follows your browser and system language by default.
 
 <p align="center">
-  <img src="../images/search.png" alt="JAV Pilot search results" width="92%">
+  <img src="../images/search-en.png" alt="JAV Pilot search results" width="92%">
   <br>
   <sub>All screenshots use fictional sample data.</sub>
 </p>
@@ -55,6 +55,9 @@ JAV Pilot is a self-hosted application for searching, downloading and organizing
 10. 🩺 **Site diagnostics**: checks site availability periodically and distinguishes DNS, connection, TLS, anti-bot challenge and page-structure failures.
 11. 🔔 **Notifications**: notifies through Webhook, Gotify, Telegram or NAS notifications when a download completes or fails, disk space runs low, or a site fails.
 12. 📱 **Multilingual, responsive interface**: available in 简体中文, 繁體中文, English, 日本語, Français, Español, Русский and العربية, following the browser and system language by default; works on desktop and mobile, with light and dark themes.
+
+13. ▶️ **Online viewing and bookmarks**: Browse JableTV, SupJav, MissAV and 123AV, play selected editions in the app, and save metadata pages, site entries or playback bookmarks.
+14. 🎬 **Local playback and history**: Browse library folders and choose folder posters. Online and local playback share subtitles, speed, horizontal seek gestures, fullscreen and resume history. Volume and brightness use device or browser controls.
 
 ## 🚀 Quick start
 
@@ -116,7 +119,7 @@ Then edit `.env` (for example with `nano .env`):
 docker compose up -d
 ```
 
-The first start pulls an image of about 1.1 GB. Then open `http://<host IP>:8766` in a browser and sign in as `admin` with the password set in the previous step.
+The first start pulls an image containing Chromium and FFmpeg; its size and download time depend on the release and network. Then open `http://<host IP>:8766` in a browser and sign in as `admin` with the password set in the previous step.
 
 If a required setting is missing, `docker compose` reports it explicitly. For other problems, see the [installation guide](../guide/getting-started.md#启动失败时). For details on qBittorrent and Jackett, see the [installation guide](../guide/getting-started.md#同时部署-qbittorrent-或-jackett) and [torrent indexers](../guide/indexers.md).
 
@@ -159,6 +162,7 @@ Then open `http://127.0.0.1:8766`. By default the service listens on localhost o
 
 ```bash
 docker compose pull
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
@@ -167,6 +171,7 @@ docker compose up -d
 ```bash
 git pull
 docker build -t jav-pilot:local .
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
@@ -205,13 +210,13 @@ External sites may change their layout, restrict access by region or require ant
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="../images/detail.png" alt="Work details" width="49%">
-  <img src="../images/downloads.png" alt="Download tasks" width="49%">
+  <img src="../images/detail-en.png" alt="Work details" width="49%">
+  <img src="../images/downloads-en.png" alt="Download tasks" width="49%">
 </p>
 <p align="center">
-  <img src="../images/library.png" alt="Media library" width="64%">
-  <img src="../images/mobile-search.png" alt="Mobile search" width="16%">
-  <img src="../images/mobile-detail.png" alt="Mobile work details" width="16%">
+  <img src="../images/library-en.png" alt="Media library" width="64%">
+  <img src="../images/mobile-search-en.png" alt="Mobile search" width="16%">
+  <img src="../images/mobile-detail-en.png" alt="Mobile work details" width="16%">
   <br>
   <sub>Work details · Download tasks · Media library · Mobile</sub>
 </p>

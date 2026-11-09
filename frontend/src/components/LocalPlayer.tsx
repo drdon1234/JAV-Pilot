@@ -83,7 +83,7 @@ function LocalVideo({ playback }: { playback: LocalPlayback }) {
   return <>
     <section className="watch-player" aria-label={t('本地播放')}>
       <VideoControls video={video} subtitles={playback.subtitles} resolution={entry.quality_height ? <span className="video-resolution">{entry.quality_height}p</span> : undefined}>
-      <video ref={video} src={media_url} poster={activity.snapshot?.image || undefined} controls playsInline preload="auto" aria-label={entry.code || t('本地播放')}
+      <video ref={video} src={media_url} poster={activity.snapshot?.image || undefined} controls={false} playsInline preload="auto" aria-label={entry.code || t('本地播放')}
         onLoadedMetadata={() => {
           const element = video.current!
           if (ready.current) return

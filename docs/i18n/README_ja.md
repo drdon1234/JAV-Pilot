@@ -36,7 +36,7 @@ JAV Pilot は、動画の検索・ダウンロード・メディアライブラ�
 > `docs/` 以下の詳細ドキュメントは、現在簡体字中国語のみで提供しています。Web インターフェースは日本語に対応し、既定でブラウザーとシステムの言語に合わせて表示されます。
 
 <p align="center">
-  <img src="../images/search.png" alt="JAV Pilot の検索結果画面" width="92%">
+  <img src="../images/search-en.png" alt="JAV Pilot の検索結果画面" width="92%">
   <br>
   <sub>スクリーンショットはすべて架空のサンプルデータを使用しています。</sub>
 </p>
@@ -55,6 +55,9 @@ JAV Pilot は、動画の検索・ダウンロード・メディアライブラ�
 10. 🩺 **サイト診断**：各サイトの可用性を定期的に確認し、DNS・接続・TLS・ボット対策の認証・ページ構造の変更といった失敗要因を区別します。
 11. 🔔 **通知**：ダウンロードの完了・失敗、ディスク容量不足、サイトの異常を Webhook・Gotify・Telegram・NAS 通知で知らせます。
 12. 📱 **多言語対応のレスポンシブ UI**：简体中文・繁體中文・English・日本語・Français・Español・Русский・العربية の 8 言語に対応し、既定でブラウザーとシステムの言語に合わせます。デスクトップとモバイルに対応し、ライトテーマとダークテーマを備えています。
+
+13. ▶️ **オンライン再生とお気に入り**: JableTV、SupJav、MissAV、123AVを検索し、選択した版をアプリ内で再生。作品情報、サイトの作品、再生入口を個別に保存できます。
+14. 🎬 **ローカル再生と履歴**: ライブラリをフォルダー別に閲覧し、表紙を選択できます。オンラインとローカルで字幕、速度、左右スワイプのシーク、全画面、続きから再生に対応。音量と明るさは端末またはブラウザーで調整します。
 
 ## 🚀 クイックスタート
 
@@ -116,7 +119,7 @@ sed -i "s/^JAV_PILOT_AUTH_SECRET=.*/JAV_PILOT_AUTH_SECRET=$(openssl rand -hex 32
 docker compose up -d
 ```
 
-初回起動時に約 1.1 GB のイメージを取得します。起動後、ブラウザで `http://<ホストの IP>:8766` を開き、ユーザー名 `admin` と前の手順で設定したパスワードでログインします。
+初回起動では Chromium と FFmpeg を含むイメージを取得します。サイズと所要時間はリリースとネットワークにより異なります。起動後、ブラウザで `http://<ホストの IP>:8766` を開き、ユーザー名 `admin` と前の手順で設定したパスワードでログインします。
 
 必須の設定が不足している場合は、`docker compose` が該当項目を明示します。その他の問題は[インストールガイド](../guide/getting-started.md#启动失败时)を参照してください。qBittorrent と Jackett の詳細は[インストールガイド](../guide/getting-started.md#同时部署-qbittorrent-或-jackett)と[トレントインデクサー](../guide/indexers.md)にあります。
 
@@ -159,6 +162,7 @@ jav-pilot serve
 
 ```bash
 docker compose pull
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
@@ -167,6 +171,7 @@ docker compose up -d
 ```bash
 git pull
 docker build -t jav-pilot:local .
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
@@ -205,13 +210,13 @@ npm --prefix frontend run build
 ## 📸 スクリーンショット
 
 <p align="center">
-  <img src="../images/detail.png" alt="作品の詳細" width="49%">
-  <img src="../images/downloads.png" alt="ダウンロードタスク" width="49%">
+  <img src="../images/detail-en.png" alt="作品の詳細" width="49%">
+  <img src="../images/downloads-en.png" alt="ダウンロードタスク" width="49%">
 </p>
 <p align="center">
-  <img src="../images/library.png" alt="メディアライブラリ" width="64%">
-  <img src="../images/mobile-search.png" alt="モバイルの検索画面" width="16%">
-  <img src="../images/mobile-detail.png" alt="モバイルの作品詳細" width="16%">
+  <img src="../images/library-en.png" alt="メディアライブラリ" width="64%">
+  <img src="../images/mobile-search-en.png" alt="モバイルの検索画面" width="16%">
+  <img src="../images/mobile-detail-en.png" alt="モバイルの作品詳細" width="16%">
   <br>
   <sub>作品の詳細 · ダウンロードタスク · メディアライブラリ · モバイル</sub>
 </p>

@@ -140,12 +140,10 @@
 @media (max-width: 700px) {
   .video-controls-row { gap: 0; }
   .video-controls-row button { min-width: 40px; padding-inline: 8px; }
-  .video-controls-row .video-volume { display: none; }
   .video-controls-row select { padding-inline: 2px; min-width: 44px; }
 }
 .video-gesture-surface { position: absolute; inset: 0; touch-action: none; user-select: none; cursor: pointer; }
 .video-gesture-hint { position: absolute; top: 30%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: var(--radius-control); background: rgb(0 0 0 / 75%); color: #fff; pointer-events: none; font-variant-numeric: tabular-nums; }
-.video-gesture-hint svg { width: 20px; height: 20px; }
 .video-controls select { appearance: none; -webkit-appearance: none; background-image: none; text-align: center; text-align-last: center; padding-inline: 8px; }
 .player-menu { position: relative; color: #fff; font-size: 13px; }
 .player-menu summary { display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0 8px; border-radius: 6px; list-style: none; cursor: pointer; user-select: none; }

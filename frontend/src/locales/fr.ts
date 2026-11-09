@@ -1,6 +1,7 @@
 // Interface translations keyed by the Simplified Chinese source text.
 // Keep {placeholders} unchanged; check with `python tools/i18n_catalog.py check`.
 const messages: Record<string, string> = {
+  "批量下载": "Téléchargement par lot",
   "展开导航": "Développer la navigation",
   "收起导航": "Réduire la navigation",
   "正在加载页面": "Chargement de la page",
@@ -87,7 +88,6 @@ const messages: Record<string, string> = {
   "未识别番号": "Code non reconnu",
   "{count} 部作品": "{count} œuvres",
   "自定义 {prefix} 目录封面": "Personnaliser la couverture de {prefix}",
-  "打开作品目录": "Ouvrir le dossier",
   "重新加载封面": "Recharger la couverture",
   "自定义目录封面": "Personnaliser la couverture",
   "选择最多 9 张竖版海报，按选择顺序排列；不足的位置自动补齐。": "Choisissez jusqu’à 9 affiches verticales dans l’ordre. Les places restantes sont complétées automatiquement.",
@@ -297,11 +297,7 @@ const messages: Record<string, string> = {
   "关闭通知": "Fermer la notification",
   "后退 30 秒": "Reculer de 30 secondes",
   "前进 30 秒": "Avancer de 30 secondes",
-  "画面亮度": "Luminosité de la vidéo",
-  "音量": "Volume",
   "暂停": "Pause",
-  "取消静音": "Activer le son",
-  "静音": "Couper le son",
   "播放速度": "Vitesse de lecture",
   "退出全屏": "Quitter le plein écran",
   "全屏": "Plein écran",
@@ -1711,7 +1707,6 @@ const messages: Record<string, string> = {
   "搜索类型": "Type de recherche",
   "资料与磁链": "Infos et magnets",
   "Web 视频资源": "Vidéos Web",
-  "检索条件": "Critères de recherche",
   "无法加载搜索配置": "Impossible de charger la configuration de recherche",
   "读取站点配置时发生错误：": "Erreur de lecture de la configuration des sites : ",
   "准备中": "Préparation",

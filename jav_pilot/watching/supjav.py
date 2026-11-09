@@ -17,11 +17,11 @@ from ..web_download.providers import (
 )
 
 
-def _public(url: str, *, embed: bool = False) -> str:
+def _public(url: str, *, embed: bool = False, resolver: PublicHostResolver | None = None) -> str:
     parsed = urlsplit(url)
     if (parsed.scheme != 'https' or parsed.username or parsed.password
             or parsed.port not in {None, 443} or not parsed.hostname
-            or not PublicHostResolver(max_hosts=1).is_public(parsed.hostname)
+            or not (resolver or PublicHostResolver(max_hosts=1)).is_public(parsed.hostname)
             or embed and not re.fullmatch(r'/(?:e|embed)/[a-zA-Z0-9]{6,64}/?', parsed.path)):
         raise ValueError('SupJav source URL rejected')
     return url
@@ -91,13 +91,21 @@ def _line(name: str, token: str, page_url: str, deadline: float) -> ProviderMani
         raise ValueError('SupJav source is not HLS')
     headers = {'Referer': 'https://lk1.supremejav.com/'}
     document, final = _read(session, manifest, deadline, headers)
-    hosts = {urlsplit(manifest).hostname, urlsplit(final).hostname}
-    if '#EXT-X-STREAM-INF' in document:
+    for _ in range(3):
+        if '#EXT-X-STREAM-INF' not in document:
+            break
         path = next(line.strip() for line in document.splitlines() if line.strip() and not line.startswith('#'))
         document, final = _read(session, urljoin(final, path), deadline, headers)
-        hosts.add(urlsplit(final).hostname)
     if not document.startswith('#EXTM3U') or '#EXTINF' not in document:
         raise ValueError('SupJav media playlist unavailable')
+    # Return the media playlist we actually checked, not an unverified master
+    # whose other renditions may use different (and unapproved) CDN hosts.
+    hosts = {urlsplit(final).hostname}
+    resolver = PublicHostResolver(max_hosts=32)
+    for line in document.splitlines():
+        resources = re.findall(r'URI="([^"\r\n]+)"', line) if line.startswith('#') else [line.strip()]
+        for resource in filter(None, resources):
+            hosts.add(urlsplit(_public(urljoin(final, resource), resolver=resolver)).hostname)
     segment = next(line.strip() for line in document.splitlines() if line.strip() and not line.startswith('#'))
     segment = _public(urljoin(final, segment))
     hosts.add(urlsplit(segment).hostname)
@@ -109,7 +117,7 @@ def _line(name: str, token: str, page_url: str, deadline: float) -> ProviderMani
         next(response.iter_content(chunk_size=16))
     finally:
         response.close()
-    return ProviderManifest('supjav', manifest, headers, page_url, allowed_media_hosts=tuple(sorted(hosts)))
+    return ProviderManifest('supjav', final, headers, page_url, allowed_media_hosts=tuple(sorted(hosts)))
 
 
 def capture(page_url: str) -> ProviderManifest:

@@ -7,7 +7,7 @@ API 与界面同源。启用认证时，受保护接口需要已登录的签名 
 ## 设置快照
 
 ```json
-{"settings": {"schema_version": 12}, "revision": "<64-character-sha256>"}
+{"settings": {"schema_version": 13}, "revision": "<64-character-sha256>"}
 ```
 
 上例仅说明封装结构，`settings` 实际包含全部站点与整理配置。`GET /api/settings` 取得当前快照；`POST /api/settings` 提交完整配置与 `expected_revision`，成功返回 `{ok, settings, revision}`。缺少或非法修订号为 `400`，过期快照为 `409`；冲突会保留现有配置和本地草稿；重新读取并处理自己的草稿，不能拿新修订号盲目覆盖旧内容。`POST /api/settings/validate` 只校验，不保存。
@@ -37,7 +37,10 @@ Torznab 来源配置位于站点的 `torznab` 字段，含 `endpoint`、`pinned_
 | Web 下载 | `/api/web-downloads`、`/api/web-downloads/action`、`/api/web-downloads/control`、`/api/web-downloads/queue` |
 | Web 批次 | `/api/web-downloads/batches`、`/api/web-downloads/batches/action`、`/api/web-downloads/batches/chains`、`/api/web-downloads/batches/chains/action`、`/api/web-downloads/batches/chains/export` |
 | 批量规则 | `/api/web-downloads/batches/rules`、`/api/web-downloads/batches/rules/action` |
-| 媒体库 | `/api/library`、`/api/library/action` |
+| 媒体库 | `/api/library`、`/api/library/action`、`/api/library/artwork`、`/api/library/folder-cover`、`/api/library/folder-cover/action` |
+| 在线观看 | `/api/watch/sites`、`/api/watch/catalog`、`/api/watch/detail`、`/api/watch/recommendations`、`/api/watch/resolve`、`/api/watch/media`、`/api/watch/close` |
+| 本地播放与字幕 | `/api/library/playback`、`/api/library/media`、`/api/library/subtitle`、`/api/library/playback/progress` |
+| 播放记录与收藏 | `/api/playback-history`、`/api/playback-history/action`、`/api/bookmarks`、`/api/bookmarks/action` |
 | 字幕 | `/api/subtitles`、`/api/subtitles/candidates`、`/api/subtitles/entry`、`/api/subtitles/action` |
 | 元数据审校 | `/api/media-metadata/review`、`/api/media-metadata/review/open`、`/api/media-metadata/review/draft`、`/api/media-metadata/review/refetch`、`/api/media-metadata/review/image`、`/api/media-metadata/review/preview`、`/api/media-metadata/review/publish`、`/api/media-metadata/review/abandon` |
 | 历史生命周期 | `/api/history/status`、`/api/history/preview`、`/api/history/execute`、`/api/history/export`、`/api/history/retention`、`/api/history/vacuum` |

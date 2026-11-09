@@ -1,6 +1,7 @@
 // Interface translations keyed by the Simplified Chinese source text.
 // Keep {placeholders} unchanged; check with `python tools/i18n_catalog.py check`.
 const messages: Record<string, string> = {
+  "批量下载": "批次下載",
   "展开导航": "展開導覽",
   "收起导航": "收起導覽",
   "正在加载页面": "正在載入頁面",
@@ -87,7 +88,6 @@ const messages: Record<string, string> = {
   "未识别番号": "未識別番號",
   "{count} 部作品": "{count} 部作品",
   "自定义 {prefix} 目录封面": "自訂 {prefix} 目錄封面",
-  "打开作品目录": "開啟作品目錄",
   "重新加载封面": "重新載入封面",
   "自定义目录封面": "自訂目錄封面",
   "选择最多 9 张竖版海报，按选择顺序排列；不足的位置自动补齐。": "選擇最多 9 張直式海報，按選擇順序排列；不足位置自動補齊。",
@@ -297,11 +297,7 @@ const messages: Record<string, string> = {
   "关闭通知": "關閉通知",
   "后退 30 秒": "倒退 30 秒",
   "前进 30 秒": "快轉 30 秒",
-  "画面亮度": "畫面亮度",
-  "音量": "音量",
   "暂停": "暫停",
-  "取消静音": "取消靜音",
-  "静音": "靜音",
   "播放速度": "播放速度",
   "退出全屏": "結束全螢幕",
   "全屏": "全螢幕",
@@ -1711,7 +1707,6 @@ const messages: Record<string, string> = {
   "搜索类型": "搜尋類型",
   "资料与磁链": "資料與磁力連結",
   "Web 视频资源": "Web 影片資源",
-  "检索条件": "檢索條件",
   "无法加载搜索配置": "無法載入搜尋配置",
   "读取站点配置时发生错误：": "讀取站點配置時發生錯誤：",
   "准备中": "準備中",

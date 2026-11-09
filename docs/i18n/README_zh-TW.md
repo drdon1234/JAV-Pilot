@@ -56,6 +56,9 @@ JAV Pilot 是一款自架的影片搜尋、下載與媒體庫管理應用程式�
 11. 🔔 **通知推播**：在下載完成或失敗、磁碟空間不足、站點異常時，透過 Webhook、Gotify、Telegram 或 NAS 通知推播。
 12. 📱 **多語言響應式介面**：提供简体中文、繁體中文、English、日本語、Français、Español、Русский、العربية 八種介面語言，預設跟隨瀏覽器與系統語言；適配桌面與行動裝置，支援淺色與深色主題。
 
+13. ▶️ **線上觀看與收藏**: 瀏覽 JableTV、SupJav、MissAV 與 123AV，在應用程式內播放所選版本，分別收藏資料頁、站點作品及播放入口。
+14. 🎬 **本機播放與紀錄**: 媒體庫以目錄瀏覽並可自選封面；線上與本機播放器共用字幕、倍速、左右拖動進度、全螢幕和續播紀錄。音量與亮度由裝置或瀏覽器控制。
+
 ## 🚀 快速開始
 
 提供三種安裝方式，首次部署建議採用方式一。
@@ -116,7 +119,7 @@ sed -i "s/^JAV_PILOT_AUTH_SECRET=.*/JAV_PILOT_AUTH_SECRET=$(openssl rand -hex 32
 docker compose up -d
 ```
 
-首次啟動需要下載約 1.1 GB 的映像檔。啟動完成後，以瀏覽器開啟 `http://<主機 IP>:8766`，使用使用者名稱 `admin` 與上一步設定的密碼登入。
+首次啟動需要下載包含 Chromium 和 FFmpeg 的映像檔，大小與時間依版本和網路而定。啟動完成後，以瀏覽器開啟 `http://<主機 IP>:8766`，使用使用者名稱 `admin` 與上一步設定的密碼登入。
 
 缺少必填設定時，`docker compose` 會明確提示；其他問題請參閱[安裝指南](../guide/getting-started.md#启动失败时)。qBittorrent 與 Jackett 的詳細說明見[安裝指南](../guide/getting-started.md#同时部署-qbittorrent-或-jackett)與[種子索引](../guide/indexers.md)。
 
@@ -159,6 +162,7 @@ jav-pilot serve
 
 ```bash
 docker compose pull
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
@@ -167,6 +171,7 @@ docker compose up -d
 ```bash
 git pull
 docker build -t jav-pilot:local .
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 

@@ -78,11 +78,10 @@ python tools/lighthouse_gate.py
 构建并发布镜像：
 
 ```bash
-docker build --platform linux/amd64 --build-arg VCS_REF="$(git rev-parse HEAD)" \
-  -t drdon1234/jav-pilot:<版本> -t drdon1234/jav-pilot:latest .
-docker push drdon1234/jav-pilot:<版本>
-docker push drdon1234/jav-pilot:latest
+python3 tools/release_image.py --push
 ```
+
+在 Linux（含 WSL）且 Docker 可用的环境运行，先提交源码。发布脚本拒绝未提交的改动，仅打包当前提交，校验版本、revision 与运行依赖后推送版本标签和 `latest`。
 
 镜像只包含运行所需的文件；需要代理时通过构建参数传入，不要写进 Dockerfile 或镜像历史。
 

@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ROOT_FILES = (
     '.dockerignore', '.env.example', '.gitattributes', '.gitignore',
-    'Dockerfile', 'LICENSE', 'PRODUCT.md', 'README.md', 'SECURITY.md',
+    'Dockerfile', 'LICENSE', 'DESIGN.md', 'PRODUCT.md', 'README.md', 'SECURITY.md',
     'docker-compose.yml', 'pyproject.toml', 'requirements.lock',
 )
 FRONTEND_FILES = (

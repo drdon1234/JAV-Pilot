@@ -1,6 +1,7 @@
 // Interface translations keyed by the Simplified Chinese source text.
 // Keep {placeholders} unchanged; check with `python tools/i18n_catalog.py check`.
 const messages: Record<string, string> = {
+  "批量下载": "Batch download",
   "展开导航": "Expand navigation",
   "收起导航": "Collapse navigation",
   "正在加载页面": "Loading page",
@@ -87,7 +88,6 @@ const messages: Record<string, string> = {
   "未识别番号": "Unrecognized code",
   "{count} 部作品": "{count} works",
   "自定义 {prefix} 目录封面": "Customize {prefix} folder cover",
-  "打开作品目录": "Open title folder",
   "重新加载封面": "Reload cover",
   "自定义目录封面": "Customize folder cover",
   "选择最多 9 张竖版海报，按选择顺序排列；不足的位置自动补齐。": "Choose up to 9 portrait posters in order. Remaining slots are filled automatically.",
@@ -297,11 +297,7 @@ const messages: Record<string, string> = {
   "关闭通知": "Close notification",
   "后退 30 秒": "Back 30 seconds",
   "前进 30 秒": "Forward 30 seconds",
-  "画面亮度": "Video brightness",
-  "音量": "Volume",
   "暂停": "Pause",
-  "取消静音": "Unmute",
-  "静音": "Mute",
   "播放速度": "Playback speed",
   "退出全屏": "Exit fullscreen",
   "全屏": "Fullscreen",
@@ -1711,7 +1707,6 @@ const messages: Record<string, string> = {
   "搜索类型": "Search type",
   "资料与磁链": "Info and magnets",
   "Web 视频资源": "Web videos",
-  "检索条件": "Search conditions",
   "无法加载搜索配置": "Cannot load search configuration",
   "读取站点配置时发生错误：": "Error reading site configuration: ",
   "准备中": "Preparing",

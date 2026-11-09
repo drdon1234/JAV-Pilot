@@ -52,7 +52,9 @@ JAV Pilot 是一款自托管的影片搜索、下载与媒体库管理应用，�
 10. 🩺 **站点诊断**：定期检测各站点的可用性，并区分 DNS、连接、TLS、人机验证与页面结构变化等失败原因。
 11. 🔔 **通知推送**：下载完成或失败、磁盘空间不足、站点异常时，通过 Webhook、Gotify、Telegram 或 NAS 通知推送。
 12. 📱 **多语言响应式界面**：提供简体中文、繁體中文、English、日本語、Français、Español、Русский、العربية 八种界面语言，默认跟随浏览器与系统语言；适配桌面与移动端，支持浅色与深色主题。
-13. ▶️ **在线观看与收藏**：聚合检索 JableTV、SupJav、MissAV，按站点概览、进入站点后用作品网格浏览；区分原片、字幕与无码版本并在应用内播放。收藏分别保存资料页、站点作品和直接播放入口，打开播放收藏时自动解析有效线路。
+13. ▶️ **在线观看与收藏**：聚合检索 JableTV、SupJav、MissAV、123AV，按站点概览、进入站点后用作品网格浏览；区分原片、字幕与无码版本并在应用内播放。收藏分别保存资料页、站点作品和直接播放入口，打开播放收藏时自动解析有效线路。
+
+14. 🎬 **本地观看与续播**：媒体库目录、海报自选、在线播放和本地播放共用播放器，支持外挂字幕、倍速、左右拖动进度、全屏和播放记录；音量与亮度由设备或浏览器控制。
 
 ## 🚀 快速开始
 
@@ -114,7 +116,7 @@ sed -i "s/^JAV_PILOT_AUTH_SECRET=.*/JAV_PILOT_AUTH_SECRET=$(openssl rand -hex 32
 docker compose up -d
 ```
 
-首次启动需要拉取约 1.1 GB 的镜像。启动完成后，在浏览器中访问 `http://<主机 IP>:8766`，使用用户名 `admin` 与上一步设置的密码登录。
+首次启动需要拉取包含 Chromium 和 FFmpeg 的镜像，大小与耗时以镜像仓库和网络情况为准。启动完成后，在浏览器中访问 `http://<主机 IP>:8766`，使用用户名 `admin` 与上一步设置的密码登录。
 
 缺少必填配置时，`docker compose` 会给出明确提示；其他问题请参阅[安装指南](docs/guide/getting-started.md#启动失败时)。qBittorrent 与 Jackett 的详细说明见[安装指南](docs/guide/getting-started.md#同时部署-qbittorrent-或-jackett)与[种子索引](docs/guide/indexers.md)。
 
@@ -157,6 +159,7 @@ jav-pilot serve
 
 ```bash
 docker compose pull
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
@@ -165,6 +168,7 @@ docker compose up -d
 ```bash
 git pull
 docker build -t jav-pilot:local .
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
@@ -192,6 +196,7 @@ npm --prefix frontend run build
 | 资料与磁链 | JavBus、JavDB、FC2（默认启用）；FANZA、MGS、AVBase、FC2DB（可在“站点”中启用） |
 | 种子索引 | Sukebei、Tokyo Toshokan（通过 Jackett，可与 JAV Pilot 一同部署） |
 | 视频下载 | JableTV、SupJav、MissAV |
+| 在线观看 | JableTV、SupJav、MissAV、123AV |
 | 排行榜 | JavDB、FANZA、FC2、MGStage、JavMenu、Netflav，以及一本道、加勒比等无码厂商官网 |
 | 下载器 | qBittorrent |
 | 媒体服务器 | Jellyfin、Emby、Kodi（读取 NFO、海报与背景图） |

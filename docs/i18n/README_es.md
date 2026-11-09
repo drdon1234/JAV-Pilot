@@ -36,7 +36,7 @@ JAV Pilot es una aplicación autoalojada para buscar, descargar y gestionar una 
 > La documentación detallada de la carpeta `docs/` solo está disponible actualmente en chino simplificado. La interfaz web está disponible en español y sigue por defecto el idioma del navegador y del sistema.
 
 <p align="center">
-  <img src="../images/search.png" alt="Resultados de búsqueda de JAV Pilot" width="92%">
+  <img src="../images/search-en.png" alt="Resultados de búsqueda de JAV Pilot" width="92%">
   <br>
   <sub>Todas las capturas de pantalla usan datos de ejemplo ficticios.</sub>
 </p>
@@ -55,6 +55,9 @@ JAV Pilot es una aplicación autoalojada para buscar, descargar y gestionar una 
 10. 🩺 **Diagnóstico de sitios**: comprueba periódicamente la disponibilidad de los sitios y distingue fallos de DNS, de conexión, de TLS, de verificación antibots y de cambios en la estructura de las páginas.
 11. 🔔 **Notificaciones**: envía avisos mediante Webhook, Gotify, Telegram o las notificaciones del NAS cuando una descarga termina o falla, queda poco espacio en disco o un sitio falla.
 12. 📱 **Interfaz multilingüe y adaptable**: disponible en 简体中文, 繁體中文, English, 日本語, Français, Español, Русский y العربية, y sigue por defecto el idioma del navegador y del sistema; funciona en escritorio y en móviles, con temas claro y oscuro.
+
+13. ▶️ **Reproducción en línea y favoritos**: Explora JableTV, SupJav, MissAV y 123AV, reproduce la edición elegida y guarda por separado fichas, obras del sitio y accesos de reproducción.
+14. 🎬 **Reproducción local e historial**: Explora carpetas de la biblioteca y elige sus carátulas. La reproducción local y en línea comparten subtítulos, velocidad, desplazamiento horizontal, pantalla completa e historial para continuar. El volumen y el brillo se ajustan en el dispositivo o navegador.
 
 ## 🚀 Inicio rápido
 
@@ -116,7 +119,7 @@ A continuación, edite `.env` (por ejemplo con `nano .env`):
 docker compose up -d
 ```
 
-El primer inicio descarga una imagen de aproximadamente 1,1 GB. Después, abra `http://<IP del host>:8766` en un navegador e inicie sesión con el usuario `admin` y la contraseña definida en el paso anterior.
+El primer inicio descarga una imagen con Chromium y FFmpeg; el tamaño y el tiempo dependen de la versión y la red. Después, abra `http://<IP del host>:8766` en un navegador e inicie sesión con el usuario `admin` y la contraseña definida en el paso anterior.
 
 Si falta un ajuste obligatorio, `docker compose` lo indica de forma explícita. Para otros problemas, consulte la [guía de instalación](../guide/getting-started.md#启动失败时). Para más información sobre qBittorrent y Jackett, consulte la [guía de instalación](../guide/getting-started.md#同时部署-qbittorrent-或-jackett) y los [indexadores de torrents](../guide/indexers.md).
 
@@ -159,6 +162,7 @@ Después, abra `http://127.0.0.1:8766`. Por defecto el servicio solo escucha en 
 
 ```bash
 docker compose pull
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
@@ -167,6 +171,7 @@ docker compose up -d
 ```bash
 git pull
 docker build -t jav-pilot:local .
+docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
@@ -205,13 +210,13 @@ Los sitios externos pueden cambiar su estructura, restringir el acceso por regi�
 ## 📸 Capturas de pantalla
 
 <p align="center">
-  <img src="../images/detail.png" alt="Ficha de una obra" width="49%">
-  <img src="../images/downloads.png" alt="Tareas de descarga" width="49%">
+  <img src="../images/detail-en.png" alt="Ficha de una obra" width="49%">
+  <img src="../images/downloads-en.png" alt="Tareas de descarga" width="49%">
 </p>
 <p align="center">
-  <img src="../images/library.png" alt="Biblioteca multimedia" width="64%">
-  <img src="../images/mobile-search.png" alt="Búsqueda en móvil" width="16%">
-  <img src="../images/mobile-detail.png" alt="Ficha de una obra en móvil" width="16%">
+  <img src="../images/library-en.png" alt="Biblioteca multimedia" width="64%">
+  <img src="../images/mobile-search-en.png" alt="Búsqueda en móvil" width="16%">
+  <img src="../images/mobile-detail-en.png" alt="Ficha de una obra en móvil" width="16%">
   <br>
   <sub>Ficha de una obra · Tareas de descarga · Biblioteca multimedia · Móvil</sub>
 </p>
