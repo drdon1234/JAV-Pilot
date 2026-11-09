@@ -1,0 +1,88 @@
+/* Shared glass material: blur is limited to navigation and floating layers.
+   Reading surfaces use translucent fills without stacking expensive filters. */
+.app-shell {
+  background:
+    radial-gradient(ellipse at 3% 12%, var(--ambient-cool), transparent 48%),
+    radial-gradient(ellipse at 98% 0%, var(--ambient-warm), transparent 48%),
+    radial-gradient(ellipse at 65% 100%, var(--ambient-lilac), transparent 58%);
+  background-attachment: fixed;
+}
+.app-shell .sidebar {
+  background:
+    linear-gradient(112deg, var(--glass-reflection), transparent 30%, transparent 56%, var(--glass-reflection) 76%, transparent),
+    var(--glass-fill);
+  border-color: var(--glass-rim);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(28px) saturate(125%);
+  -webkit-backdrop-filter: blur(28px) saturate(125%);
+  border-radius: 20px;
+}
+.app-shell .nav-link { border: 1px solid transparent; }
+.app-shell .nav-link.active {
+  background: linear-gradient(120deg, var(--glass-reflection), transparent), var(--glass-selected);
+  border-color: var(--glass-rim);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 3px 10px rgb(0 0 0 / 7%);
+  color: var(--ink);
+}
+.app-shell .nav-link:hover { background-color: var(--glass-selected); color: var(--ink); }
+.app-shell .brand-mark { border: 1px solid var(--glass-rim); box-shadow: 0 4px 12px rgb(0 0 0 / 16%); border-radius: 11px; }
+.app-shell .workspace-bar {
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  margin-top: 12px;
+  min-height: 48px;
+  padding: 0 10px;
+  border: 1px solid var(--glass-rim);
+  border-radius: 14px;
+  background: linear-gradient(110deg, var(--glass-highlight), transparent 65%), var(--glass-fill);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 4px 16px rgb(0 0 0 / 4%);
+}
+.app-shell .workspace-search { background: var(--glass-selected); border-color: var(--glass-rim); }
+.app-shell :is(.search-controls, .results-section, .panel, .settings-panel, .settings-content, .resource-search-form, .watch-site-summary) {
+  background: var(--glass-panel);
+  border-color: var(--glass-rim);
+  box-shadow: var(--shadow-panel);
+}
+.app-shell :is(.library-filter-form, .section-toolbar, .detail-prefetch-toolbar, .result-filter-bar) {
+  background-color: transparent;
+}
+.app-shell :is(.search-mode-tabs a[aria-current='page'], .theme-option.active, .segmented-control button.active, .settings-index a[aria-selected='true']) {
+  background: var(--glass-selected);
+  color: var(--ink);
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 2px 8px rgb(0 0 0 / 8%);
+}
+.app-shell .button-primary {
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 12%), transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 20%), 0 3px 8px rgb(0 0 0 / 10%);
+}
+.app-shell .button-secondary, .app-shell .icon-button:not(.navigation-toggle):not(.library-cover-menu) {
+  box-shadow: inset 0 1px 0 var(--glass-highlight), 0 2px 5px rgb(0 0 0 / 4%);
+}
+.app-shell :is(.mobile-header, .mobile-tab-bar, .mobile-nav-panel) {
+  background: var(--glass-fill);
+  border-color: var(--glass-rim);
+  backdrop-filter: blur(24px) saturate(125%);
+  -webkit-backdrop-filter: blur(24px) saturate(125%);
+  box-shadow: var(--glass-shadow);
+}
+.app-shell .library-folder-card .library-poster-link {
+  transition: transform 220ms cubic-bezier(.16, 1, .3, 1), box-shadow 220ms ease;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .app-shell .library-folder-card .library-poster-link:hover { transform: translateY(-3px); box-shadow: var(--shadow-float); }
+}
+@media (max-width: 720px) {
+  .app-shell { background-attachment: scroll; }
+  .app-shell .search-controls { background: transparent; box-shadow: none; }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  .app-shell :is(.sidebar, .mobile-header, .mobile-tab-bar, .mobile-nav-panel) { background: var(--surface); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .app-shell { background: var(--bg); }
+  .app-shell :is(.sidebar, .workspace-bar, .mobile-header, .mobile-tab-bar, .mobile-nav-panel, .search-controls, .results-section, .panel, .settings-panel, .settings-content, .resource-search-form, .watch-site-summary) {
+    background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  .library-cover-dialog { background: var(--surface); backdrop-filter: none; }
+  .library-cover-dialog::backdrop { backdrop-filter: none; }
+}

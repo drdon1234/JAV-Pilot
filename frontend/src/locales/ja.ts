@@ -1,6 +1,8 @@
 // Interface translations keyed by the Simplified Chinese source text.
 // Keep {placeholders} unchanged; check with `python tools/i18n_catalog.py check`.
 const messages: Record<string, string> = {
+  "展开导航": "ナビゲーションを展開",
+  "收起导航": "ナビゲーションを折りたたむ",
   "正在加载页面": "ページを読み込み中",
   "正在验证登录状态": "ログイン状態を確認中",
   "无法验证登录状态": "ログイン状態を確認できません",

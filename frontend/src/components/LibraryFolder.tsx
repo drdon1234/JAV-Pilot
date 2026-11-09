@@ -23,13 +23,16 @@ export function LibraryFolder({ prefix, count, returnPath, revision }: { prefix:
   const cover = useQuery({ queryKey: ['folder-cover', prefix, revision], queryFn: ({ signal }) => requestJson<FolderCover>(`/api/library/folder-cover?${new URLSearchParams({ group: prefix })}`, { signal }), enabled: visible, staleTime: 60_000, retry: false })
   return <article ref={element} className="library-poster-card library-folder-card">
     <div className="library-folder-surface">
-      <Link to={`/library?${new URLSearchParams({ group: prefix })}`} state={{ libraryReturnPath: returnPath }} className="library-poster-link" aria-label={folderLabel(prefix)}>
+      <Link to={`/library?${new URLSearchParams({ group: prefix })}`} state={{ libraryReturnPath: returnPath }} className="library-poster-link" aria-label={`${folderLabel(prefix)} · ${t('{count} 部作品', { count })}`}>
         <Mosaic entries={cover.data?.entries || []} />
-        <span className="library-folder-count">{t('{count} 部作品', { count })}</span>
       </Link>
-      <IconButton className="library-cover-menu" label={t('自定义 {prefix} 目录封面', { prefix: folderLabel(prefix) })} onClick={() => setEdit(true)}><MoreHorizontal aria-hidden="true" /></IconButton>
     </div>
-    <div className="library-poster-meta"><strong>{folderLabel(prefix)}</strong><p>{t('打开作品目录')}</p>
+    <div className="library-poster-meta library-folder-meta">
+      <div className="library-folder-caption">
+        <Link to={`/library?${new URLSearchParams({ group: prefix })}`} state={{ libraryReturnPath: returnPath }} className="library-folder-title"><strong>{folderLabel(prefix)}</strong></Link>
+        <span className="library-folder-count">{t('{count} 部作品', { count })}</span>
+      </div>
+      <IconButton className="library-cover-menu" label={t('自定义 {prefix} 目录封面', { prefix: folderLabel(prefix) })} onClick={() => setEdit(true)}><MoreHorizontal aria-hidden="true" /></IconButton>
       {cover.isError ? <button className="library-cover-retry" onClick={() => void cover.refetch()}>{t('重新加载封面')}</button> : null}
     </div>
     {edit ? <CoverPicker prefix={prefix} initial={cover.data?.entries || []} onClose={() => setEdit(false)} /> : null}

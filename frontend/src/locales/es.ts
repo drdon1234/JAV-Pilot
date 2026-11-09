@@ -1,6 +1,8 @@
 // Interface translations keyed by the Simplified Chinese source text.
 // Keep {placeholders} unchanged; check with `python tools/i18n_catalog.py check`.
 const messages: Record<string, string> = {
+  "展开导航": "Expandir navegación",
+  "收起导航": "Contraer navegación",
   "正在加载页面": "Cargando página",
   "正在验证登录状态": "Comprobando el inicio de sesión",
   "无法验证登录状态": "No se puede comprobar el inicio de sesión",

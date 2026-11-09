@@ -176,3 +176,8 @@ fieldset {
   background: var(--primary-soft);
   color: var(--ink);
 }
+
+::selection { background: var(--primary-soft); color: var(--ink); }
+input, textarea { caret-color: var(--primary); }
+* { scrollbar-color: var(--border-strong) transparent; scrollbar-width: thin; }
+a { text-underline-offset: 3px; }

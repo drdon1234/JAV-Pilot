@@ -4,15 +4,16 @@
 
 .sidebar {
   position: fixed;
-  inset-block: 0;
-  inset-inline-start: 0;
+  inset-block: 12px;
+  inset-inline-start: 12px;
   z-index: var(--layer-sidebar);
   display: flex;
-  width: var(--sidebar-width);
+  width: calc(var(--sidebar-width) - 12px);
   flex-direction: column;
-  border-inline-end: 1px solid var(--sidebar-border);
+  border: 1px solid var(--sidebar-border);
+  border-radius: 16px;
   background: var(--sidebar);
-  padding: 18px 14px 16px;
+  padding: 18px 10px 14px;
 }
 
 .brand {
@@ -31,8 +32,8 @@
   flex: 0 0 36px;
   place-items: center;
   border-radius: var(--radius-control);
-  background: var(--primary);
-  color: var(--primary-ink);
+  background: var(--ink);
+  color: var(--surface);
 }
 
 .brand-mark svg {
@@ -90,14 +91,14 @@
 .nav-link {
   position: relative;
   display: flex;
-  min-height: 34px;
+  min-height: 38px;
   align-items: center;
   gap: 11px;
   border-radius: var(--radius-control);
   color: var(--sidebar-muted);
   padding: 0 10px;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 500;
   text-decoration: none;
   transition:
     background 140ms ease,
@@ -120,8 +121,8 @@
 }
 
 .nav-link.active {
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--surface-strong);
+  color: var(--ink);
 }
 
 .nav-link.active svg {
@@ -148,7 +149,7 @@
 .sidebar-service > span:first-child {
   color: var(--sidebar-muted);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .sidebar-service .status-badge {
@@ -188,13 +189,12 @@
 
 .page-header {
   display: flex;
-  min-height: 62px;
+  min-height: 54px;
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 20px;
-  padding-bottom: 17px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
 }
 
 .page-header > div:first-child {
@@ -203,8 +203,8 @@
 
 .page-header h1 {
   color: var(--ink);
-  font-size: 23px;
-  font-weight: 740;
+  font-size: 28px;
+  font-weight: 600;
   line-height: 1.25;
 }
 
@@ -221,4 +221,34 @@
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.workspace-bar {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  gap: 16px;
+  margin-inline: 32px;
+  border-bottom: 1px solid var(--border);
+}
+.workspace-bar .navigation-toggle { width: 32px; height: 32px; flex-basis: 32px; border-color: transparent; background: transparent; }
+.workspace-breadcrumb { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; }
+.workspace-breadcrumb svg { width: 12px; height: 12px; }
+.workspace-breadcrumb strong { color: var(--ink); font-weight: 500; }
+.workspace-search { display: flex; align-items: center; gap: 8px; margin-inline-start: auto; color: var(--muted); text-decoration: none; font-size: 12px; padding: 7px 12px; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); }
+.workspace-search svg { width: 14px; height: 14px; }
+.workspace-search:hover { color: var(--ink); border-color: var(--border-strong); }
+@media (min-width: 901px) {
+  .app-shell[data-navigation-collapsed='true'] { --sidebar-width: 80px; }
+  [data-navigation-collapsed='true'] .sidebar { padding-inline: 8px; }
+  [data-navigation-collapsed='true'] .brand { justify-content: center; padding: 0; }
+  [data-navigation-collapsed='true'] .brand > div:last-child,
+  [data-navigation-collapsed='true'] .sidebar-footer { display: none; }
+  [data-navigation-collapsed='true'] .nav-section-label,
+  [data-navigation-collapsed='true'] .nav-link > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  [data-navigation-collapsed='true'] .nav-link { justify-content: center; min-height: 40px; padding-inline: 0; }
+  [data-navigation-collapsed='true'] .nav-group + .nav-group { border-top: 1px solid var(--border); padding-top: 10px; }
+}
+@media (max-width: 900px) {
+  .workspace-bar { display: none; }
 }

@@ -1,6 +1,8 @@
 // Interface translations keyed by the Simplified Chinese source text.
 // Keep {placeholders} unchanged; check with `python tools/i18n_catalog.py check`.
 const messages: Record<string, string> = {
+  "展开导航": "Развернуть навигацию",
+  "收起导航": "Свернуть навигацию",
   "正在加载页面": "Загрузка страницы",
   "正在验证登录状态": "Проверка входа",
   "无法验证登录状态": "Не удалось проверить вход",

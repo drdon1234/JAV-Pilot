@@ -1,54 +1,29 @@
 .search-workspace {
   display: grid;
-  grid-template-columns: 304px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 20px;
 }
 
 .search-controls {
-  position: sticky;
-  top: 20px;
-  max-height: calc(100dvh - 40px);
-  overflow-x: hidden;
-  overflow-y: auto;
+  position: static;
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-surface);
   background: var(--surface);
   box-shadow: var(--shadow-panel);
-  padding: 16px;
-}
-
-.search-panel-title {
-  display: flex;
-  min-height: 38px;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid var(--border);
-  margin: 0 0 16px;
-  padding-bottom: 12px;
-}
-
-.search-panel-title svg {
-  width: 17px;
-  height: 17px;
-  color: var(--primary);
-}
-
-.search-panel-title h2 {
-  color: var(--ink);
-  font-size: 14px;
-  font-weight: 720;
+  padding: 20px;
 }
 
 .search-primary-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 12px;
 }
 
 .search-primary-row > .button {
-  width: 100%;
+  min-width: 112px;
 }
 
 .search-query-field {
@@ -61,8 +36,20 @@
 }
 
 .search-filter-disclosure > summary {
-  display: none;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto 16px;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  list-style: none;
+  font-size: 13px;
 }
+.search-filter-disclosure > summary::-webkit-details-marker { display: none; }
+.search-filter-disclosure > summary svg { width: 16px; height: 16px; }
+.search-filter-disclosure > summary small { color: var(--muted); }
+.search-filter-disclosure[open] > summary > svg:last-child { transform: rotate(180deg); }
 
 .search-filter-content {
   display: grid;
@@ -71,7 +58,7 @@
 
 .search-option-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   border-top: 1px solid var(--border);
   padding-top: 16px;
@@ -142,7 +129,7 @@
 
 .filter-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   border-top: 1px solid var(--border);
   padding-top: 16px;
@@ -469,8 +456,8 @@
   display: flex;
   min-width: 0;
   overflow-x: auto;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 16px;
+  gap: 6px;
+  margin-bottom: 20px;
 }
 
 .search-mode-tabs a {
@@ -480,7 +467,7 @@
   align-items: center;
   gap: 8px;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--muted);
   padding: 0 14px;
@@ -494,8 +481,8 @@
 }
 
 .search-mode-tabs a[aria-current='page'] {
-  border-bottom-color: var(--primary);
-  color: var(--primary);
+  background: var(--surface-strong);
+  color: var(--ink);
 }
 
 .search-mode-tabs a svg {

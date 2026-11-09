@@ -1,17 +1,15 @@
 .library-workspace {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-surface);
-  background: var(--surface);
-  box-shadow: var(--shadow-panel);
+  min-width: 0;
 }
 
 .library-filter-form {
   display: grid;
   gap: 10px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-raised);
-  padding: 12px;
+  border: 1px solid var(--glass-rim);
+  border-radius: var(--radius-surface);
+  background: var(--glass-panel);
+  box-shadow: var(--shadow-panel);
+  padding: 16px;
 }
 
 .library-filter-primary {
@@ -125,8 +123,8 @@
 }
 
 .library-toolbar {
-  border-bottom: 1px solid var(--border);
-  padding: 0 12px;
+  margin-top: 12px;
+  padding: 0;
 }
 
 .library-toolbar .status-badge {
@@ -149,7 +147,7 @@
   .library-toolbar { align-items: flex-start; padding-block: 8px; }
   .library-toolbar > div:first-child { align-items: flex-start; flex-wrap: wrap; }
 }
-.library-poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 24px 20px; padding: 20px; }
+.library-poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 28px 20px; padding: 16px 0; }
 .library-poster-card { min-width: 0; }
 .library-poster-link { display: block; position: relative; color: var(--ink); border-radius: var(--radius-control); text-decoration: none; }
 .library-poster { aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--radius-control); background: var(--surface-muted); }
@@ -158,9 +156,14 @@
 .library-poster-placeholder > svg { width: 36px; height: 36px; color: var(--muted); }
 .library-poster-placeholder > span { font-size: 12px; }
 .library-poster-link:hover { outline: 2px solid var(--primary); outline-offset: 3px; }
-.library-folder-card .library-poster-link { outline: 1px solid var(--border-strong); outline-offset: 3px; }
-.library-folder-count { position: absolute; right: 8px; bottom: 8px; display: inline-flex; gap: 5px; align-items: center; padding: 5px 8px; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: var(--radius-control); font-size: 12px; font-weight: 600; }
-.library-folder-count svg { width: 14px; height: 14px; }
+.library-folder-card .library-poster-link { border: 1px solid var(--glass-rim); box-shadow: var(--shadow-panel); }
+/* Metadata stays in document flow: it never covers a poster, even with large counts. */
+.library-folder-meta { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 2px 4px; }
+.library-folder-caption { display: contents; }
+.library-folder-title { color: var(--ink); text-decoration: none; overflow-wrap: anywhere; }
+.library-folder-title:hover { color: var(--primary); }
+.library-folder-count { grid-column: 1 / -1; grid-row: 2; display: block; color: var(--muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.library-folder-meta .library-cover-retry { grid-column: 1 / -1; }
 .library-poster-meta { padding-top: 12px; }
 .library-poster-meta .watch-inline-actions { gap: 6px; }
 .library-poster-meta strong { font-size: 13px; }
@@ -211,11 +214,12 @@
 .library-cover-mosaic { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 2px; aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--radius-control); background: var(--surface-muted); }
 .library-cover-mosaic > span { display: block; min-width: 0; min-height: 0; background: var(--border); }
 .library-cover-mosaic img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.library-cover-menu.icon-button { position: absolute; top: 4px; right: 4px; z-index: 1; min-width: 44px; min-height: 44px; border: 0; background: transparent; color: #fff; filter: drop-shadow(0 1px 3px rgb(0 0 0 / 90%)); }
-.library-cover-menu.icon-button:hover { background: rgb(0 0 0 / 25%); }
+.library-cover-menu.icon-button { position: relative; grid-column: 2; grid-row: 1; width: 44px; height: 44px; flex: 0 0 44px; border: 1px solid transparent; background: transparent; color: var(--ink-soft); margin-top: -6px; }
+.library-cover-menu.icon-button::before { display: none; }
+.library-cover-menu.icon-button:hover { background: var(--surface-muted); border-color: var(--border); color: var(--ink); }
 .library-cover-retry { margin-top: 8px; color: var(--primary); font-size: 12px; background: transparent; border: 0; text-decoration: underline; cursor: pointer; }
-.library-cover-dialog { width: min(760px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); border: 1px solid var(--border); border-radius: var(--radius-surface); background: var(--surface); color: var(--ink); padding: 20px; overflow: auto; }
-.library-cover-dialog::backdrop { background: rgb(0 0 0 / 55%); }
+.library-cover-dialog { width: min(760px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); border: 1px solid var(--border); border-radius: var(--radius-surface); background: var(--glass-dialog); color: var(--ink); box-shadow: var(--shadow-float); backdrop-filter: blur(24px); padding: 20px; overflow: auto; }
+.library-cover-dialog::backdrop { background: rgb(6 12 24 / 55%); backdrop-filter: blur(6px); }
 .library-cover-dialog header, .library-cover-dialog footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .library-cover-dialog h2 { font-size: 18px; margin: 0; }
 .library-cover-dialog > p { font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
@@ -234,3 +238,15 @@
 .library-cover-selected { position: absolute; top: 5px; right: 5px; display: inline-flex; align-items: center; gap: 3px; padding: 4px; background: var(--primary); color: var(--on-primary, #fff); border-radius: 4px; font-size: 12px; }
 .library-cover-selected svg { width: 14px; height: 14px; }
 @media (max-width: 700px) { .library-cover-dialog { padding: 14px; } .library-cover-dialog footer { bottom: -14px; } .library-cover-candidates { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .library-cover-selection { grid-template-columns: repeat(9, minmax(0, 1fr)); } }
+
+/* Folder previews need more room than a single poster on a phone. */
+@media (max-width: 720px) {
+  .app-shell .library-poster-grid:has(.library-folder-card) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 14px; padding: 12px 0; }
+  .app-shell .library-filter-primary { grid-template-columns: minmax(0, 1fr) auto; }
+  .app-shell .library-filter-primary > .library-search-field,
+  .app-shell .library-filter-primary > .button { grid-column: auto; }
+  .app-shell .library-filter-primary > .button { min-width: 64px; min-height: 40px; }
+  .app-shell .library-filter-primary > .button svg { display: none; }
+  .app-shell .library-folder-meta { padding-top: 8px; }
+  .app-shell .library-folder-title strong { font-size: 13px; }
+}

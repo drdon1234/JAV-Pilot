@@ -428,9 +428,7 @@ export function SearchPage() {
   const [sourceSelectionError, setSourceSelectionError] = useState('')
   const [clearingSearch, setClearingSearch] = useState(false)
   const clearingSearchRef = useRef(false)
-  const [filtersOpen, setFiltersOpen] = useState(
-    () => !(globalThis.matchMedia?.('(max-width: 720px)')?.matches ?? false),
-  )
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [mobileFilters, setMobileFilters] = useState(
     () => globalThis.matchMedia?.('(max-width: 720px)')?.matches ?? false,
   )
@@ -551,7 +549,6 @@ export function SearchPage() {
     if (!media) return
     const update = (event: Pick<MediaQueryListEvent, 'matches'>) => {
       setMobileFilters(event.matches)
-      if (!event.matches) setFiltersOpen(true)
     }
     update(media)
     media.addEventListener?.('change', update)
@@ -1070,10 +1067,7 @@ export function SearchPage() {
         <Suspense fallback={<SkeletonRows count={4} />}><ResourceSearchWorkspace /></Suspense>
       ) : <div className="search-workspace">
         <form className="search-controls" onSubmit={submit}>
-          <header className="search-panel-title">
-            <SlidersHorizontal aria-hidden="true" />
-            <h2>{t('检索条件')}</h2>
-          </header>
+
           {settings.isError ? (
             <InlineNotice tone="danger" role="alert">
               <strong>{t('无法加载搜索配置')}</strong>
@@ -1130,6 +1124,7 @@ export function SearchPage() {
           <details
             className="search-filter-disclosure"
             open={filtersOpen}
+            onInvalidCapture={(event) => { event.currentTarget.open = true; setFiltersOpen(true) }}
           >
             <summary onClick={(event) => {
               event.preventDefault()

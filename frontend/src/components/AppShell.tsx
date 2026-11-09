@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Captions, Clapperboard, Compass, Download, FileImage, Film, FolderCog, Globe2, Library, ListChecks, ListRestart, type LucideIcon, Search, Settings, Trophy, Wrench } from 'lucide-react'
+import { Captions, Clapperboard, Compass, Download, FileImage, Film, FolderCog, Globe2, Library, ListChecks, ListRestart, type LucideIcon, PanelLeftClose, PanelLeftOpen, ChevronRight, Search, Settings, Trophy, Wrench } from 'lucide-react'
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigationType } from 'react-router-dom'
 
@@ -292,6 +292,7 @@ function NavigationLink({ item, searchTarget, searchActive, onNavigate }: Naviga
     return (
       <Link
         to={searchTarget}
+        title={label}
         aria-current={searchActive ? 'page' : undefined}
         className={searchActive ? 'nav-link active' : 'nav-link'}
         onClick={onNavigate}
@@ -304,6 +305,7 @@ function NavigationLink({ item, searchTarget, searchActive, onNavigate }: Naviga
   return (
     <NavLink
       to={to}
+      title={label}
       className={({ isActive }) => (isActive || isItemActive(to, location.pathname, searchActive) ? 'nav-link active' : 'nav-link')}
       onClick={onNavigate}
     >
@@ -413,6 +415,16 @@ function MobileNavigation(targets: NavigationTargets) {
 
 export function AppShell() {
   const location = useLocation()
+  const [navigationCollapsed, setNavigationCollapsed] = useState(() => {
+    try { return localStorage.getItem('jav-pilot-navigation-collapsed') === 'true' } catch { return false }
+  })
+  const toggleNavigation = () => {
+    const next = !navigationCollapsed
+    try { localStorage.setItem('jav-pilot-navigation-collapsed', String(next)) } catch { /* Storage is optional. */ }
+    setNavigationCollapsed(next)
+  }
+  const activeGroup = navigationGroups.find(group => group.items.some(item => isItemActive(item.to, location.pathname, location.pathname === '/search' || location.pathname === '/results' || location.pathname.startsWith('/works/'))))
+  const activeItem = activeGroup?.items.find(item => isItemActive(item.to, location.pathname, location.pathname === '/search' || location.pathname === '/results' || location.pathname.startsWith('/works/')))
   const mainContentRef = useRef<HTMLElement | null>(null)
   const latestResultsUrlRef = useRef('/search')
   const currentUrl = `${location.pathname}${location.search}${location.hash}`
@@ -474,7 +486,7 @@ export function AppShell() {
             : t('未配置')
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-navigation-collapsed={navigationCollapsed}>
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark" aria-hidden="true">
@@ -513,6 +525,17 @@ export function AppShell() {
       </header>
 
       <main className="main-content" ref={mainContentRef}>
+        <header className="workspace-bar">
+          <button type="button" className="icon-button navigation-toggle" onClick={toggleNavigation}
+            aria-label={navigationCollapsed ? t('展开导航') : t('收起导航')} aria-expanded={!navigationCollapsed}
+            title={navigationCollapsed ? t('展开导航') : t('收起导航')}>
+            {navigationCollapsed ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}
+          </button>
+          <div className="workspace-breadcrumb" aria-hidden="true">
+            <span>{activeGroup?.label ?? 'JAV Pilot'}</span><ChevronRight /><strong>{activeItem?.label ?? t('媒体管理工作台')}</strong>
+          </div>
+          <Link className="workspace-search" to="/search"><Search aria-hidden="true" /><span>{t('搜索')}</span></Link>
+        </header>
         <PlaybackWorkspace />
         <Outlet />
       </main>

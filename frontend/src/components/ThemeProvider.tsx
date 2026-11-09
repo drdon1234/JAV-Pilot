@@ -5,8 +5,8 @@ import { t } from '../lib/i18n'
 type ThemeMode = 'light' | 'dark'
 
 const ThemeContext = createContext<{ mode: ThemeMode; setMode: (mode: ThemeMode) => void } | null>(null)
-const DARK_THEME_COLOR = '#10141b'
-const LIGHT_THEME_COLOR = '#f5f7fa'
+const DARK_THEME_COLOR = '#0d1119'
+const LIGHT_THEME_COLOR = '#edf1f8'
 
 function storedTheme(): ThemeMode {
   try {
