@@ -1056,6 +1056,7 @@ const messages: Record<string, string> = {
   "密码": "Mot de passe",
   "登录中": "Connexion",
   "登录": "Se connecter",
+  "JavDB 要求登录，请更新站点登录会话后重试": "JavDB nécessite une connexion. Actualisez la session du site et réessayez.",
   "等待媒体": "En attente du média",
   "补全中": "Complétion",
   "手动": "Manuel",

@@ -27,6 +27,7 @@ from ...core.models import (
     SourceDetails,
 )
 from ...search.engine import aggregate_results
+from ...indexers.javdb import JAVDB_LOGIN_REQUIRED_MESSAGE
 from ...search.session_store import (
     MetadataSearchStoreError,
     SQLiteMetadataSearchStore,
@@ -234,6 +235,10 @@ def sanitize_metadata_search_event_value(
 ) -> object:
     normalized_name = field_name.strip().lower()
     if normalized_name in {"error", "errors"} or normalized_name.endswith("_error"):
+        if value is None or value == "":
+            return value
+        if value == JAVDB_LOGIN_REQUIRED_MESSAGE:
+            return value
         if isinstance(value, dict):
             return {
                 str(key): sanitize_metadata_search_event_value(

@@ -22,7 +22,13 @@ export function summarizeSources(
     const count = results.filter((result) => result.sources.some((source) => source.source_id === id)).length
     const name = sourceName(id, sites)
     if (skipped[id]) return { id, name, count, note: skipped[id], state: 'skipped' }
-    if (errors[id]) return { id, name, count, note: count ? t('部分页面暂时无法访问') : t('暂时无法访问'), state: 'unavailable' }
+    if (errors[id]) return {
+      id, name, count,
+      note: errors[id] === 'JavDB 要求登录，请更新站点登录会话后重试'
+        ? t('JavDB 要求登录，请更新站点登录会话后重试')
+        : count ? t('部分页面暂时无法访问') : t('暂时无法访问'),
+      state: 'unavailable',
+    }
     if (busy && !count) return { id, name, count, note: t('搜索中'), state: 'pending' }
     return { id, name, count, note: '', state: 'ok' }
   })

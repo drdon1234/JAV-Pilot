@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html as html_lib
 import os
+import re
 from collections.abc import Callable
 from dataclasses import replace
 from typing import Protocol
@@ -44,6 +45,7 @@ JAVDB_DETAIL_READY_SELECTOR = (
 )
 JAVDB_CHALLENGE_WAIT_SECONDS = 12.0
 JAVDB_BROWSER_SEARCH_ATTEMPTS = 2
+JAVDB_LOGIN_REQUIRED_MESSAGE = "JavDB 要求登录，请更新站点登录会话后重试"
 _JAVDB_REGION_UNAVAILABLE_MESSAGE = (
     "JavDB is unavailable from the current network region"
 )
@@ -663,8 +665,10 @@ def _looks_like_javdb_block_page(page: str) -> bool:
 
 
 def _looks_like_javdb_hard_block(page: str) -> bool:
-    return _looks_like_javdb_region_block(page) or _looks_like_javdb_temporary_block(
-        page
+    return (
+        _looks_like_javdb_region_block(page)
+        or _looks_like_javdb_temporary_block(page)
+        or _looks_like_javdb_login_page(page)
     )
 
 
@@ -693,9 +697,13 @@ def _looks_like_javdb_temporary_block(page: str) -> bool:
 
 
 def _looks_like_javdb_login_page(page: str) -> bool:
-    # Anonymous visitors of login-gated works (e.g. FC2) get the sign-in form.
-    lowered = (page or "").casefold()
-    return 'action="/user_sessions"' in lowered and 'name="password"' in lowered
+    # Current pages include sign-in modals even when search is usable. Only
+    # the document title (or the legacy standalone form) identifies a gate.
+    lowered = html_lib.unescape(page or "").casefold()
+    return bool(re.search(
+        r"<title[^>]*>\s*(?:登入|登录|log\s*in|sign\s*in)\s*[|–-]\s*javdb\b",
+        lowered,
+    )) or ('action="/user_sessions"' in lowered and 'name="password"' in lowered)
 
 
 def _looks_like_javdb_challenge(page: str) -> bool:
@@ -740,6 +748,8 @@ def _looks_like_javdb_detail_content(page: str) -> bool:
 
 
 def _javdb_block_message(page: str) -> str:
+    if _looks_like_javdb_login_page(page):
+        return JAVDB_LOGIN_REQUIRED_MESSAGE
     if _looks_like_javdb_region_block(page):
         return _JAVDB_REGION_UNAVAILABLE_MESSAGE
     if _looks_like_javdb_temporary_block(page):

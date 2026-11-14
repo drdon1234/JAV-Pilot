@@ -1,3 +1,3 @@
 """JAV Pilot: search, download management, and media organization."""
 
-__version__ = "0.3.7"
+__version__ = "0.3.8"
