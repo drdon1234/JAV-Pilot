@@ -1,3 +1,4 @@
+import '../styles/downloadLayout.css'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CheckSquare2, ChevronLeft, ChevronRight, Download, RefreshCw, Search, Settings, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'

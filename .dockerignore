@@ -34,6 +34,7 @@ dist/
 **/*.log
 **/*.bak
 **/*.bak-*
+**/*.bak.*
 **/*.sqlite
 **/*.sqlite3
 **/*.sqlite3-*
@@ -51,3 +52,5 @@ dist/
 **/id_ed25519
 **/cookies*.txt
 **/cookies*.json
+
+**/.vite/

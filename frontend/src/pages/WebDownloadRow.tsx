@@ -1,3 +1,4 @@
+import '../styles/downloadLayout.css'
 import { ArrowDown, ArrowUp, GripVertical, Pause, Play, RefreshCw, RotateCcw, Trash2, X } from 'lucide-react'
 
 import { Button, IconButton, ProgressBar, StatusBadge } from '../components/ui'

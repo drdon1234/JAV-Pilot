@@ -5,13 +5,11 @@ import { usePlaybackActivity } from '../lib/playbackActivity'
 import { PlayerChoice, PlayerMenu } from './PlayerMenu'
 import { PlayerSubtitles } from './PlayerSubtitles'
 import type { SubtitleSource } from '../lib/playbackSubtitles'
+import { playbackTime } from '../lib/format'
+import { usePlaybackSpeedHold } from '../lib/usePlaybackSpeedHold'
 
-export function playbackTime(value: number) {
-  if (!Number.isFinite(value)) return '0:00'
-  const seconds = Math.max(0, Math.floor(value))
-  const minutes = Math.floor(seconds / 60)
-  return `${minutes > 59 ? `${Math.floor(minutes / 60)}:` : ''}${minutes > 59 ? String(minutes % 60).padStart(2, '0') : minutes}:${String(seconds % 60).padStart(2, '0')}`
-}
+const PLAYER_INTERACTIVE = 'a, button, input, select, textarea, summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="slider"], [role="textbox"], [role="combobox"]'
+const PLAYER_EDITABLE = 'input, select, textarea, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], dialog, [role="dialog"], [aria-modal="true"]'
 
 export function VideoControls({ video, children, resolution, subtitles }: { video: RefObject<HTMLVideoElement | null>; children: ReactNode; resolution?: ReactNode; subtitles?: SubtitleSource[] }) {
   const stage = useRef<HTMLDivElement>(null)
@@ -70,6 +68,9 @@ export function VideoControls({ video, children, resolution, subtitles }: { vide
   const tap = useRef<{ time: number; zone: number } | null>(null)
   const [show, setShow] = useState(true)
   const [nativeFullscreen, setNativeFullscreen] = useState(false)
+  const speedHold = usePlaybackSpeedHold(video, activity.active && !nativeFullscreen)
+  const suppressClick = useRef(false)
+  const mouseStart = useRef<{ x: number; y: number } | null>(null)
   const [hint, setHint] = useState<string | null>(null)
   const [state, setState] = useState({ paused: true, time: activity.snapshot?.position ?? 0, duration: activity.snapshot?.duration ?? 0, speed: 1, fullscreen: false })
   const seeking = useRef<number | null>(null)
@@ -77,6 +78,12 @@ export function VideoControls({ video, children, resolution, subtitles }: { vide
   const [buffering, setBuffering] = useState(false)
   const [brightness, setBrightness] = useState(1)
   const [volume, setVolume] = useState(1)
+  useEffect(() => {
+    if (!activity.active || document.hidden || nativeFullscreen) return
+    const focused = document.activeElement
+    if (focused instanceof HTMLElement && focused.closest(PLAYER_EDITABLE)) return
+    if (!stage.current?.contains(focused)) stage.current?.focus({ preventScroll: true })
+  }, [activity.active, nativeFullscreen])
   const changeVolume = (value: number) => { const element = video.current; if (element) { element.volume = Math.max(0, Math.min(1, value)); element.muted = value === 0; setVolume(element.muted ? 0 : element.volume) } }
   useEffect(() => { stage.current?.style.setProperty('--playback-brightness', String(brightness)) }, [brightness])
   useEffect(() => {
@@ -113,6 +120,7 @@ export function VideoControls({ video, children, resolution, subtitles }: { vide
     const container = stage.current!
     container.addEventListener('toggle', reveal, true)
     const nativeStart = () => {
+      speedHold.finish()
       touch.current = null
       tap.current = null
       window.clearTimeout(clickTimer.current)
@@ -195,7 +203,7 @@ export function VideoControls({ video, children, resolution, subtitles }: { vide
   const seek = (offset: number, revealControls = true) => {
     const element = video.current!
     if (Number.isFinite(element.duration)) seekTo((seeking.current ?? element.currentTime) + offset, revealControls)
-    feedback(offset < 0 ? t('后退 30 秒') : t('前进 30 秒'))
+    feedback(`${offset < 0 ? '−' : '+'}${playbackTime(Math.abs(offset))}`)
   }
   const fullscreen = () => {
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined)
@@ -216,7 +224,14 @@ export function VideoControls({ video, children, resolution, subtitles }: { vide
   const pointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (settingsOpen()) return
     lastPointer.current = event.pointerType
-    if (event.pointerType === 'mouse') { touch.current = null; return }
+    suppressClick.current = false
+    if (event.pointerType === 'mouse') {
+      touch.current = null
+      if (event.button !== 0) return
+      mouseStart.current = { x: event.clientX, y: event.clientY }
+      speedHold.start(`pointer:${event.pointerId}`)
+      return
+    }
     if (!event.isPrimary) { touch.current = null; tap.current = null; return }
     // Use the visible screen edges, before mapping a rotated fullscreen surface.
     // Ignore the entire contact, even after it moves into the player interior.
@@ -235,17 +250,25 @@ export function VideoControls({ video, children, resolution, subtitles }: { vide
     const zone = ratio < 0.15 ? -1 : ratio > 0.85 ? 1 : 0
     const level = zone < 0 ? 'brightness' : zone > 0 ? 'volume' : null
     event.preventDefault()
+    speedHold.start(`pointer:${event.pointerId}`)
     touch.current = { id: event.pointerId, x: event.clientX, y: event.clientY, zone, position: seeking.current ?? video.current!.currentTime, destination: null, axis: null, level, initialLevel: level === 'brightness' ? brightness : (video.current!.muted ? 0 : video.current!.volume) }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
   const pointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (settingsOpen()) { cancelGesture(); return }
-    if (event.pointerType === 'mouse') { reveal(); return }
+    if (speedHold.isLong()) { event.preventDefault(); return }
+    if (event.pointerType === 'mouse') {
+      const start = mouseStart.current
+      if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 12) speedHold.finish()
+      reveal()
+      return
+    }
     const start = touch.current
     if (!start || start.id !== event.pointerId) return
     const dx = rotated() ? event.clientY - start.y : event.clientX - start.x
     const dy = rotated() ? start.x - event.clientX : event.clientY - start.y
     if (!start.axis && Math.hypot(dx, dy) > 12) {
+      speedHold.finish()
       start.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
       tap.current = null
       window.clearTimeout(clickTimer.current)
@@ -269,6 +292,8 @@ export function VideoControls({ video, children, resolution, subtitles }: { vide
     feedback(playbackTime(start.destination))
   }
   const cancelGesture = () => {
+    speedHold.finish()
+    mouseStart.current = null
     touch.current = null
     tap.current = null
     setTarget(null)
@@ -276,6 +301,15 @@ export function VideoControls({ video, children, resolution, subtitles }: { vide
     window.clearTimeout(clickTimer.current)
   }
   const pointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    mouseStart.current = null
+    if (speedHold.finish(`pointer:${event.pointerId}`)) {
+      suppressClick.current = true
+      touch.current = null
+      tap.current = null
+      window.clearTimeout(clickTimer.current)
+      event.preventDefault()
+      return
+    }
     if (settingsOpen()) { cancelGesture(); return }
     const start = touch.current
     if (event.pointerType === 'mouse' || !start || start.id !== event.pointerId) return
@@ -300,23 +334,34 @@ export function VideoControls({ video, children, resolution, subtitles }: { vide
     }
   }
   return <div ref={stage} className={`video-stage${show ? ' controls-visible' : ''}`} tabIndex={0} aria-label={t('应用内播放器')}
+    onPointerDownCapture={event => {
+      speedHold.finish()
+      if (event.pointerType === 'mouse' && event.button === 0 && !(event.target as HTMLElement).closest(PLAYER_INTERACTIVE)) stage.current?.focus({ preventScroll: true })
+    }}
     onPointerMove={event => { if (event.pointerType === 'mouse') reveal() }}
     onPointerLeave={event => { if (event.pointerType === 'mouse') hide() }}
     onFocus={event => { if ((event.target as HTMLElement).matches(':focus-visible')) reveal() }}
+    onBlur={() => speedHold.finish()}
     onKeyDown={event => {
-      if (event.target !== stage.current && event.target !== video.current) return
-      if (event.key === ' ' || event.key === 'k') { event.preventDefault(); toggle() }
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); seek(event.key === 'ArrowLeft' ? -30 : 30) }
-      if (event.key === 'f') fullscreen()
+      if (!activity.active || nativeFullscreen || event.defaultPrevented || event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+      const target = event.target as HTMLElement
+      if (target.closest(`${PLAYER_EDITABLE}, [role="slider"]`) || settingsOpen()) return
+      const key = event.key.toLowerCase()
+      // Space still activates the focused native button or summary exactly once.
+      if (key === ' ' && target.closest(PLAYER_INTERACTIVE)) return
+      if (key === 'arrowright') { event.preventDefault(); if (!event.repeat) speedHold.start('keyboard', () => seek(5)); return }
+      if (key === 'arrowleft') { event.preventDefault(); seek(-5); return }
+      if (key === ' ' || key === 'k') { event.preventDefault(); if (!event.repeat) toggle() }
+      if (key === 'f') { event.preventDefault(); if (!event.repeat) fullscreen() }
     }}>
     <div className="video-surface">{children}
     {!nativeFullscreen ? <>
     <button type="button" className="video-exit" aria-label={state.fullscreen ? t('退出全屏') : t('返回')} onClick={() => { if (document.fullscreenElement) fullscreen(); else activity.exit?.() }}><ArrowLeft aria-hidden="true" /></button>
     {buffering ? <div className="video-buffering" role="status" aria-label={t('正在加载')}><span className="video-buffering-spinner" /></div> : null}
     <div className="video-gesture-surface" aria-hidden="true" onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={cancelGesture} onLostPointerCapture={() => { if (touch.current) cancelGesture() }}
-      onClick={() => { if (lastPointer.current !== 'mouse') return; window.clearTimeout(clickTimer.current); clickTimer.current = window.setTimeout(toggle, 250) }}
+      onClick={() => { if (suppressClick.current) { suppressClick.current = false; return }; if (lastPointer.current !== 'mouse') return; window.clearTimeout(clickTimer.current); clickTimer.current = window.setTimeout(toggle, 250) }}
       onDoubleClick={() => { if (lastPointer.current !== 'mouse') return; window.clearTimeout(clickTimer.current); fullscreen() }} />
-    {hint ? <div className="video-gesture-hint" role="status">{hint}</div> : null}
+    {speedHold.holding || hint ? <div className="video-gesture-hint" role="status">{speedHold.holding ? '2×' : hint}</div> : null}
     <div className="video-controls" onPointerDown={reveal} onFocus={event => { if ((event.target as HTMLElement).matches(':focus-visible')) reveal() }}>
       <div className="video-progress-row"><span>{playbackTime(target ?? state.time)}</span>
         <input aria-label={t('播放进度')} type="range" min={0} max={state.duration || 1} step={0.1} value={Math.min(target ?? state.time, state.duration || 1)} disabled={!state.duration}

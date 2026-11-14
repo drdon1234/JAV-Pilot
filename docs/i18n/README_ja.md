@@ -16,7 +16,7 @@
 <a href="https://hub.docker.com/r/drdon1234/jav-pilot"><img src="https://img.shields.io/docker/v/drdon1234/jav-pilot?sort=semver&label=docker&color=3567b7" alt="Docker バージョン"></a>
 <a href="https://hub.docker.com/r/drdon1234/jav-pilot"><img src="https://img.shields.io/docker/pulls/drdon1234/jav-pilot?color=3567b7" alt="Docker プル数"></a>
 <img src="https://img.shields.io/badge/platform-linux%2Famd64-3567b7" alt="プラットフォーム">
-<img src="https://img.shields.io/badge/python-3.11+-3567b7" alt="Python 3.11+">
+<img src="https://img.shields.io/badge/python-3.11.5+-3567b7" alt="Python 3.11.5+">
 <a href="../../LICENSE"><img src="https://img.shields.io/badge/license-MIT-3567b7" alt="MIT License"></a>
 <br>
 
@@ -57,7 +57,7 @@ JAV Pilot は NAS、サーバー、PC で運用できるセルフホスト型の
 | --- | --- | --- |
 | [方法 1：Docker（推奨）](#方法-1docker-でデプロイ推奨) | NAS、Linux サーバー、または Windows の WSL2 | Docker と Docker Compose v2 |
 | [方法 2：ソースからイメージをビルド](#方法-2ソースからイメージをビルド) | ソースを変更する場合、またはイメージを自分でビルドする場合 | Docker、Git |
-| [方法 3：Docker を使わない](#方法-3docker-を使わない) | Docker 環境がない場合、またはシステムサービスとして実行する場合 | Git、Python 3.11+、Node.js 24 |
+| [方法 3：Docker を使わない](#方法-3docker-を使わない) | Docker 環境がない場合、またはシステムサービスとして実行する場合 | Git、Python 3.11.5+、Node.js 24 |
 
 ### 方法 1：Docker でデプロイ（推奨）
 
@@ -130,7 +130,7 @@ cp .env.example .env
 
 ### 方法 3：Docker を使わない
 
-JAV Pilot 自体が Web サービスであり、Linux・macOS・Windows 上で直接実行できます。前提条件は Git、Python 3.11 以上（3.12 を推奨）、Node.js 24、npm です。Debian / Ubuntu ではさらに `python3-venv` が必要です。Linux / macOS の例：
+JAV Pilot 自体が Web サービスであり、Linux・macOS・Windows 上で直接実行できます。前提条件は Git、Python 3.11.5 以上（3.12 を推奨）、Node.js 24、npm です。Debian / Ubuntu ではさらに `python3-venv` が必要です。Linux / macOS の例：
 
 ```bash
 git clone https://github.com/drdon1234/JAV-Pilot.git

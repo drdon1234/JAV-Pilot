@@ -16,7 +16,7 @@
 <a href="https://hub.docker.com/r/drdon1234/jav-pilot"><img src="https://img.shields.io/docker/v/drdon1234/jav-pilot?sort=semver&label=docker&color=3567b7" alt="Docker 版本"></a>
 <a href="https://hub.docker.com/r/drdon1234/jav-pilot"><img src="https://img.shields.io/docker/pulls/drdon1234/jav-pilot?color=3567b7" alt="Docker 下載次數"></a>
 <img src="https://img.shields.io/badge/platform-linux%2Famd64-3567b7" alt="平台">
-<img src="https://img.shields.io/badge/python-3.11+-3567b7" alt="Python 3.11+">
+<img src="https://img.shields.io/badge/python-3.11.5+-3567b7" alt="Python 3.11.5+">
 <a href="../../LICENSE"><img src="https://img.shields.io/badge/license-MIT-3567b7" alt="MIT License"></a>
 <br>
 
@@ -57,7 +57,7 @@ JAV Pilot 是可部署於 NAS、伺服器或個人電腦的自架影片管理應
 | --- | --- | --- |
 | [一：Docker 部署（建議）](#方式一docker-部署建議) | NAS、Linux 伺服器，或 Windows 下的 WSL2 | Docker 與 Docker Compose v2 |
 | [二：從原始碼建置映像檔](#方式二從原始碼建置映像檔) | 需要修改原始碼或自行建置映像檔 | Docker、Git |
-| [三：不使用 Docker](#方式三不使用-docker) | 沒有 Docker 環境，或需要以系統服務方式執行 | Git、Python 3.11+、Node.js 24 |
+| [三：不使用 Docker](#方式三不使用-docker) | 沒有 Docker 環境，或需要以系統服務方式執行 | Git、Python 3.11.5+、Node.js 24 |
 
 ### 方式一：Docker 部署（建議）
 
@@ -130,7 +130,7 @@ cp .env.example .env
 
 ### 方式三：不使用 Docker
 
-JAV Pilot 本身即為 Web 服務，可直接在 Linux、macOS 或 Windows 上執行。前置條件為 Git、Python 3.11 以上（建議 3.12）、Node.js 24 與 npm；Debian / Ubuntu 另需安裝 `python3-venv`。以 Linux / macOS 為例：
+JAV Pilot 本身即為 Web 服務，可直接在 Linux、macOS 或 Windows 上執行。前置條件為 Git、Python 3.11.5 以上（建議 3.12）、Node.js 24 與 npm；Debian / Ubuntu 另需安裝 `python3-venv`。以 Linux / macOS 為例：
 
 ```bash
 git clone https://github.com/drdon1234/JAV-Pilot.git

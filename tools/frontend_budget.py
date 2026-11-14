@@ -13,6 +13,10 @@ LAZY_CHUNK_MAX_BYTES = 75 * 1024
 # Interface translation catalogs (src/locales/*.ts) are data, and a page
 # loads at most one of them, so they get their own limit.
 LOCALE_CHUNK_MAX_BYTES = 256 * 1024
+# The complete HLS engine is a separately loaded third-party media runtime.
+# Keep it out of the initial dependency graph and bound its aggregate size,
+# rather than treating it as a small application route or splitting it to hide size.
+MEDIA_RUNTIME_MAX_BYTES = 512 * 1024
 INITIAL_MAX_BYTES = 450 * 1024
 
 
@@ -44,6 +48,7 @@ class FrontendBudgetReport:
     largest_lazy_chunk_bytes: int
     lazy_chunk_count: int
     largest_locale_chunk_bytes: int = 0
+    media_runtime_bytes: int = 0
 
     def public_dict(self) -> dict[str, int | bool]:
         return {
@@ -54,6 +59,7 @@ class FrontendBudgetReport:
             "largest_lazy_chunk_bytes": self.largest_lazy_chunk_bytes,
             "lazy_chunk_count": self.lazy_chunk_count,
             "largest_locale_chunk_bytes": self.largest_locale_chunk_bytes,
+            "media_runtime_bytes": self.media_runtime_bytes,
         }
 
 
@@ -69,19 +75,51 @@ def check_frontend_budget(dist_root: Path) -> FrontendBudgetReport:
     if not entry_scripts:
         raise FrontendBudgetError("frontend build has no module entry")
 
-    entry_bytes = sum(path.stat().st_size for path in entry_scripts)
-    css_bytes = sum(path.stat().st_size for path in styles)
-    initial_bytes = entry_bytes + css_bytes
+    manifest_path = root / "assets" / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
+    if not isinstance(manifest, dict):
+        raise FrontendBudgetError("frontend build manifest is invalid")
     entry_set = {path.resolve() for path in entry_scripts}
+    style_set = {path.resolve() for path in styles}
+    def collect_dependencies(key: str, scripts: set[Path], css_files: set[Path], visited: set[str]) -> None:
+        if key in visited:
+            return
+        visited.add(key)
+        record = manifest.get(key)
+        if not isinstance(record, dict):
+            raise FrontendBudgetError("frontend manifest references a missing import")
+        scripts.add(_asset_path(root, record.get("file", "")))
+        for css in record.get("css", []):
+            css_files.add(_asset_path(root, css))
+        for dependency in record.get("imports", []):
+            collect_dependencies(dependency, scripts, css_files, visited)
+
+    visited: set[str] = set()
+    for key, record in manifest.items():
+        if isinstance(record, dict) and record.get("isEntry"):
+            collect_dependencies(key, entry_set, style_set, visited)
+    entry_bytes = sum(path.stat().st_size for path in entry_set)
+    css_bytes = sum(path.stat().st_size for path in style_set)
+    initial_bytes = entry_bytes + css_bytes
     locale_set = _locale_chunks(root)
+    media_record = manifest.get("node_modules/hls.js/dist/hls.mjs")
+    media_set: set[Path] = set()
+    media_styles: set[Path] = set()
+    if isinstance(media_record, dict):
+        collect_dependencies("node_modules/hls.js/dist/hls.mjs", media_set, media_styles, set())
+    media_bytes = sum(path.stat().st_size for path in media_set | media_styles)
     lazy_chunks = tuple(
         path
         for path in (root / "assets").glob("*.js")
-        if path.resolve() not in entry_set and path.resolve() not in locale_set
+        if path.resolve() not in entry_set | locale_set | media_set
     )
     largest_lazy = max((path.stat().st_size for path in lazy_chunks), default=0)
     largest_locale = max((path.stat().st_size for path in locale_set), default=0)
     violations: list[str] = []
+    if media_set & entry_set:
+        violations.append("HLS media runtime must not be loaded by the application entry")
+    if media_bytes > MEDIA_RUNTIME_MAX_BYTES:
+        violations.append("HLS media runtime exceeds 512 KiB")
     if entry_bytes > ENTRY_JS_MAX_BYTES:
         violations.append("entry JavaScript exceeds 350 KiB")
     if css_bytes > CSS_MAX_BYTES:
@@ -101,6 +139,7 @@ def check_frontend_budget(dist_root: Path) -> FrontendBudgetReport:
         largest_lazy_chunk_bytes=largest_lazy,
         lazy_chunk_count=len(lazy_chunks),
         largest_locale_chunk_bytes=largest_locale,
+        media_runtime_bytes=media_bytes,
     )
 
 

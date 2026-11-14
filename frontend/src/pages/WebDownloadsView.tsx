@@ -1,3 +1,4 @@
+import '../styles/downloadLayout.css'
 import { AdaptiveDisclosure } from '../components/AdaptiveDisclosure'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, RefreshCw, RotateCcw, Search, Trash2, X } from 'lucide-react'

@@ -1,3 +1,4 @@
+import '../styles/downloadLayout.css'
 import { Archive, Globe2, Magnet } from 'lucide-react'
 import { lazy, Suspense, useEffect, useRef, type KeyboardEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'

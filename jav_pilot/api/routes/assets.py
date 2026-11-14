@@ -72,10 +72,9 @@ class AssetRoutes(BaseHandler):
             state.COVER_REQUEST_SLOTS.release()
 
     def _handle_login_page(self) -> None:
-        if self._authenticated():
-            self._redirect("/search")
-        else:
-            self._handle_frontend()
+        # The frontend validates and restores ?next= even when another tab
+        # has already authenticated this browser.
+        self._handle_frontend()
 
     def _handle_root(self) -> None:
         self._redirect("/search")

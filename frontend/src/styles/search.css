@@ -152,11 +152,12 @@
   .search-page .results-section .empty-state { min-height: 180px; padding: 28px 16px; }
 }
 
-.result-row-openable [data-open-detail] {
-  cursor: pointer;
+.result-detail-content {
+  color: inherit;
+  text-decoration: none;
 }
 
-.result-row-openable h3[data-open-detail]:hover {
+.result-heading .result-detail-content:hover {
   color: var(--primary);
 }
 

@@ -33,7 +33,7 @@ export function WatchPlayer({ entry }: { entry: WatchEntry }) {
     let lastSaved = -1
     let disposed = false
     const save = () => {
-      if (!initialized.current || !Number.isFinite(element.duration) || element.currentTime <= 0 && !element.ended) return
+      if (!initialized.current || !Number.isFinite(element.duration) || !Number.isFinite(element.currentTime) || element.currentTime < 0) return
       const position = element.ended ? 0 : element.currentTime
       if (position === lastSaved) return
       lastSaved = position
@@ -88,14 +88,20 @@ export function WatchPlayer({ entry }: { entry: WatchEntry }) {
           if (activity.current.current && activity.autoplay.current && !document.hidden) void element.play().catch(() => setStatus(t('播放已就绪，点击播放器开始观看。')))
           else if (!activity.current.current) hlsRef.current?.stopLoad()
         }
-        const { default: Hls } = await import('hls.js')
-        if (disposed) return
-        if (playback.media_kind === 'progressive' || !Hls.isSupported() && element.canPlayType('application/vnd.apple.mpegurl')) {
+        const nativeHls = !!element.canPlayType('application/vnd.apple.mpegurl')
+        const hasMediaSource = ['MediaSource', 'ManagedMediaSource', 'WebKitMediaSource'].some(name => name in window)
+        const attachNative = () => {
           element.src = playback.media_url
           onMetadata = start
           element.addEventListener('loadedmetadata', start, { once: true })
           element.load()
+        }
+        if (playback.media_kind === 'progressive' || nativeHls && !hasMediaSource) {
+          attachNative()
         } else {
+          const { default: Hls } = await import('hls.js')
+          if (disposed) return
+          if (!Hls.isSupported() && nativeHls) { attachNative(); return }
           if (!Hls.isSupported()) throw new Error(t('此浏览器不支持 HLS 播放，请使用新版 Chrome、Edge 或 Safari。'))
           const hls = new Hls({ enableWorker: false, backBufferLength: 90, maxBufferLength: 60, maxMaxBufferLength: 120, maxBufferSize: 64 * 1024 * 1024 })
           hlsRef.current = hls

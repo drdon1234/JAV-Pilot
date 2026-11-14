@@ -1,3 +1,4 @@
+import '../styles/downloadLayout.css'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Download, ExternalLink, LoaderCircle, RadioTower, RotateCcw, WandSparkles, X } from 'lucide-react'
 import { BackLink } from '../components/BackLink'

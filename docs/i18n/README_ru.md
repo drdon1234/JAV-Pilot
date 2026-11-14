@@ -16,7 +16,7 @@
 <a href="https://hub.docker.com/r/drdon1234/jav-pilot"><img src="https://img.shields.io/docker/v/drdon1234/jav-pilot?sort=semver&label=docker&color=3567b7" alt="Версия Docker"></a>
 <a href="https://hub.docker.com/r/drdon1234/jav-pilot"><img src="https://img.shields.io/docker/pulls/drdon1234/jav-pilot?color=3567b7" alt="Загрузки Docker"></a>
 <img src="https://img.shields.io/badge/platform-linux%2Famd64-3567b7" alt="Платформа">
-<img src="https://img.shields.io/badge/python-3.11+-3567b7" alt="Python 3.11+">
+<img src="https://img.shields.io/badge/python-3.11.5+-3567b7" alt="Python 3.11.5+">
 <a href="../../LICENSE"><img src="https://img.shields.io/badge/license-MIT-3567b7" alt="Лицензия MIT"></a>
 <br>
 
@@ -57,7 +57,7 @@ JAV Pilot — видеоприложение для самостоятельно
 | --- | --- | --- |
 | [Способ 1: Docker (рекомендуется)](#способ-1-развёртывание-в-docker-рекомендуется) | NAS, Linux-сервер или WSL2 в Windows | Docker и Docker Compose v2 |
 | [Способ 2: сборка из исходного кода](#способ-2-сборка-образа-из-исходного-кода) | Изменение исходного кода или сборка собственного образа | Docker, Git |
-| [Способ 3: без Docker](#способ-3-без-docker) | Docker недоступен или нужен запуск в виде системной службы | Git, Python 3.11+, Node.js 24 |
+| [Способ 3: без Docker](#способ-3-без-docker) | Docker недоступен или нужен запуск в виде системной службы | Git, Python 3.11.5+, Node.js 24 |
 
 ### Способ 1: развёртывание в Docker (рекомендуется)
 
@@ -130,7 +130,7 @@ cp .env.example .env
 
 ### Способ 3: без Docker
 
-JAV Pilot сам по себе является веб-службой и запускается непосредственно в Linux, macOS или Windows. Требования: Git, Python 3.11 или новее (рекомендуется 3.12), Node.js 24 и npm; в Debian / Ubuntu дополнительно нужен `python3-venv`. В Linux / macOS:
+JAV Pilot сам по себе является веб-службой и запускается непосредственно в Linux, macOS или Windows. Требования: Git, Python 3.11.5 или новее (рекомендуется 3.12), Node.js 24 и npm; в Debian / Ubuntu дополнительно нужен `python3-venv`. В Linux / macOS:
 
 ```bash
 git clone https://github.com/drdon1234/JAV-Pilot.git

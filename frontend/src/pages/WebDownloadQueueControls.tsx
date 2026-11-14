@@ -1,3 +1,4 @@
+import '../styles/downloadLayout.css'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Pause, Play, Plus, Save, Settings, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'

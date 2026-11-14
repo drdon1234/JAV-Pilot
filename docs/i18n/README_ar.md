@@ -16,7 +16,7 @@
 <a href="https://hub.docker.com/r/drdon1234/jav-pilot"><img src="https://img.shields.io/docker/v/drdon1234/jav-pilot?sort=semver&label=docker&color=3567b7" alt="إصدار Docker"></a>
 <a href="https://hub.docker.com/r/drdon1234/jav-pilot"><img src="https://img.shields.io/docker/pulls/drdon1234/jav-pilot?color=3567b7" alt="مرات السحب من Docker"></a>
 <img src="https://img.shields.io/badge/platform-linux%2Famd64-3567b7" alt="المنصة">
-<img src="https://img.shields.io/badge/python-3.11+-3567b7" alt="Python 3.11+">
+<img src="https://img.shields.io/badge/python-3.11.5+-3567b7" alt="Python 3.11.5+">
 <a href="../../LICENSE"><img src="https://img.shields.io/badge/license-MIT-3567b7" alt="ترخيص MIT"></a>
 <br>
 
@@ -59,7 +59,7 @@
 | --- | --- | --- |
 | [الطريقة 1: Docker (موصى بها)](#الطريقة-1-النشر-باستخدام-docker-موصى-بها) | جهاز NAS أو خادم Linux أو WSL2 على Windows | Docker وDocker Compose v2 |
 | [الطريقة 2: البناء من الشيفرة المصدرية](#الطريقة-2-بناء-الصورة-من-الشيفرة-المصدرية) | تعديل الشيفرة المصدرية أو بناء صورة خاصة | Docker وGit |
-| [الطريقة 3: دون Docker](#الطريقة-3-دون-docker) | عدم توفّر Docker، أو التشغيل كخدمة نظام | Git وPython 3.11+ وNode.js 24 |
+| [الطريقة 3: دون Docker](#الطريقة-3-دون-docker) | عدم توفّر Docker، أو التشغيل كخدمة نظام | Git وPython 3.11.5+ وNode.js 24 |
 
 </div>
 
@@ -138,7 +138,7 @@ cp .env.example .env
 
 ### الطريقة 3: دون Docker
 
-‏JAV Pilot في حد ذاته خدمة ويب، ويعمل مباشرةً على Linux أو macOS أو Windows. المتطلبات المسبقة: Git وPython 3.11 أو أحدث (يُوصى بالإصدار 3.12) وNode.js 24 وnpm، كما تحتاج Debian / Ubuntu إلى الحزمة `python3-venv`. على Linux / macOS:
+‏JAV Pilot في حد ذاته خدمة ويب، ويعمل مباشرةً على Linux أو macOS أو Windows. المتطلبات المسبقة: Git وPython 3.11.5 أو أحدث (يُوصى بالإصدار 3.12) وNode.js 24 وnpm، كما تحتاج Debian / Ubuntu إلى الحزمة `python3-venv`. على Linux / macOS:
 
 ```bash
 git clone https://github.com/drdon1234/JAV-Pilot.git

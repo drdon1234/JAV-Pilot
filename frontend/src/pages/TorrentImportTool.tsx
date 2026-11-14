@@ -1,3 +1,5 @@
+import '../styles/downloadLayout.css'
+import '../styles/metadata.css'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, ScanSearch, X } from 'lucide-react'
 import { type FormEvent, useRef, useState } from 'react'

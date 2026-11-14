@@ -443,10 +443,10 @@ export interface NotificationConfigUpdate {
 export interface AuthStatus {
   enabled: boolean
   configured: boolean
-  secret_configured: boolean
-  username: string
+  secret_configured?: boolean
+  username?: string
   authenticated: boolean
-  security: {
+  security?: {
     safe: boolean
     startup_allowed: boolean
     override_active: boolean

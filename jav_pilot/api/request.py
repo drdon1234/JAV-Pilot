@@ -45,7 +45,10 @@ def search_result_limit_param(params: dict[str, list[str]]) -> int | None:
     value = single_param(params, "result_limit")
     if re.fullmatch(r"[0-9]+", value) is None:
         raise QueryError("result_limit must be an integer between 1 and 999")
-    result_limit = int(value)
+    try:
+        result_limit = int(value)
+    except ValueError as exc:
+        raise QueryError("result_limit must be an integer between 1 and 999") from exc
     if not 1 <= result_limit <= 999:
         raise QueryError("result_limit must be an integer between 1 and 999")
     return result_limit
@@ -99,7 +102,9 @@ def valid_work_id(value: str) -> bool:
     )
 
 
-def same_origin_request(headers: object, *, peer_host: object = "") -> bool:
+def same_origin_request(
+    headers: object, *, peer_host: object = "", expected_scheme: str | None = None
+) -> bool:
     get = getattr(headers, "get", None)
     if not callable(get):
         return False
@@ -114,10 +119,24 @@ def same_origin_request(headers: object, *, peer_host: object = "") -> bool:
     )
     host = str(forwarded or get("Host", "") or "").split(",", 1)[0].strip().lower()
     try:
-        origin_host = urlsplit(origin).netloc.lower()
+        parsed = urlsplit(origin)
+        if (
+            parsed.scheme not in {"http", "https"}
+            or (expected_scheme is not None and parsed.scheme != expected_scheme)
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+        ):
+            return False
+        target = urlsplit(f"{parsed.scheme}://{host}")
+        default_port = 443 if parsed.scheme == "https" else 80
+        origin_address = (parsed.hostname, parsed.port if parsed.port is not None else default_port)
+        target_address = (target.hostname, target.port if target.port is not None else default_port)
     except ValueError:
         return False
-    return bool(host and origin_host == host)
+    return bool(host and parsed.hostname and origin_address == target_address)
 
 
 def request_peer_host(handler: object) -> str:

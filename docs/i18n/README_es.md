@@ -16,7 +16,7 @@
 <a href="https://hub.docker.com/r/drdon1234/jav-pilot"><img src="https://img.shields.io/docker/v/drdon1234/jav-pilot?sort=semver&label=docker&color=3567b7" alt="Versión de Docker"></a>
 <a href="https://hub.docker.com/r/drdon1234/jav-pilot"><img src="https://img.shields.io/docker/pulls/drdon1234/jav-pilot?color=3567b7" alt="Descargas de Docker"></a>
 <img src="https://img.shields.io/badge/platform-linux%2Famd64-3567b7" alt="Plataforma">
-<img src="https://img.shields.io/badge/python-3.11+-3567b7" alt="Python 3.11+">
+<img src="https://img.shields.io/badge/python-3.11.5+-3567b7" alt="Python 3.11.5+">
 <a href="../../LICENSE"><img src="https://img.shields.io/badge/license-MIT-3567b7" alt="Licencia MIT"></a>
 <br>
 
@@ -57,7 +57,7 @@ Hay tres métodos de instalación. Para un primer despliegue se recomienda el m�
 | --- | --- | --- |
 | [Método 1: Docker (recomendado)](#método-1-despliegue-con-docker-recomendado) | NAS, servidor Linux o WSL2 en Windows | Docker y Docker Compose v2 |
 | [Método 2: compilar desde el código fuente](#método-2-compilar-la-imagen-desde-el-código-fuente) | Modificar el código fuente o compilar una imagen propia | Docker, Git |
-| [Método 3: sin Docker](#método-3-sin-docker) | Sin Docker disponible, o ejecución como servicio del sistema | Git, Python 3.11+, Node.js 24 |
+| [Método 3: sin Docker](#método-3-sin-docker) | Sin Docker disponible, o ejecución como servicio del sistema | Git, Python 3.11.5+, Node.js 24 |
 
 ### Método 1: despliegue con Docker (recomendado)
 
@@ -130,7 +130,7 @@ Este método despliega solo JAV Pilot. Para desplegar también qBittorrent o Jac
 
 ### Método 3: sin Docker
 
-JAV Pilot es en sí mismo un servicio web y se ejecuta directamente en Linux, macOS o Windows. Requisitos previos: Git, Python 3.11 o posterior (se recomienda 3.12), Node.js 24 y npm; en Debian / Ubuntu también se necesita `python3-venv`. En Linux / macOS:
+JAV Pilot es en sí mismo un servicio web y se ejecuta directamente en Linux, macOS o Windows. Requisitos previos: Git, Python 3.11.5 o posterior (se recomienda 3.12), Node.js 24 y npm; en Debian / Ubuntu también se necesita `python3-venv`. En Linux / macOS:
 
 ```bash
 git clone https://github.com/drdon1234/JAV-Pilot.git

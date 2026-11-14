@@ -93,6 +93,7 @@ import type {
 import { serviceErrorMessage } from './presentation'
 import { METADATA_PROFILES } from './sources'
 import { t, translationTarget } from './i18n'
+import { loginUrl } from './loginDestination'
 
 const MAX_SSE_BUFFER = 2 * 1024 * 1024
 const MAX_HISTORY_EXPORT_BYTES = 64 * 1024 * 1024
@@ -292,21 +293,25 @@ export async function requestJson<T>(path: string, init?: RequestJsonInit): Prom
   }, Math.max(1, timeoutMs))
 
   try {
+    const headers = new Headers(requestInit.headers)
+    if (!headers.has('Accept')) headers.set('Accept', 'application/json')
+    if (requestInit.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json')
     const response = await fetch(path, {
       credentials: 'same-origin',
       ...requestInit,
       signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-        ...(requestInit.body ? { 'Content-Type': 'application/json' } : {}),
-        ...requestInit.headers,
-      },
+      headers,
     })
-    const payload = await response.json().catch(() => ({})) as Record<string, unknown>
+    if (response.status === 401 && !path.startsWith('/api/auth/')) window.location.assign(loginUrl(`${window.location.pathname}${window.location.search}${window.location.hash}`))
+    let decoded: unknown
+    try {
+      decoded = await response.json()
+    } catch (error) {
+      if (controller.signal.aborted || (error as { name?: string })?.name === 'AbortError') throw error
+      if (response.ok) throw new ApiError(t('服务响应格式无效，请重试'), 502)
+    }
+    const payload = decoded && typeof decoded === 'object' ? decoded as Record<string, unknown> : {}
     if (!response.ok) {
-      if (response.status === 401 && !path.startsWith('/api/auth/')) {
-        window.location.assign('/login')
-      }
       const message = typeof payload.error === 'string' ? payload.error : response.statusText
       const code = typeof payload.code === 'string' ? payload.code : null
       throw new ApiError(
@@ -315,6 +320,7 @@ export async function requestJson<T>(path: string, init?: RequestJsonInit): Prom
         code,
       )
     }
+    if (!decoded || typeof decoded !== 'object') throw new ApiError(t('服务响应格式无效，请重试'), 502)
     return payload as T
   } catch (error) {
     if (timedOut) throw new ApiError(t('请求超时，请检查网络后重试'))
@@ -350,7 +356,7 @@ async function requestHistoryExport(
       body: JSON.stringify({ filters, format }),
     })
     if (!response.ok) {
-      if (response.status === 401) window.location.assign('/login')
+      if (response.status === 401) window.location.assign(loginUrl(`${window.location.pathname}${window.location.search}${window.location.hash}`))
       const payload = await response.json().catch(() => ({})) as { error?: unknown; code?: unknown }
       const message = typeof payload.error === 'string' ? payload.error : response.statusText
       const code = typeof payload.code === 'string' ? payload.code : null
@@ -1120,7 +1126,7 @@ export async function streamSearch(
     },
   })
   if (!response.ok) {
-    if (response.status === 401) window.location.assign('/login')
+    if (response.status === 401) window.location.assign(loginUrl(`${window.location.pathname}${window.location.search}${window.location.hash}`))
     const payload = await response.json().catch(() => ({})) as { error?: unknown; code?: unknown }
     const message = typeof payload.error === 'string' ? payload.error : response.statusText
     const code = typeof payload.code === 'string' ? payload.code : null
@@ -1158,11 +1164,12 @@ export async function streamSearch(
       if (buffer.length > MAX_SSE_BUFFER) {
         throw new ApiError(t('搜索流响应过大'), 0, 'stream_too_large')
       }
-      const blocks = buffer.split('\n\n')
+      const blocks = buffer.split(/\r?\n\r?\n/)
       buffer = blocks.pop() ?? ''
-      blocks.forEach((block) => {
+      for (const block of blocks) {
         dispatch(parseSseBlock(block))
-      })
+        if (terminalReceived) return
+      }
     }
     buffer += decoder.decode()
     if (buffer.trim()) {
@@ -1170,7 +1177,7 @@ export async function streamSearch(
     }
     if (!terminalReceived) throw new ApiError(t('搜索连接提前结束，已接收的结果已保留，请重试'))
   } finally {
-    if (!terminalReceived) await reader.cancel().catch(() => undefined)
+    await reader.cancel().catch(() => undefined)
     reader.releaseLock()
   }
 }
@@ -1185,7 +1192,9 @@ export function parseSseBlock(block: string): SearchStreamEvent | null {
   if (!eventName || !data.length) return null
   if (!['source', 'delta', 'base', 'result', 'done', 'cancelled', 'error'].includes(eventName)) return null
   try {
-    return { event: eventName, payload: JSON.parse(data.join('\n')) } as SearchStreamEvent
+    const payload: unknown = JSON.parse(data.join('\n'))
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('invalid event payload')
+    return { event: eventName, payload } as SearchStreamEvent
   } catch {
     throw new ApiError(t('搜索流包含无效数据'), 0, 'stream_invalid')
   }

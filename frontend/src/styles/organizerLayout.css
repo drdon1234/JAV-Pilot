@@ -1,0 +1,230 @@
+
+
+.organizer-toolbar {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-raised);
+  padding: 7px 12px;
+}
+
+.rule-list {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.rule-item {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-surface);
+  background: var(--surface);
+}
+
+.rule-item.disabled {
+  background: var(--surface-raised);
+}
+
+.rule-item-header {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  gap: 11px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-raised);
+  padding: 6px 11px;
+}
+
+.rule-title-input {
+  display: grid;
+  min-width: 180px;
+  max-width: 420px;
+  flex: 1;
+  gap: 1px;
+}
+
+.rule-title-input input {
+  min-height: 32px;
+  border-color: transparent;
+  background: transparent;
+  padding: 2px 4px;
+  font-weight: 700;
+}
+
+.rule-title-input span {
+  overflow: hidden;
+  padding-inline-start: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rule-order-actions {
+  display: flex;
+  gap: 4px;
+  margin-inline-start: auto;
+}
+
+.rule-form-grid,
+.rule-action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 11px;
+  padding: 13px;
+}
+
+.rule-action-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding-top: 10px;
+}
+
+.rule-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 13px 0;
+}
+
+.rule-section-heading h3 {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.rule-section-heading span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.rule-match-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top: 10px;
+}
+
+.rule-destination-section {
+  border-top: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.rule-advanced-settings {
+  border-top: 1px solid var(--border);
+}
+
+.rule-advanced-settings > summary {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  list-style: none;
+  padding: 0 13px;
+}
+
+.rule-advanced-settings > summary::-webkit-details-marker {
+  display: none;
+}
+
+.rule-advanced-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.rule-advanced-title svg {
+  width: 17px;
+  height: 17px;
+  color: var(--primary);
+}
+
+.rule-advanced-settings > summary > span:nth-child(2) {
+  margin-inline-start: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.rule-advanced-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.rule-advanced-settings[open] .rule-advanced-chevron {
+  transform: rotate(90deg);
+}
+
+.rule-advanced-grid {
+  border-top: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+@media (max-width: 1240px) {
+
+  .rule-form-grid,
+.rule-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+
+  .rule-title-input span,
+.rule-section-heading h3,
+.rule-section-heading span,
+.rule-advanced-title,
+.rule-advanced-settings > summary > span:nth-child(2) {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 720px) {
+
+  .rule-form-grid,
+.rule-action-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rule-item-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .rule-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .rule-advanced-settings > summary > span:nth-child(2) {
+    display: none;
+  }
+
+  .rule-title-input {
+    order: -1;
+    width: calc(100% - 52px);
+    max-width: none;
+  }
+
+  .rule-title-input input {
+    min-height: 44px;
+  }
+
+  .rule-order-actions {
+    order: -1;
+  }
+}
+
+@media (max-width: 560px) {
+
+  .organizer-toolbar {
+    align-items: flex-start;
+    padding: 9px 11px;
+  }
+}

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 import { Component, lazy, Suspense, type ErrorInfo, type ReactNode } from 'react'
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 
 import { AppShell } from './components/AppShell'
 import { Button, EmptyState } from './components/ui'
@@ -9,6 +9,7 @@ import { api } from './lib/api'
 import { recoverableImport } from './lib/recoverableImport'
 import { SearchSessionProvider } from './lib/searchSessions'
 import { t } from './lib/i18n'
+import { loginUrl } from './lib/loginDestination'
 
 const DownloadsPage = lazy(() => recoverableImport('src/pages/DownloadsPage.tsx', 'DownloadsPage', () => import('./pages/DownloadsPage')).then((module) => ({ default: module.DownloadsPage })))
 const DetailPage = lazy(() => recoverableImport('src/pages/DetailPage.tsx', 'DetailPage', () => import('./pages/DetailPage')).then((module) => ({ default: module.DetailPage })))
@@ -32,6 +33,7 @@ function lazyRoute(element: ReactNode) {
 }
 
 function AuthGate() {
+  const location = useLocation()
   const auth = useQuery({ queryKey: ['auth'], queryFn: api.authStatus, staleTime: 30_000 })
   if (auth.isLoading) return <div className="app-loading" role="status" aria-label={t('正在验证登录状态')} />
   if (auth.isError) {
@@ -49,7 +51,7 @@ function AuthGate() {
     )
   }
   if (auth.data?.enabled && !auth.data.authenticated) {
-    return <Navigate to="/login" replace />
+    return <Navigate to={loginUrl(`${location.pathname}${location.search}${location.hash}`)} replace />
   }
   return (
     <SearchSessionProvider>

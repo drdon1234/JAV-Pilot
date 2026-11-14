@@ -6,7 +6,7 @@ import logging
 from http import HTTPStatus
 from urllib.parse import urlsplit
 
-from .request import request_peer_host, same_origin_request
+from .request import request_is_secure, request_peer_host, same_origin_request
 from .routes.assets import AssetRoutes
 from .routes.auth import AuthRoutes
 from .routes.downloads import DownloadRoutes
@@ -69,7 +69,7 @@ class JavPilotHandler(
             self._dispatch(route, parsed.query)
             return
         if not self._authenticated():
-            self._send_unauthorized(parsed.path)
+            self._send_unauthorized(parsed.path + (f"?{parsed.query}" if parsed.query else ""))
             return
         if route is None and is_app_route(parsed.path):
             self._handle_frontend()
@@ -89,6 +89,7 @@ class JavPilotHandler(
         if not same_origin_request(
             self.headers,
             peer_host=request_peer_host(self),
+            expected_scheme="https" if request_is_secure(self) else "http",
         ):
             self._send_json(
                 {"ok": False, "error": "cross-site request rejected"},

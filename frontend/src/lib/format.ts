@@ -1,10 +1,17 @@
 import { currentLocale, t } from './i18n'
 
+export function playbackTime(value: number): string {
+  if (!Number.isFinite(value)) return '0:00'
+  const seconds = Math.max(0, Math.floor(value))
+  const minutes = Math.floor(seconds / 60)
+  return `${minutes > 59 ? `${Math.floor(minutes / 60)}:` : ''}${minutes > 59 ? String(minutes % 60).padStart(2, '0') : minutes}:${String(seconds % 60).padStart(2, '0')}`
+}
+
 export function formatBytes(value: number, perSecond = false): string {
   const suffix = perSecond ? '/s' : ''
   if (!Number.isFinite(value) || value <= 0) return `0 B${suffix}`
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  const index = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1)
+  const index = Math.max(0, Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1))
   const amount = value / 1024 ** index
   const digits = amount >= 100 || index === 0 ? 0 : amount >= 10 ? 1 : 2
   return `${amount.toFixed(digits)} ${units[index]}${suffix}`

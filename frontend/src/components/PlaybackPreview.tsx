@@ -1,7 +1,7 @@
 import { ArrowLeft, Play } from 'lucide-react'
 import { usePlaybackActivity } from '../lib/playbackActivity'
 import { t } from '../lib/i18n'
-import { playbackTime } from './VideoControls'
+import { playbackTime } from '../lib/format'
 
 export function PlaybackPreview({ onResume }: { onResume?: () => void }) {
   const { snapshot, exit } = usePlaybackActivity()

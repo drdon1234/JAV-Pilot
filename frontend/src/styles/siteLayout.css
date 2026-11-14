@@ -1,0 +1,244 @@
+
+
+.site-list {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.site-diagnostics {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-surface);
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+  margin-bottom: 16px;
+}
+
+.site-diagnostics-header {
+  display: flex;
+  min-width: 0;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-raised);
+  padding: 12px 14px;
+}
+
+.site-diagnostics-header > div:first-child {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.site-diagnostics-header > div:first-child > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  color: var(--primary);
+}
+
+.site-diagnostics-header h2 {
+  font-size: 14px;
+  font-weight: 720;
+}
+
+.site-diagnostics-header p {
+  max-width: 70ch;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.site-diagnostic-code {
+  width: min(190px, 100%);
+  min-width: 140px;
+  flex: 0 1 190px;
+}
+
+.site-diagnostic-actions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.site-diagnostic-actions > .button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.site-diagnostics > .inline-notice {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  margin: 0;
+}
+
+.site-diagnostic-list {
+  min-width: 0;
+}
+
+.site-diagnostic-row {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) auto;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding: 9px 14px;
+}
+
+.site-diagnostic-row:last-child {
+  border-bottom: 0;
+}
+
+.site-diagnostic-name {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.site-diagnostic-stages {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.site-diagnostic-request-error {
+  flex: 1 0 100%;
+  color: var(--danger);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.site-diagnostic-stage {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.site-diagnostic-stage > span:last-child {
+  max-width: 118px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.site-item {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-surface);
+  background: var(--surface);
+}
+
+.site-item.disabled {
+  background: var(--surface-raised);
+}
+
+.site-item-header {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  gap: 11px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-raised);
+  padding: 6px 11px;
+}
+
+.site-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 11px;
+  padding: 13px;
+}
+
+.site-item-header {
+  justify-content: space-between;
+}
+
+.site-item-header > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 11px;
+}
+
+.site-item-header strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1240px) {
+
+  .site-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .site-diagnostics-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .site-diagnostic-code {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .site-diagnostic-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+  }
+
+  .site-diagnostic-actions .site-diagnostic-code {
+    min-width: 0;
+  }
+
+  .site-diagnostic-actions > .button {
+    grid-column: 1 / -1;
+  }
+
+  .site-diagnostic-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .site-diagnostic-stages {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 720px) {
+
+  .site-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+
+  .site-item-header > div {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-shell .site-priority-grid { gap: 10px; }
+  .app-shell .site-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .app-shell .site-form-grid .field-span-2 { grid-column: 1 / -1; }
+}

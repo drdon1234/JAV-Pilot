@@ -405,9 +405,17 @@ def _progressive_checkpoint_matches(
     for key in ("etag", "last_modified"):
         old = str(previous.get(key) or "")
         new = str(current.get(key) or "")
+        # Weak validators only promise semantic equivalence, not the identical
+        # bytes required when appending to an existing partial media file.
+        if key == "etag" and (old.startswith("W/") or new.startswith("W/")):
+            if old != new:
+                return False
+            continue
         if old or new:
             return bool(old and new and old == new)
-    return previous.get("source_digest") == current.get("source_digest")
+    # A stable URL and length can still point at replaced content. Without a
+    # validator we must restart instead of silently splicing two files.
+    return False
 
 
 def _write_progressive_checkpoint(path: Path, value: dict[str, object]) -> None:

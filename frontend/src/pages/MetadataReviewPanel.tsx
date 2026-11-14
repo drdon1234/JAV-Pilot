@@ -1,3 +1,4 @@
+import '../styles/metadata.css'
 import { useMutation } from '@tanstack/react-query'
 import { Ban, Check, FileCheck2, Image, LockKeyhole, RefreshCw, Save, Upload, X } from 'lucide-react'
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from 'react'

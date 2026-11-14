@@ -1,3 +1,4 @@
+import '../styles/downloadLayout.css'
 import { useQueryClient } from '@tanstack/react-query'
 import { Check, Download, LoaderCircle } from 'lucide-react'
 import { useRef, useState } from 'react'

@@ -357,9 +357,13 @@ def prepare_settings_update(payload: dict[str, Any], current: dict[str, Any] | N
     updated = copy.deepcopy(payload)
     current = load_settings() if current is None else current
     previous = {site["id"]: site for site in current.get("sites", [])}
-    for site in updated.get("sites", []):
+    sites = updated.get("sites", [])
+    if not isinstance(sites, list):
+        raise SettingsError("sites must be a list")
+    for site in sites:
         if not isinstance(site, dict):
             raise SettingsError("site must be an object")
+        site["id"] = _safe_id(site.get("id"))
         config = site.get("torznab")
         if site.get("parser_profile") == "torznab" and isinstance(config, dict):
             old = previous.get(site.get("id"), {}).get("torznab", {})
@@ -1654,6 +1658,8 @@ def _normalize_organizer(
     if not isinstance(rules, list) or len(rules) > 80:
         raise SettingsError("organizer.rules must be a list with at most 80 items")
     normalized_rules = [_normalize_organizer_rule(rule) for rule in rules]
+    if len({rule["id"] for rule in normalized_rules}) != len(normalized_rules):
+        raise SettingsError("organizer rule ids must be unique")
     return {
         "enabled": bool(organizer.get("enabled", True)),
         "mode": _safe_choice(organizer.get("mode"), {"qbittorrent"}, "qbittorrent"),

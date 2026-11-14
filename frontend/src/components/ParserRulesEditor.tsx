@@ -1,3 +1,5 @@
+import '../styles/organizerLayout.css'
+import '../styles/parser.css'
 import { ArrowDown, ArrowUp, Braces, ChevronRight, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useId, useMemo } from 'react'
 

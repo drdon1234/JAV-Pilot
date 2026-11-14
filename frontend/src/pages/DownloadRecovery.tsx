@@ -1,3 +1,4 @@
+import '../styles/downloadLayout.css'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Globe2, Magnet, RefreshCw, WandSparkles } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'

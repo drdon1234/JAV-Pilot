@@ -1,16 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Clapperboard, KeyRound, LogIn } from 'lucide-react'
 import { type FormEvent, useEffect, useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { LanguageSelect } from '../components/LanguageSelect'
 import { ThemeButton } from '../components/ThemeProvider'
 import { Button, Field, InlineNotice } from '../components/ui'
 import { api } from '../lib/api'
 import { t } from '../lib/i18n'
+import { loginDestination } from '../lib/loginDestination'
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const destination = loginDestination(params.get('next'))
   const queryClient = useQueryClient()
   const status = useQuery({ queryKey: ['auth'], queryFn: api.authStatus, retry: 0 })
   const [username, setUsername] = useState('admin')
@@ -24,12 +27,12 @@ export function LoginPage() {
     mutationFn: () => api.login(username.trim(), password),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['auth'] })
-      navigate('/search', { replace: true })
+      navigate(destination, { replace: true })
     },
   })
 
   if (status.data && (!status.data.enabled || status.data.authenticated)) {
-    return <Navigate to="/search" replace />
+    return <Navigate to={destination} replace />
   }
 
   function submit(event: FormEvent) {

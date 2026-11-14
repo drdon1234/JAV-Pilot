@@ -1,3 +1,4 @@
+import '../styles/organizerLayout.css'
 import { AdaptiveDisclosure } from '../components/AdaptiveDisclosure'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, Braces, ChevronDown, ChevronRight, Globe2, Plus, RefreshCw, Save, SlidersHorizontal, TestTube2, Trash2, X } from 'lucide-react'
@@ -10,7 +11,7 @@ import { Button, EmptyState, Field, IconButton, InlineNotice, PageHeader, Skelet
 import { api } from '../lib/api'
 import '../styles/organizer.css'
 import { splitTerms } from '../lib/format'
-import { summarizeRule } from '../lib/organizer'
+import { moveOrganizerRule, summarizeRule } from '../lib/organizer'
 import type { AppSettings, OrganizerRule } from '../types'
 import { t } from '../lib/i18n'
 
@@ -156,8 +157,7 @@ export function OrganizerPage() {
     setDraft((current) => {
       if (!current) return current
       const copy = structuredClone(current)
-      const [item] = copy.organizer.rules.splice(index, 1)
-      copy.organizer.rules.splice(target, 0, item)
+      copy.organizer.rules = moveOrganizerRule(copy.organizer.rules, index, direction)
       return copy
     })
   }

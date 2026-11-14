@@ -1,3 +1,4 @@
+import '../styles/downloadLayout.css'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Archive, Trash2, X } from 'lucide-react'
 import { useRef, useState } from 'react'

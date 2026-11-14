@@ -1,6 +1,17 @@
 import type { OrganizerRule } from '../types'
 import { t } from './i18n'
 
+export function moveOrganizerRule(rules: OrganizerRule[], index: number, direction: -1 | 1): OrganizerRule[] {
+  const target = index + direction
+  if (index < 0 || index >= rules.length || target < 0 || target >= rules.length) return rules
+  const reordered = [...rules]
+  const [rule] = reordered.splice(index, 1)
+  reordered.splice(target, 0, rule)
+  // The backend matches numeric priority, not JSON array order. Keep the
+  // visible move and the effective matching order as one operation.
+  return reordered.map((item, position) => ({ ...item, priority: (position + 1) * 100 }))
+}
+
 export function summarizeRule(rule: OrganizerRule) {
   const scope = rule.match.sources?.length ? t('{count} 个来源', { count: rule.match.sources.length }) : t('全部来源')
   const conditions: string[] = []

@@ -5,7 +5,7 @@ import { ArrowRight, Bookmark, Film, Library, Play } from 'lucide-react'
 import { requestJson } from '../lib/api'
 import { waitForPlaybackSaves } from '../lib/playbackProgress'
 import { t } from '../lib/i18n'
-import { playbackTime } from './VideoControls'
+import { playbackTime } from '../lib/format'
 import { Button, InlineNotice, SkeletonRows } from './ui'
 import type { PlaybackRecord } from '../pages/PlaybackHistoryPage'
 

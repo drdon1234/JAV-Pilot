@@ -1,3 +1,4 @@
+import '../styles/downloadLayout.css'
 import { Pause, Play, RotateCcw, Trash2, X } from 'lucide-react'
 
 import { Button, IconButton, ProgressBar, StatusBadge, Toggle } from '../components/ui'

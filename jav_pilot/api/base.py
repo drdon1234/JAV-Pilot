@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import math
+import re
 import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlencode
 
 from .. import __version__
 from ..core.observability import (
@@ -111,7 +114,7 @@ class BaseHandler(BaseHTTPRequestHandler):
                 HTTPStatus.UNAUTHORIZED,
             )
             return
-        self._redirect("/login")
+        self._redirect("/login?" + urlencode({"next": path}))
 
     def _send_sse_headers(self) -> bool:
         try:
@@ -148,9 +151,19 @@ class BaseHandler(BaseHTTPRequestHandler):
 
     def _read_json_body(self, max_bytes: int) -> dict[str, object]:
         raw = self._read_body(max_bytes)
+        def finite_number(value: str) -> float:
+            number = float(value)
+            if not math.isfinite(number):
+                raise ValueError("invalid JSON number")
+            return number
+
         try:
-            payload = json.loads(raw.decode("utf-8"))
-        except (json.JSONDecodeError, RecursionError) as exc:
+            payload = json.loads(
+                raw.decode("utf-8"),
+                parse_float=finite_number,
+                parse_constant=finite_number,
+            )
+        except (ValueError, RecursionError) as exc:
             # RecursionError: nesting deeper than the parser allows.
             raise ValueError("invalid JSON body") from exc
         if not isinstance(payload, dict):
@@ -158,7 +171,16 @@ class BaseHandler(BaseHTTPRequestHandler):
         return payload
 
     def _read_body(self, max_bytes: int) -> bytes:
-        raw_length = self.headers.get("content-length", "0")
+        # This server reads fixed-length bodies only. Never interpret a request
+        # differently from a proxy that honors Transfer-Encoding or duplicates.
+        if self.headers.get("Transfer-Encoding") is not None:
+            raise ValueError("Transfer-Encoding is not supported")
+        lengths = self.headers.get_all("Content-Length", [])
+        if len(lengths) > 1:
+            raise ValueError("duplicate Content-Length")
+        raw_length = lengths[0].strip() if lengths else "0"
+        if re.fullmatch(r"[0-9]+", raw_length) is None:
+            raise ValueError("invalid Content-Length")
         try:
             length = int(raw_length)
         except ValueError as exc:
@@ -167,7 +189,10 @@ class BaseHandler(BaseHTTPRequestHandler):
             raise ValueError("invalid Content-Length")
         if length > max_bytes:
             raise ValueError(f"request body exceeds {max_bytes} bytes")
-        return self.rfile.read(length)
+        raw = self.rfile.read(length)
+        if len(raw) != length:
+            raise ValueError("incomplete request body")
+        return raw
 
     def _send_text(
         self, text: str, *, content_type: str, status: HTTPStatus = HTTPStatus.OK

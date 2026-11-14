@@ -105,10 +105,11 @@ export function SettingsPage() {
     }))
   }, [runtime.data])
   useEffect(() => {
-    if (auth.data?.username)
+    const username = auth.data?.username
+    if (username)
       setPasswordForm((current) => ({
         ...current,
-        username: auth.data!.username,
+        username,
       }))
   }, [auth.data])
 
@@ -229,7 +230,7 @@ export function SettingsPage() {
     )
 
   const qb = runtime.data?.config.qbittorrent
-  const securityFindings = auth.data?.security.findings ?? []
+  const securityFindings = auth.data?.security?.findings ?? []
   const criticalSecurityFindings = securityFindings.filter((finding) => finding.severity === 'critical').length
   return (
     <div className="page settings-page">

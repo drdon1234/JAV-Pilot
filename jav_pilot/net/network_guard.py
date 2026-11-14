@@ -94,16 +94,16 @@ def address_is_public(address: ipaddress.IPv4Address | ipaddress.IPv6Address) ->
 
 
 def _is_global_address(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    if not address.is_global:
+    if not address.is_global or address.is_multicast:
         return False
     if isinstance(address, ipaddress.IPv6Address):
-        embedded = address.ipv4_mapped
+        embedded = address.ipv4_mapped or address.sixtofour
         if embedded is None and any(
             address in network for network in _EMBEDDED_IPV4_NETWORKS
         ):
             embedded = ipaddress.IPv4Address(int(address) & 0xFFFFFFFF)
         if embedded is not None:
-            return embedded.is_global
+            return _is_global_address(embedded)
     return True
 
 

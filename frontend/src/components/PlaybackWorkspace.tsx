@@ -1,22 +1,38 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { SelectedWork } from '../pages/WatchPage'
+import { recoverableImport } from '../lib/recoverableImport'
 import { t } from '../lib/i18n'
 import { Button, PageHeader } from './ui'
-import { LocalPlayer } from './LocalPlayer'
 import { PlaybackActivity, PlaybackSession, type PlaybackSnapshot } from '../lib/playbackActivity'
-import { PlaybackStart } from './PlaybackStart'
 import { PlaybackPreview } from './PlaybackPreview'
 import { BackLink } from './BackLink'
 
+const SelectedWork = lazy(() => recoverableImport('src/pages/WatchPage.tsx', 'WatchPage', () => import('../pages/WatchPage')).then(module => ({ default: module.SelectedWork })))
+const LocalPlayer = lazy(() => recoverableImport('src/components/LocalPlayer.tsx', 'LocalPlayer', () => import('./LocalPlayer')).then(module => ({ default: module.LocalPlayer })))
+const PlaybackStart = lazy(() => recoverableImport('src/components/PlaybackStart.tsx', 'PlaybackStart', () => import('./PlaybackStart')).then(module => ({ default: module.PlaybackStart })))
+
 type PlayingWork = { source: string; url: string; entry?: never; file?: never } | { entry: string; file: number; source?: never; url?: never }
 const workKey = (work: PlayingWork | null) => work ? work.entry ? `local:${work.entry}:${work.file}` : `online:${work.source}:${work.url}` : ''
+
+export function readPlayingWork(value: unknown): PlayingWork | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const saved = value as Record<string, unknown>
+  if (typeof saved.entry === 'string' && saved.entry.length > 0 && saved.entry.length <= 256
+    && Number.isSafeInteger(saved.file) && (saved.file as number) >= 0) {
+    return { entry: saved.entry, file: saved.file as number }
+  }
+  if (typeof saved.source === 'string' && /^[a-z0-9_-]{1,64}$/.test(saved.source)
+    && typeof saved.url === 'string' && saved.url.length > 0 && saved.url.length <= 4096) {
+    return { source: saved.source, url: saved.url }
+  }
+  return null
+}
 
 export function PlaybackWorkspace() {
   const location = useLocation()
   const navigate = useNavigate()
   const [work, setWork] = useState<PlayingWork | null>(() => {
-    try { return JSON.parse(sessionStorage.getItem('watch-current') || 'null') } catch { return null }
+    try { return readPlayingWork(JSON.parse(sessionStorage.getItem('watch-current') || 'null')) } catch { return null }
   })
   const visible = location.pathname === '/player'
   const requested = useMemo<PlayingWork | null>(() => {
@@ -42,7 +58,9 @@ export function PlaybackWorkspace() {
           try { sessionStorage.removeItem('watch-current') } catch { /* Storage may be disabled. */ }
           navigate('/player', { replace: true })
         }}>{t('关闭播放')}</Button></> : undefined} />
-        {current ? <PlaybackSurface key={workKey(current)} work={current} visible={visible} fresh={!!requested && workKey(requested) !== workKey(work)} /> : visible ? <PlaybackStart /> : null}
+        <Suspense fallback={<p role="status">{t('正在加载')}</p>}>
+          {current ? <PlaybackSurface key={workKey(current)} work={current} visible={visible} fresh={!!requested && workKey(requested) !== workKey(work)} /> : visible ? <PlaybackStart /> : null}
+        </Suspense>
       </div>
     </div>
   </>
@@ -51,7 +69,7 @@ export function PlaybackWorkspace() {
 function PlaybackSurface({ work, visible, fresh }: { work: PlayingWork; visible: boolean; fresh: boolean }) {
   const navigate = useNavigate()
   const exit = useCallback(() => navigate(work.entry ? '/library' : '/watch'), [navigate, work.entry])
-  const [live, setLive] = useState(true)
+  const [live, setLive] = useState(visible)
   const [snapshot, setSnapshot] = useState<PlaybackSnapshot | null>(null)
   const autoplay = useRef(fresh)
   const capture = useCallback((next: PlaybackSnapshot) => setSnapshot(previous => ({ ...next, image: next.image || previous?.image || '' })), [])

@@ -1,7 +1,7 @@
 {
   "name": "jav-pilot-web",
   "private": true,
-  "version": "0.3.8",
+  "version": "0.3.9",
   "type": "module",
   "packageManager": "npm@11.13.0",
   "scripts": {
@@ -28,7 +28,7 @@
     "jsdom": "26.1.0",
     "lighthouse": "^13.4.1",
     "typescript": "^7.0.2",
-    "vite": "7.3.6",
-    "vitest": "3.2.7"
+    "vite": "7.3.8",
+    "vitest": "4.1.12"
   }
 }

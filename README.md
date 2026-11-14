@@ -16,7 +16,7 @@
 <a href="https://hub.docker.com/r/drdon1234/jav-pilot"><img src="https://img.shields.io/docker/v/drdon1234/jav-pilot?sort=semver&label=docker&color=3567b7" alt="Docker 版本"></a>
 <a href="https://hub.docker.com/r/drdon1234/jav-pilot"><img src="https://img.shields.io/docker/pulls/drdon1234/jav-pilot?color=3567b7" alt="Docker 拉取次数"></a>
 <img src="https://img.shields.io/badge/platform-linux%2Famd64-3567b7" alt="平台">
-<img src="https://img.shields.io/badge/python-3.11+-3567b7" alt="Python 3.11+">
+<img src="https://img.shields.io/badge/python-3.11.5+-3567b7" alt="Python 3.11.5+">
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-3567b7" alt="MIT License"></a>
 <br>
 
@@ -54,7 +54,7 @@ JAV Pilot 是一款可部署在 NAS、服务器或个人电脑上的自托管影
 | --- | --- | --- |
 | [一：Docker 部署（推荐）](#方式一docker-部署推荐) | NAS、Linux 服务器，或 Windows 下的 WSL2 | Docker 与 Docker Compose v2 |
 | [二：从源码构建镜像](#方式二从源码构建镜像) | 需要修改源码或自行构建镜像 | Docker、Git |
-| [三：不使用 Docker](#方式三不使用-docker) | 没有 Docker 环境，或需要以系统服务方式运行 | Git、Python 3.11+、Node.js 24 |
+| [三：不使用 Docker](#方式三不使用-docker) | 没有 Docker 环境，或需要以系统服务方式运行 | Git、Python 3.11.5+、Node.js 24 |
 
 ### 方式一：Docker 部署（推荐）
 
@@ -127,7 +127,7 @@ cp .env.example .env
 
 ### 方式三：不使用 Docker
 
-JAV Pilot 本身即为 Web 服务，可直接运行于 Linux、macOS 或 Windows。前置条件为 Git、Python 3.11 及以上（推荐 3.12）、Node.js 24 与 npm；Debian / Ubuntu 另需安装 `python3-venv`。以 Linux / macOS 为例：
+JAV Pilot 本身即为 Web 服务，可直接运行于 Linux、macOS 或 Windows。前置条件为 Git、Python 3.11.5 及以上（推荐 3.12）、Node.js 24 与 npm；Debian / Ubuntu 另需安装 `python3-venv`。以 Linux / macOS 为例：
 
 ```bash
 git clone https://github.com/drdon1234/JAV-Pilot.git

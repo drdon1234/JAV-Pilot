@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | [一：Docker 部署（推荐）](#方式一docker-部署推荐) | 大多数人：NAS、Linux 主机，或 Windows 的 WSL2 | Docker（含 Docker Compose v2） |
 | [二：从源码构建镜像](#方式二从源码构建镜像) | 想修改代码、自己构建镜像的人 | Docker、Git |
-| [三：不使用 Docker](#方式三不使用-docker) | 主机上没有 Docker，或想作为系统服务直接运行 | Git、Python 3.11 以上、Node.js 24 |
+| [三：不使用 Docker](#方式三不使用-docker) | 主机上没有 Docker，或想作为系统服务直接运行 | Git、Python 3.11.5 以上、Node.js 24 |
 
 方式一使用 Docker Hub 上的镜像 [`drdon1234/jav-pilot`](https://hub.docker.com/r/drdon1234/jav-pilot)。方式一、二的镜像只支持 `linux/amd64`。
 
@@ -96,7 +96,7 @@ docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
-默认跟随 `latest`；需要固定版本时，把 `.env` 中的 `JAV_PILOT_IMAGE` 改成例如 `drdon1234/jav-pilot:0.3.8`。发布说明提到部署配置有变化时，重新下载 `docker-compose.yml`，`.env` 保持不变。更新前的备份方法见[备份与运维](operations.md#备份与恢复)。
+默认跟随 `latest`；需要固定版本时，把 `.env` 中的 `JAV_PILOT_IMAGE` 改成例如 `drdon1234/jav-pilot:0.3.9`。发布说明提到部署配置有变化时，重新下载 `docker-compose.yml`，`.env` 保持不变。更新前的备份方法见[备份与运维](operations.md#备份与恢复)。
 
 ## 方式二：从源码构建镜像
 
@@ -123,7 +123,7 @@ docker compose -f deploy/docker-compose.full.yml --project-directory . up -d
 
 ## 方式三：不使用 Docker
 
-JAV Pilot 本身就是一个 Web 服务：`jav-pilot serve` 同时提供网页和 API，不依赖 Docker。需要 Python 3.11 以上（推荐 3.12）、Node.js 24 和 npm。
+JAV Pilot 本身就是一个 Web 服务：`jav-pilot serve` 同时提供网页和 API，不依赖 Docker。需要 Python 3.11.5 以上（推荐 3.12）、Node.js 24 和 npm。
 
 ### 安装步骤
 

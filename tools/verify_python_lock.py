@@ -8,6 +8,7 @@ import tomllib
 from pathlib import Path
 
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
+from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 
 
 _EXACT_REQUIREMENT = re.compile(
@@ -20,10 +21,7 @@ _HASH = re.compile(r"^--hash=sha256:[0-9a-f]{64}$")
 _DIRECT_FINGERPRINT = re.compile(
     r"^# direct-dependencies-sha256: (?P<digest>[0-9a-f]{64})$"
 )
-_PYTHON_SPECIFIER = re.compile(
-    r"^(?P<operator>~=|==|!=|<=|>=|<|>)(?P<version>[0-9]+\.[0-9]+)$"
-)
-_PRODUCTION_PYTHON = (3, 12)
+_PRODUCTION_PYTHON = "3.12.0"
 
 
 class PythonLockError(RuntimeError):
@@ -44,31 +42,10 @@ def _direct_fingerprint(dependencies: dict[str, str]) -> str:
 def _python_requirement_allows_production(value: object) -> bool:
     if not isinstance(value, str) or not value.strip():
         return False
-    for raw_specifier in value.split(","):
-        match = _PYTHON_SPECIFIER.fullmatch(raw_specifier.strip())
-        if match is None:
-            return False
-        candidate = tuple(int(part) for part in match.group("version").split("."))
-        operator = match.group("operator")
-        if operator == ">=" and not _PRODUCTION_PYTHON >= candidate:
-            return False
-        if operator == ">" and not _PRODUCTION_PYTHON > candidate:
-            return False
-        if operator == "<=" and not _PRODUCTION_PYTHON <= candidate:
-            return False
-        if operator == "<" and not _PRODUCTION_PYTHON < candidate:
-            return False
-        if operator == "==" and not _PRODUCTION_PYTHON == candidate:
-            return False
-        if operator == "!=" and not _PRODUCTION_PYTHON != candidate:
-            return False
-        if operator == "~=":
-            compatible_prefix = candidate[:1]
-            if _PRODUCTION_PYTHON < candidate or (
-                _PRODUCTION_PYTHON[: len(compatible_prefix)] != compatible_prefix
-            ):
-                return False
-    return True
+    try:
+        return _PRODUCTION_PYTHON in SpecifierSet(value)
+    except InvalidSpecifier:
+        return False
 
 
 def project_requirements(path: Path) -> dict[str, str]:
