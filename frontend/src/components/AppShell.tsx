@@ -197,7 +197,10 @@ function useRouteLifecycle(mainContentRef: RefObject<HTMLElement | null>): Route
           focused = true
         }
       } else if (!focused && navigationType !== 'POP' && heading) {
-        heading.focus({ preventScroll: true })
+        const playerHasFocus = location.pathname === '/player'
+          && document.activeElement instanceof HTMLElement
+          && document.activeElement.closest('.video-stage')
+        if (!playerHasFocus) heading.focus({ preventScroll: true })
         focused = true
       }
       return announced && (focused || (navigationType === 'POP' && !returnKey))
