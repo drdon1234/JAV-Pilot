@@ -11,7 +11,7 @@ import { api, ApiError, type PersistedMetadataSearchSession } from '../lib/api'
 import { recoverableImport } from '../lib/recoverableImport'
 import { clearPersistedDetailPrefetchBatchId, detailPrefetchIsActive, detailPrefetchStatusLabel, persistDetailPrefetchBatchId, storedDetailPrefetchBatchId } from '../lib/detailPrefetchSession'
 import { serviceErrorMessage } from '../lib/presentation'
-import { SEARCH_CAPABILITIES, SEARCH_PARSER_PROFILES } from '../lib/sources'
+import { prioritizeMetadataWorks, SEARCH_CAPABILITIES, SEARCH_PARSER_PROFILES } from '../lib/sources'
 import {
   clearSearchPreferences,
   configuredSearchDefaults,
@@ -223,7 +223,7 @@ function sortSearchResults(
   sort: ResultSort,
   javDbSourceIds: ReadonlySet<string>,
 ): WorkResult[] {
-  if (sort === 'relevance') return results
+  if (sort === 'relevance') return prioritizeMetadataWorks(results)
   if (sort === 'rating_desc') {
     return results
       .map((result, index) => ({ result, index, rating: fivePointRating(result, javDbSourceIds)?.value }))

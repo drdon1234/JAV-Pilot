@@ -144,6 +144,7 @@ class FanzaIndexer(MetadataCatalogIndexer):
             raise FetchError("FANZA search result list is missing") from None
         output = []
         seen = set()
+        codes = self._search_codes(rows[:50], bounds)
         for item in rows[:50]:
             if not isinstance(item, dict):
                 continue
@@ -162,7 +163,7 @@ class FanzaIndexer(MetadataCatalogIndexer):
                     source_id=self.source_id,
                     provider=self.name,
                     url=f"https://video.dmm.co.jp/av/content/?id={cid}",
-                    code=fanza_display_code(cid),
+                    code=codes.get(cid) or fanza_display_code(cid),
                     title=title,
                     resolved=False,
                     images=[
@@ -178,6 +179,45 @@ class FanzaIndexer(MetadataCatalogIndexer):
             raise FetchError("FANZA search returned no supported video products")
         results = tuple(output)
         return self.enrich_results(results, bounds) if bounds.fetch_magnets else results
+
+    def _search_codes(self, rows: list, bounds: SearchBounds) -> dict[str, str]:
+        """Resolve vendor-prefixed CIDs from official identities in one request."""
+        missing = list(dict.fromkeys(
+            cid for item in rows if isinstance(item, dict)
+            and re.fullmatch(r"[a-zA-Z0-9_]{1,100}", cid := text(item.get("id"), 100))
+            and not fanza_display_code(cid)
+        ))
+        if not missing:
+            return {}
+        query = "query {" + " ".join(
+            f"w{i}: ppvContent(id: {json.dumps(cid)}) {{ id makerContentId }}"
+            for i, cid in enumerate(missing)
+        ) + "}"
+        try:
+            raw = self._fetch(
+                "https://api.video.dmm.co.jp/graphql", bounds,
+                headers={
+                    "Content-Type": "application/json",
+                    "Referer": "https://video.dmm.co.jp/",
+                    "Origin": "https://video.dmm.co.jp",
+                    "Fanza-Device": "BROWSER",
+                },
+                data=json.dumps({"query": query}).encode(),
+            )
+            payload = json.loads(raw).get("data")
+        except (FetchError, ValueError, AttributeError):
+            # Retain usable source links when the optional identity lookup fails.
+            return {}
+        if not isinstance(payload, dict):
+            return {}
+        codes = {}
+        for i, cid in enumerate(missing):
+            detail = payload.get(f"w{i}")
+            if isinstance(detail, dict) and detail.get("id") == cid:
+                code = display_code(detail.get("makerContentId"))
+                if code:
+                    codes[cid] = code
+        return codes
 
     def resolve(self, result: SearchResult, bounds: SearchBounds) -> SearchResult:
         if not result.url or not self.detail_url_allowed(result.url):

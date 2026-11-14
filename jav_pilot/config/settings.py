@@ -46,7 +46,7 @@ JABLE_SITE_ID = "jable"
 FC2_SITE_ID = "fc2"
 BUILTIN_WEB_DOWNLOAD_SITE_IDS = tuple(WEB_CATALOG)
 BUILTIN_WEB_RESOURCE_SITE_IDS = BUILTIN_WEB_DOWNLOAD_SITE_IDS
-DEFAULT_METADATA_SEARCH_SITE_IDS = ("javdb", "javbus", FC2_SITE_ID)
+DEFAULT_METADATA_SEARCH_SITE_IDS = ("javbus", "javdb", FC2_SITE_ID)
 DEFAULT_METADATA_SCRAPER_SITE_IDS = ("javbus", "javdb", FC2_SITE_ID)
 SITE_DIAGNOSTIC_SITE_IDS = (
     "javbus",
@@ -102,7 +102,7 @@ class _LegacySiteLocation:
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "schema_version": CURRENT_SETTINGS_SCHEMA_VERSION,
-    "detail_default_site_id": "javdb",
+    "detail_default_site_id": "javbus",
     "metadata_search_site_priority": list(DEFAULT_METADATA_SEARCH_SITE_IDS),
     "web_resource_search_provider_priority": list(BUILTIN_WEB_RESOURCE_SITE_IDS),
     "web_download_provider_priority": list(BUILTIN_WEB_DOWNLOAD_SITE_IDS),
@@ -971,14 +971,14 @@ def _normalize_detail_default_site_id(
     if any(site.get("id") == requested for site in candidates):
         return requested
     for site in candidates:
-        if site.get("id") == "javdb":
-            return "javdb"
+        if site.get("id") == "javbus":
+            return "javbus"
     for site in candidates:
-        if site.get("parser_profile") == "javdb":
+        if site.get("parser_profile") == "javbus":
             return str(site["id"])
     if candidates:
         return str(candidates[0]["id"])
-    return "javdb"
+    return "javbus"
 
 
 def site_by_id(

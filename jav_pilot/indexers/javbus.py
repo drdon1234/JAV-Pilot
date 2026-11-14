@@ -93,6 +93,9 @@ class JavBusIndexer(Indexer):
             results = tuple(
                 replace(result, source=self.source_id) for result in parser.results()
             )
+        results = tuple(replace(result, metadata={
+            **result.metadata, "detail_provider": self.name,
+        }) for result in results)
         if not bounds.fetch_magnets:
             return results
         return self._enrich_magnets(results, bounds, include_images=False)

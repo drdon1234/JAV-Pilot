@@ -30,7 +30,7 @@ import { t } from '../lib/i18n'
 
 const BUILTIN_WEB_SITE_IDS = ['jable', 'missav', 'av123'] as const
 const BUILTIN_SUBTITLE_SITE_IDS = ['xunlei', 'subtitlecat'] as const
-const DEFAULT_METADATA_SEARCH_PRIORITY = ['javdb', 'javbus', 'fc2'] as const
+const DEFAULT_METADATA_SEARCH_PRIORITY = ['javbus', 'javdb', 'fc2'] as const
 const DEFAULT_METADATA_SCRAPER_PRIORITY = ['javbus', 'javdb', 'fc2'] as const
 const METADATA_SEARCH_CAPABILITY: SiteCapability = 'metadata_search'
 type SitePriorityField =

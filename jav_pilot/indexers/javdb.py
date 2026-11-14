@@ -579,11 +579,15 @@ class JavDbIndexer(Indexer):
                 html, empty_selector
             )
             if results or has_configured_empty:
-                return results, has_configured_empty
+                return tuple(replace(result, metadata={
+                    **result.metadata, "detail_provider": self.name,
+                }) for result in results), has_configured_empty
         parser = JavDbSearchParser(self.base_url, bounds.limit)
         parser.feed(html)
         results = tuple(
-            replace(result, source=self.source_id) for result in parser.results()
+            replace(result, source=self.source_id, metadata={
+                **result.metadata, "detail_provider": self.name,
+            }) for result in parser.results()
         )
         return results, has_javdb_empty_search_state(html)
 

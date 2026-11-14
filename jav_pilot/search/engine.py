@@ -17,6 +17,7 @@ from ..core.catalog_code import (
     canonical_catalog_code,
     code_matches_pattern,
     query_code_pattern,
+    normalize_catalog_code,
 )
 from ..core.guards import looks_like_catalog_query, normalize_query
 from ..indexers import Fc2Indexer, Indexer, JavBusIndexer, JavDbIndexer
@@ -146,6 +147,17 @@ def merge_work_records(
     drop every group but the first.
     """
 
+    records = tuple(records)
+    if not work.canonical_code and not work.code:
+        identities = {
+            normalized[1]: normalized[0]
+            for _, record in records
+            if record.metadata.get("detail_identity_verified") is True
+            and (normalized := normalize_catalog_code(record.code)) is not None
+        }
+        if len(identities) == 1:
+            canonical, display = next(iter(identities.items()))
+            work = replace(work, code=display, canonical_code=canonical)
     builder = _WorkBuilder(
         work_id=work.work_id,
         canonical_code=work.canonical_code,
@@ -1165,27 +1177,25 @@ class _WorkBuilder:
 
     def build(self) -> WorkResult:
         release_date = _preferred_release_date(self.release_dates)
+        sources = sorted(
+            self.sources,
+            key=lambda source: (
+                source.source_id in self.supplementary,
+                _metadata_source_priority(source),
+            ),
+        )
+        primary = next((source for source in sources
+                        if source.source_id not in self.supplementary), None)
         return WorkResult(
             work_id=self.work_id,
             canonical_code=self.canonical_code,
             code=self.code,
-            title=self.title,
+            title=primary.title if primary and primary.title else self.title,
             release_date=release_date,
             release_date_conflict=len(set(self.release_dates)) > 1,
             actors=tuple(self.actors),
             tags=tuple(self.tags),
-            sources=(
-                *(
-                    source
-                    for source in self.sources
-                    if source.source_id not in self.supplementary
-                ),
-                *(
-                    source
-                    for source in self.sources
-                    if source.source_id in self.supplementary
-                ),
-            ),
+            sources=tuple(sources),
             magnets=tuple(magnet.build() for magnet in self.magnets.values()),
         )
 
@@ -1362,9 +1372,16 @@ def _extend_unique(output: list[str], seen: set[str], values: Iterable[str]) -> 
         output.append(clean)
 
 
+def _metadata_source_priority(source: WorkSource) -> int:
+    profile = source.detail_provider or source.source_id
+    return {"javbus": 0, "javdb": 1, "fc2": 2}.get(profile, 3)
+
+
 def _sort_works(works: list[WorkResult], sort: SearchSort) -> list[WorkResult]:
     if sort == "relevance":
-        return list(works)
+        return sorted(works, key=lambda work: min(
+            (_metadata_source_priority(source) for source in work.sources), default=3,
+        ))
 
     indexed = list(enumerate(works))
     indexed.sort(key=cmp_to_key(lambda left, right: _compare_work(left, right, sort)))

@@ -30,7 +30,7 @@ from ...search.detail_prefetch import (
     DetailPrefetchValidationError,
     work_result_from_snapshot,
 )
-from ...search.engine import default_indexers, sanitize_source_error, search
+from ...search.engine import default_indexers, merge_work_records, sanitize_source_error, search
 from ...search.session_store import (
     MetadataSearchNotFoundError,
     MetadataSearchStoreError,
@@ -63,6 +63,7 @@ from ..services.enrichment import (
     merge_continued_search_results,
     merge_stream_work,
     remember_works,
+    source_record,
     stream_source_work,
     stream_work_needs_enrichment,
     with_source_lookup_errors,
@@ -1074,6 +1075,7 @@ class SearchRoutes(BaseHandler):
             ).normalized()
             work = recent_work
             lookup_errors: dict[str, str] = {}
+            searched_sources: set[str] = set()
             if work is None:
                 try:
                     response = search(
@@ -1089,6 +1091,8 @@ class SearchRoutes(BaseHandler):
                     source: sanitize_source_error(error) or "source lookup failed"
                     for source, error in response.errors.items()
                 }
+                if requested_key:
+                    searched_sources.update(sources)
 
                 work = next(
                     (
@@ -1125,16 +1129,41 @@ class SearchRoutes(BaseHandler):
                 javdb_pool,
                 include_images=True,
             )
-            if linked_work is not None and not enriched.code:
-                identities = {
-                    normalized[1]: normalized[0]
-                    for source in enriched.sources
-                    if source.parse_status == "resolved"
-                    and (normalized := normalize_catalog_code(source.raw_code)) is not None
-                }
-                if len(identities) == 1:
-                    canonical, display = next(iter(identities.items()))
-                    enriched = replace(enriched, code=display, canonical_code=canonical)
+            # A saved link or an uncoded search record only carries sources
+            # already discovered. Once its identity is known, recover the
+            # remaining selected sources instead of stopping at that record.
+            present = {source.source_id for source in enriched.sources
+                       if source.detail_url and source.parse_status != "error"}
+            missing = tuple(source for source in sources
+                            if source in registry and source not in present
+                            and source not in searched_sources)
+            if enriched.code and missing:
+                response = search(
+                    enriched.code,
+                    sources=missing,
+                    bounds=replace(
+                        bounds, limit=20, page=1, max_pages=1, result_limit=None,
+                        match="exact", search_kind="code", filters={}, semantic_refs={},
+                    ),
+                    indexers=registry,
+                )
+                lookup_errors.update({
+                    source: sanitize_source_error(error) or "source lookup failed"
+                    for source, error in response.errors.items()
+                })
+                additions = next((result for result in response.results
+                                  if code_key(result.code or "") == code_key(enriched.code)), None)
+                if additions is not None:
+                    additions = enrich_stream_work(
+                        additions, registry, detail_bounds, javdb_pool, include_images=True,
+                    )
+                    recovered = {source.source_id for source in additions.sources}
+                    enriched = merge_work_records(enriched, (
+                        *((source.source_id, source_record(enriched, source))
+                          for source in enriched.sources if source.source_id not in recovered),
+                        *((source.source_id, source_record(additions, source))
+                          for source in additions.sources),
+                    ))
         finally:
             try:
                 if javdb_pool:
