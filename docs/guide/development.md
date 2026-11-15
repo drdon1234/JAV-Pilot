@@ -73,6 +73,21 @@ python tools/lighthouse_gate.py
 
 ## 依赖与镜像
 
+### GitHub 自动发布
+
+仓库的两个 Actions 工作流按版本标签发布：
+
+- `Publish release`（`.github/workflows/release.yml`）：推送 `vMAJOR.MINOR.PATCH` 标签后启动，先调用镜像工作流；镜像发布成功后再创建 GitHub Release，自动生成提交说明，并附上公开源码 ZIP、Compose、`.env.example` 和 SHA256 校验文件。
+- `Publish Docker Hub image`（`.github/workflows/docker-publish.yml`）：构建 `linux/amd64` 镜像，校验版本、提交标识和运行依赖，推送 `drdon1234/jav-pilot:<版本>`。只有最新版本标签更新 `latest`，重跑旧版本不会回退它。
+
+在 GitHub 仓库的 **Settings → Secrets and variables → Actions** 配置 `DOCKERHUB_TOKEN`：使用 Docker Hub 账号 `drdon1234` 的 access token，需有镜像写入权限。GitHub Release 使用自动提供的 `GITHUB_TOKEN`，无需另外提供 GitHub token。
+
+发布前同步 `jav_pilot/__init__.py`、`frontend/package.json`、`frontend/package-lock.json`（含根 package）和 Dockerfile 中的版本，提交到 `main` 后，再创建并推送对应标签。工作流会拒绝版本不一致、格式不正确或不属于 `main` 历史的标签。普通分支推送不会发布镜像或 Release。
+
+两个工作流均支持 **Run workflow** 输入已有标签手动重试；需要补发完整版本时运行 `Publish release`。已存在的 Release 不会被重写。不要移动已发布标签；修改源码应使用新的版本号和标签。
+
+### 本地构建
+
 修改 Python 生产依赖的版本后，在 Python 3.12 / Linux amd64 环境运行 `python tools/refresh_python_lock.py` 刷新锁文件。它检查完整依赖闭包、哈希和已公开的漏洞，失败时不替换现有锁。
 
 构建并发布镜像：

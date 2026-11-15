@@ -1,0 +1,72 @@
+name: Publish release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag (vMAJOR.MINOR.PATCH)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-release
+  cancel-in-progress: false
+
+jobs:
+  image:
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      tag: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  release:
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+      IMAGE: ${{ needs.image.outputs.image }}
+      REVISION: ${{ needs.image.outputs.revision }}
+      PUBLISH_LATEST: ${{ needs.image.outputs.latest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Package public source and deployment files
+        id: package
+        run: |
+          python3 tools/release_metadata.py --tag "$RELEASE_TAG"
+          directory=$(mktemp -d "$RUNNER_TEMP/jav-pilot-release.XXXXXX")
+          python3 tools/public_release.py --output "$directory/jav-pilot-source.zip"
+          cp docker-compose.yml .env.example "$directory/"
+          (cd "$directory" && sha256sum jav-pilot-source.zip docker-compose.yml .env.example > SHA256SUMS)
+          printf 'directory=%s\n' "$directory" >> "$GITHUB_OUTPUT"
+          printf 'Docker Hub: `%s`\n\nPlatform: `linux/amd64`\n\nSource commit: `%s`\n\n```sh\ndocker pull %s\n```\n' "$IMAGE" "$REVISION" "$IMAGE" > "$directory/notes.md"
+
+      - name: Create GitHub Release after the image is published
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PACKAGE_DIR: ${{ steps.package.outputs.directory }}
+        run: |
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            printf 'Release %s already exists; keeping its notes and assets.\n' "$RELEASE_TAG" >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --target "$REVISION" \
+              --title "JAV Pilot $RELEASE_TAG" --generate-notes \
+              --notes-file "$PACKAGE_DIR/notes.md" --latest="$PUBLISH_LATEST" \
+              "$PACKAGE_DIR/jav-pilot-source.zip" "$PACKAGE_DIR/docker-compose.yml" \
+              "$PACKAGE_DIR/.env.example" "$PACKAGE_DIR/SHA256SUMS"
+          fi

@@ -21,6 +21,7 @@ FRONTEND_FILES = (
     'vite.config.ts', 'vitest.config.ts',
 )
 TREES = {
+    '.github/workflows': {'.yml', '.yaml'},
     'jav_pilot': {'.py'},
     'deploy': {'.yml', '.example'},
     'ops': {'.py', '.yml'},
