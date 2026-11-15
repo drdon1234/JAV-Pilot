@@ -10,7 +10,7 @@ import { ArrowLeft, ArrowRight, Bookmark, Download, ExternalLink, Play, RefreshC
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
-import { BookmarkButton } from '../components/WatchActions'
+import { BookmarkButton, LocalPlaybackLink } from '../components/WatchActions'
 import { WatchPlayer } from '../components/WatchPlayer'
 import { Button, EmptyState, InlineNotice, PageHeader, SkeletonRows, StatusBadge } from '../components/ui'
 import { t } from '../lib/i18n'
@@ -34,6 +34,7 @@ function EntryCard({ entry, sourceName, query }: { entry: WatchEntry; sourceName
     </div>
     <div className="watch-card-actions">
       <Link className="button button-primary button-small" to={watchHref(entry, true, query)}><Play aria-hidden="true" />{t('应用内播放')}</Link>
+      <LocalPlaybackLink code={entry.code} />
       <DownloadWork entry={entry} />
       <BookmarkButton entry={entry} kind="work" />
     </div>
@@ -159,6 +160,7 @@ export function SelectedWork({ source, url, play, onPlay }: {
         <h2>{entry.title}</h2>{entry.description ? <p className="watch-work-description">{entry.description}</p> : null}
         <div className="watch-inline-actions">
           {!play ? <Button type="button" variant="primary" onClick={onPlay}><Play aria-hidden="true" />{t('开始播放')}</Button> : null}
+          <LocalPlaybackLink code={entry.code} />
           <DownloadWork entry={entry} />
           <BookmarkButton entry={entry} kind="work" />
           {!play ? <BookmarkButton entry={entry} kind="playback" /> : null}

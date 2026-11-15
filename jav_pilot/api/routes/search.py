@@ -933,15 +933,41 @@ class SearchRoutes(BaseHandler):
         )
 
     def _handle_work(self, query_string: str) -> None:
+        streaming = 'text/event-stream' in self.headers.get('Accept', '')
+        stream_started = False
+        disconnected = threading.Event()
+
+        def emit(event: str, payload: object) -> None:
+            nonlocal stream_started
+            if disconnected.is_set():
+                return
+            if not stream_started:
+                if not self._send_sse_headers():
+                    disconnected.set()
+                    return
+                stream_started = True
+            if not self._send_event(event, payload):
+                disconnected.set()
+
+        def respond(payload: dict[str, object], status: HTTPStatus = HTTPStatus.OK) -> None:
+            if streaming and (stream_started or status == HTTPStatus.OK):
+                emit('error' if status >= 400 else 'done', payload)
+            else:
+                self._send_json(payload, status)
+
+        def publish(work: WorkResult) -> None:
+            if streaming:
+                emit('result', {'work': work.to_dict()})
+
         try:
             params = query_params(query_string)
         except QueryError as exc:
-            self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            respond({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
             return
 
         work_id = single_param(params, "work_id").strip()
         if work_id and not valid_work_id(work_id):
-            self._send_json({"error": "invalid work id"}, HTTPStatus.BAD_REQUEST)
+            respond({"error": "invalid work id"}, HTTPStatus.BAD_REQUEST)
             return
 
         raw_requested = single_param(params, "code").strip()
@@ -961,7 +987,7 @@ class SearchRoutes(BaseHandler):
             and work_id.lower().startswith("code:")
             and requested_key != code_key(work_id[5:])
         ):
-            self._send_json(
+            respond(
                 {"error": "work id and code do not match"}, HTTPStatus.BAD_REQUEST
             )
             return
@@ -980,7 +1006,7 @@ class SearchRoutes(BaseHandler):
                     title=requested_title,
                 ))
             except (ValueError, DetailPrefetchValidationError) as exc:
-                self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                respond({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
                 return
         prefetched = None
         if work_id:
@@ -1000,7 +1026,7 @@ class SearchRoutes(BaseHandler):
         if linked_work is not None:
             recent_work = linked_work
         if recent_work is None and not requested_key and not recovery_query:
-            self._send_json(
+            respond(
                 {"error": "work recovery query is required"}, HTTPStatus.BAD_REQUEST
             )
             return
@@ -1016,7 +1042,7 @@ class SearchRoutes(BaseHandler):
             or not 1 <= recovery_page <= 10_000_000
             or not 1 <= recovery_page_size <= 100
         ):
-            self._send_json(
+            respond(
                 {"error": "work recovery pagination is invalid"},
                 HTTPStatus.BAD_REQUEST,
             )
@@ -1048,10 +1074,10 @@ class SearchRoutes(BaseHandler):
         if cached is not None:
             payload = dict(cached)
             payload["cached"] = True
-            self._send_json(payload)
+            respond(payload)
             return
         if not acquire_search_capacity(state.DETAIL_SEARCH_SLOTS):
-            self._send_json(
+            respond(
                 {"error": "too many active searches"}, HTTPStatus.TOO_MANY_REQUESTS
             )
             return
@@ -1074,6 +1100,19 @@ class SearchRoutes(BaseHandler):
                 semantic_refs={} if requested_key else recovery_semantic_refs,
             ).normalized()
             work = recent_work
+            if work is not None:
+                publish(work)
+
+            def select_work(response: SearchResponse) -> WorkResult | None:
+                return next((result for result in response.results if (
+                    result.work_id == work_id if not requested_key else
+                    result.canonical_code == requested_key or code_key(result.code or '') == requested_key
+                )), None)
+
+            def publish_lookup(source: str, response: SearchResponse, completed: int, total: int) -> None:
+                candidate = select_work(response)
+                if candidate is not None:
+                    publish(candidate)
             lookup_errors: dict[str, str] = {}
             searched_sources: set[str] = set()
             if work is None:
@@ -1083,9 +1122,11 @@ class SearchRoutes(BaseHandler):
                         sources=sources,
                         bounds=bounds,
                         indexers=registry,
+                        on_source=publish_lookup,
+                        cancelled=disconnected.is_set,
                     )
                 except QueryError as exc:
-                    self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                    respond({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
                     return
                 lookup_errors = {
                     source: sanitize_source_error(error) or "source lookup failed"
@@ -1107,9 +1148,11 @@ class SearchRoutes(BaseHandler):
                     ),
                     None,
                 )
+            if disconnected.is_set():
+                return
             if work is None:
                 if lookup_errors:
-                    self._send_json(
+                    respond(
                         {
                             "error": "work lookup unavailable",
                             "errors": lookup_errors,
@@ -1117,9 +1160,10 @@ class SearchRoutes(BaseHandler):
                         HTTPStatus.SERVICE_UNAVAILABLE,
                     )
                     return
-                self._send_json({"error": "work not found"}, HTTPStatus.NOT_FOUND)
+                respond({"error": "work not found"}, HTTPStatus.NOT_FOUND)
                 return
 
+            publish(work)
             detail_bounds = replace(bounds, fetch_magnets=True, detail_limit=1)
             javdb_pool = JavDbFetcherPool(detail_bounds)
             enriched = enrich_stream_work(
@@ -1128,6 +1172,8 @@ class SearchRoutes(BaseHandler):
                 detail_bounds,
                 javdb_pool,
                 include_images=True,
+                cancelled=disconnected.is_set,
+                on_update=publish,
             )
             # A saved link or an uncoded search record only carries sources
             # already discovered. Once its identity is known, recover the
@@ -1137,7 +1183,24 @@ class SearchRoutes(BaseHandler):
             missing = tuple(source for source in sources
                             if source in registry and source not in present
                             and source not in searched_sources)
+            if disconnected.is_set():
+                return
             if enriched.code and missing:
+                base = enriched
+                def merge_additions(additions: WorkResult) -> WorkResult:
+                    recovered = {source.source_id for source in additions.sources}
+                    return merge_work_records(base, (
+                        *((source.source_id, source_record(base, source))
+                          for source in base.sources if source.source_id not in recovered),
+                        *((source.source_id, source_record(additions, source))
+                          for source in additions.sources),
+                    ))
+
+                def publish_missing(source: str, response: SearchResponse, completed: int, total: int) -> None:
+                    candidate = next((result for result in response.results
+                                      if code_key(result.code or '') == code_key(base.code)), None)
+                    if candidate is not None:
+                        publish(merge_additions(candidate))
                 response = search(
                     enriched.code,
                     sources=missing,
@@ -1146,6 +1209,8 @@ class SearchRoutes(BaseHandler):
                         match="exact", search_kind="code", filters={}, semantic_refs={},
                     ),
                     indexers=registry,
+                    on_source=publish_missing,
+                    cancelled=disconnected.is_set,
                 )
                 lookup_errors.update({
                     source: sanitize_source_error(error) or "source lookup failed"
@@ -1156,14 +1221,15 @@ class SearchRoutes(BaseHandler):
                 if additions is not None:
                     additions = enrich_stream_work(
                         additions, registry, detail_bounds, javdb_pool, include_images=True,
+                        cancelled=disconnected.is_set,
+                        on_update=lambda update: publish(merge_additions(update)),
                     )
-                    recovered = {source.source_id for source in additions.sources}
-                    enriched = merge_work_records(enriched, (
-                        *((source.source_id, source_record(enriched, source))
-                          for source in enriched.sources if source.source_id not in recovered),
-                        *((source.source_id, source_record(additions, source))
-                          for source in additions.sources),
-                    ))
+                    enriched = merge_additions(additions)
+        except Exception as exc:
+            if not stream_started:
+                raise
+            respond({'error': sanitize_source_error(exc) or 'work lookup unavailable'}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
         finally:
             try:
                 if javdb_pool:
@@ -1171,6 +1237,8 @@ class SearchRoutes(BaseHandler):
             finally:
                 release_search_capacity(state.DETAIL_SEARCH_SLOTS)
 
+        if disconnected.is_set():
+            return
         if lookup_errors:
             enriched = with_source_lookup_errors(enriched, lookup_errors)
         payload = {"work": enriched.to_dict(), "cached": False}
@@ -1181,7 +1249,7 @@ class SearchRoutes(BaseHandler):
             state.WORK_CACHE.set(work_cache_key(enriched.work_id, sources), enriched)
             if not work_has_enrichment_errors(enriched):
                 state.SEARCH_CACHE.set(cache_key, payload)
-        self._send_json(payload)
+        respond(payload)
 
     def _handle_search_cancel(self) -> None:
         try:

@@ -6,11 +6,21 @@ import { bookmarkActionLabels, watching, type BookmarkKind, type WatchEntry } fr
 import { t } from '../lib/i18n'
 import { useToast } from './ToastProvider'
 import { Button } from './ui'
+import { useLocalPlayback } from '../lib/localPlayback'
+
+export function LocalPlaybackLink({ code, showCode = false }: { code: string; showCode?: boolean }) {
+  const availability = useLocalPlayback(code)
+  const entries = availability.data?.local_entries ?? []
+  if (availability.isError || !entries.length) return null
+  // Multiple editions belong in the library chooser, never silently pick one.
+  const href = entries.length === 1 ? `/player?entry=${encodeURIComponent(entries[0])}` : `/library?q=${encodeURIComponent(code)}`
+  return <Link className="button button-secondary button-small" to={href} title={code}><Play aria-hidden="true" />{t('本地播放')}{showCode ? ` · ${code}` : ''}</Link>
+}
 
 export function WatchLink({ code }: { code: string }) {
-  return <Link className="button button-secondary button-small" to={`/watch?q=${encodeURIComponent(code)}`}>
+  return <><Link className="button button-secondary button-small" to={`/watch?q=${encodeURIComponent(code)}`}>
     <Play aria-hidden="true" />{t('在线观看')}
-  </Link>
+  </Link><LocalPlaybackLink code={code} /></>
 }
 
 export function BookmarkButton({ entry, kind }: { entry: WatchEntry; kind: BookmarkKind }) {

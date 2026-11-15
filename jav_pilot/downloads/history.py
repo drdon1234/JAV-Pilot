@@ -57,6 +57,7 @@ class CodeHistory:
     torrent: list[str] = field(default_factory=list)
     web: list[str] = field(default_factory=list)
     library: list[str] = field(default_factory=list)
+    local_entries: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, object]:
         torrent_state = _torrent_state(self.torrent)
@@ -69,6 +70,7 @@ class CodeHistory:
             "web": web_state,
             "library": bool(self.library),
             "library_path": self.library[0] if self.library else None,
+            "local_entries": list(dict.fromkeys(self.local_entries)),
             "state": "downloaded" if downloaded else "active" if active else "none",
         }
 
@@ -157,6 +159,8 @@ def lookup_download_history(
                         history.web.append(status)
                     elif str(row.get("presence") or "present") != "missing":
                         history.library.append(str(row.get("primary_media_path") or ""))
+                        if row.get("presence") == "present" and row.get("media_paths") and row.get("entry_id"):
+                            history.local_entries.append(str(row["entry_id"]))
         except Exception:  # noqa: BLE001 - reported as unavailable, never as "not downloaded".
             unavailable.append(source)
     return [history.to_dict() for history in histories], unavailable

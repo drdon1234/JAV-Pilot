@@ -8,6 +8,7 @@ import { requestJson } from '../lib/api'
 import { waitForPlaybackSaves } from '../lib/playbackProgress'
 import { formatDateTime, playbackTime } from '../lib/format'
 import { t } from '../lib/i18n'
+import { LocalPlaybackLink } from '../components/WatchActions'
 import { useSelection, SelectionTools, SelectionCheck, RemoveSelection } from '../components/SelectionTools'
 
 export interface PlaybackRecord { id: string; kind: 'local' | 'online'; title: string; code: string; cover: string; source: string; url: string; entry: string; file: number; position: number; duration: number; completed: boolean; updated_at: number }
@@ -38,7 +39,7 @@ export function PlaybackHistoryPage() {
             <progress aria-label={t('播放进度')} max={item.duration || 1} value={item.completed ? item.duration : Math.min(item.position, item.duration)} />
             <time dateTime={new Date(item.updated_at * 1000).toISOString()}>{formatDateTime(item.updated_at)}</time>
           </div>
-          <div className="playback-history-actions"><Link className="button button-primary" to={target}><Play aria-hidden="true" />{item.completed ? t('从头播放') : t('继续播放')}</Link><IconButton label={t('删除记录')} disabled={remove.isPending} onClick={() => remove.mutate(item.id)}><Trash2 aria-hidden="true" /></IconButton></div>
+          <div className="playback-history-actions"><Link className="button button-primary" to={target}><Play aria-hidden="true" />{item.completed ? t('从头播放') : t('继续播放')}</Link>{item.kind === 'online' ? <LocalPlaybackLink code={item.code} /> : null}<IconButton label={t('删除记录')} disabled={remove.isPending} onClick={() => remove.mutate(item.id)}><Trash2 aria-hidden="true" /></IconButton></div>
         </article>
       })}
     </div> : <EmptyState title={t('暂无播放记录')} description={t('播放后自动记录进度，可随时继续观看。')} action={<Link className="button button-primary" to="/library">{t('媒体库')}</Link>} />}

@@ -120,6 +120,7 @@ class JavBusIndexer(Indexer):
         *,
         include_images: bool = False,
         cancelled: Callable[[], bool] | None = None,
+        on_update: Callable[[SearchResult], None] | None = None,
     ) -> tuple[SearchResult, ...]:
         enriched: list[SearchResult] = []
         detail_budget = bounds.detail_limit
@@ -221,6 +222,25 @@ class JavBusIndexer(Indexer):
                     image_error = str(exc)
                 if not images and not image_error:
                     image_error = "JavBus detail page did not contain expected images"
+
+            if on_update is not None:
+                partial_metadata = {**metadata, "details_resolved": True}
+                if details_error:
+                    partial_metadata["details_error"] = details_error
+                else:
+                    partial_metadata.pop("details_error", None)
+                if include_images:
+                    partial_metadata["images_resolved"] = True
+                    if image_error:
+                        partial_metadata["images_error"] = image_error
+                    else:
+                        partial_metadata.pop("images_error", None)
+                        partial_metadata["images"] = [image.to_dict() for image in images]
+                on_update(replace(
+                    result, details=details, metadata=partial_metadata,
+                    actors=merge_related_labels(result.actors, details.actors),
+                    tags=merge_related_labels(result.tags, details.tags),
+                ))
 
             if result.magnet_hint != "unavailable":
                 if cancelled is not None and cancelled():

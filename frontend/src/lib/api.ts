@@ -1000,18 +1000,14 @@ export const api = {
       '/api/organizer/preview',
       { method: 'POST', body: JSON.stringify(payload) },
     ),
-  work: async (workId: string, routeParams?: URLSearchParams, signal?: AbortSignal) => {
+  work: async (workId: string, routeParams?: URLSearchParams, signal?: AbortSignal, onUpdate?: (work: WorkResult) => void) => {
     const params = new URLSearchParams({ work_id: workId })
     routeParams?.forEach((value, key) => {
       if (key === 'code' || key === 'source' || key === 'detail_url' || key === 'title' || (workId.startsWith('record:') && isWorkRecoveryParam(key))) {
         params.set(key, value)
       }
     })
-    const payload = await requestJson<WorkResult | { work: WorkResult }>(
-      `/api/works?${params.toString()}`,
-      { signal },
-    )
-    return 'work' in payload ? payload.work : payload
+    return streamWork(`/api/works?${params.toString()}`, signal, onUpdate)
   },
   createDetailPrefetchBatch: async (requestId: string, workIds: string[], source = 'all') => {
     const payload = await requestJson<{ ok: boolean; batch: DetailPrefetchBatch }>(
@@ -1079,6 +1075,52 @@ export const api = {
       '/api/search/sessions/action',
       { method: 'POST', body: JSON.stringify({ action: 'clear' }) },
     ),
+}
+
+async function streamWork(url: string, signal?: AbortSignal, onUpdate?: (work: WorkResult) => void): Promise<WorkResult> {
+  const response = await fetch(url, { signal, credentials: 'same-origin', headers: { Accept: 'text/event-stream' } })
+  signal?.throwIfAborted()
+  if (!response.ok) {
+    if (response.status === 401) window.location.assign(loginUrl(`${window.location.pathname}${window.location.search}${window.location.hash}`))
+    const payload = await response.json().catch(() => ({})) as { error?: string }
+    throw new ApiError(serviceErrorMessage({ message: payload.error || response.statusText }, t('完整详情加载失败')), response.status)
+  }
+  if (!response.body || !response.headers.get('content-type')?.includes('text/event-stream')) throw new ApiError(t('完整详情加载失败'))
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let latest: WorkResult | undefined
+  const dispatch = (block: string): boolean => {
+    const event = parseSseBlock(block, t('完整详情加载失败'))
+    if (!event) return false
+    const payload = event.payload as unknown as { work?: WorkResult; error?: string }
+    if (event.event === 'error') throw new ApiError(serviceErrorMessage({ message: payload.error || '' }, t('完整详情加载失败')))
+    if (event.event !== 'result' && event.event !== 'done') return false
+    if (!payload.work || typeof payload.work.work_id !== 'string' || !Array.isArray(payload.work.sources)) throw new ApiError(t('完整详情加载失败'))
+    latest = payload.work
+    if (!signal?.aborted) onUpdate?.(latest)
+    return event.event === 'done'
+  }
+  try {
+    while (true) {
+      const chunk = await reader.read()
+      signal?.throwIfAborted()
+      buffer += decoder.decode(chunk.value, { stream: !chunk.done })
+      const blocks = buffer.split(/\r?\n\r?\n/)
+      buffer = blocks.pop() ?? ''
+      for (const block of blocks) {
+        if (block.length > MAX_SSE_BUFFER) throw new ApiError(t('完整详情加载失败'))
+        if (dispatch(block)) return latest!
+      }
+      if (buffer.length > MAX_SSE_BUFFER) throw new ApiError(t('完整详情加载失败'))
+      if (chunk.done) break
+    }
+    if (buffer.trim() && dispatch(buffer)) return latest!
+    throw new ApiError(t('完整详情加载失败'))
+  } finally {
+    await reader.cancel().catch(() => undefined)
+    reader.releaseLock()
+  }
 }
 
 export async function streamSearch(
@@ -1182,7 +1224,7 @@ export async function streamSearch(
   }
 }
 
-export function parseSseBlock(block: string): SearchStreamEvent | null {
+export function parseSseBlock(block: string, invalidMessage = t('搜索流包含无效数据')): SearchStreamEvent | null {
   let eventName = ''
   const data: string[] = []
   block.split(/\r?\n/).forEach((line) => {
@@ -1196,6 +1238,6 @@ export function parseSseBlock(block: string): SearchStreamEvent | null {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('invalid event payload')
     return { event: eventName, payload } as SearchStreamEvent
   } catch {
-    throw new ApiError(t('搜索流包含无效数据'), 0, 'stream_invalid')
+    throw new ApiError(invalidMessage, 0, 'stream_invalid')
   }
 }

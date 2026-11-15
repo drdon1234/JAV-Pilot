@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from ...config.app_config import AppConfig
+from ...downloads.history import code_identity
 from ...library.errors import MediaLibraryError
 from ...library.worker import MediaLibraryConfig
 from ...web_download.config import WebDownloadConfig
@@ -38,10 +39,20 @@ def history_library_entries() -> Callable[[str], list[dict[str, object]]] | None
         return None
 
     def entries(code: str) -> list[dict[str, object]]:
+        identity = code_identity(code)
+        if identity is None:
+            return []
         manager = media_library_manager()
-        result = manager.index.store.list_entries(
-            root_key=manager.index.root_key, query=code, limit=20
-        )
-        return list(result.get("items") or [])
+        rows: list[dict[str, object]] = []
+        while True:
+            result = manager.index.store.list_entries(
+                root_key=manager.index.root_key, query=code,
+                limit=500, offset=len(rows),
+            )
+            page = list(result.get("items") or [])
+            rows.extend(page)
+            if len(page) < 500:
+                break
+        return [row for row in rows if code_identity(row.get("code") or row.get("code_key")) == identity]
 
     return entries

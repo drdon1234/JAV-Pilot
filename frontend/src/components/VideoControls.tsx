@@ -13,6 +13,8 @@ const PLAYER_EDITABLE = 'input, select, textarea, [contenteditable]:not([content
 
 export function VideoControls({ video, children, resolution, subtitles }: { video: RefObject<HTMLVideoElement | null>; children: ReactNode; resolution?: ReactNode; subtitles?: SubtitleSource[] }) {
   const stage = useRef<HTMLDivElement>(null)
+  const progress = useRef<HTMLInputElement>(null)
+  const pointerProgress = useRef(false)
   const orientationOwned = useRef(false)
   const orientationPending = useRef(false)
   const fullscreenRequested = useRef(false)
@@ -196,6 +198,7 @@ export function VideoControls({ video, children, resolution, subtitles }: { vide
     const element = video.current!
     if (!Number.isFinite(element.duration)) return
     const next = Math.max(0, Math.min(element.duration, position))
+    if (next === element.currentTime) { if (revealControls) reveal(); return }
     seeking.current = next; setTarget(next); setBuffering(true)
     element.currentTime = next
     if (revealControls) reveal()
@@ -345,10 +348,10 @@ export function VideoControls({ video, children, resolution, subtitles }: { vide
     onKeyDown={event => {
       if (!activity.active || nativeFullscreen || event.defaultPrevented || event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
       const target = event.target as HTMLElement
-      if (target.closest(`${PLAYER_EDITABLE}, [role="slider"]`) || settingsOpen()) return
+      if ((target !== progress.current && target.closest(`${PLAYER_EDITABLE}, [role="slider"]`)) || settingsOpen()) return
       const key = event.key.toLowerCase()
       // Space still activates the focused native button or summary exactly once.
-      if (key === ' ' && target.closest(PLAYER_INTERACTIVE)) return
+      if (key === ' ' && target !== progress.current && target.closest(PLAYER_INTERACTIVE)) return
       if (key === 'arrowright') { event.preventDefault(); if (!event.repeat) speedHold.start('keyboard', () => seek(5)); return }
       if (key === 'arrowleft') { event.preventDefault(); seek(-5); return }
       if (key === ' ' || key === 'k') { event.preventDefault(); if (!event.repeat) toggle() }
@@ -364,7 +367,11 @@ export function VideoControls({ video, children, resolution, subtitles }: { vide
     {speedHold.holding || hint ? <div className="video-gesture-hint" role="status">{speedHold.holding ? '2×' : hint}</div> : null}
     <div className="video-controls" onPointerDown={reveal} onFocus={event => { if ((event.target as HTMLElement).matches(':focus-visible')) reveal() }}>
       <div className="video-progress-row"><span>{playbackTime(target ?? state.time)}</span>
-        <input aria-label={t('播放进度')} type="range" min={0} max={state.duration || 1} step={0.1} value={Math.min(target ?? state.time, state.duration || 1)} disabled={!state.duration}
+        <input ref={progress} aria-label={t('播放进度')} type="range" min={0} max={state.duration || 1} step={0.1} value={Math.min(target ?? state.time, state.duration || 1)} disabled={!state.duration}
+          onPointerDown={() => { pointerProgress.current = true }}
+          onPointerUp={() => { pointerProgress.current = false; stage.current?.focus({ preventScroll: true }) }}
+          onPointerCancel={() => { pointerProgress.current = false; stage.current?.focus({ preventScroll: true }) }}
+          onLostPointerCapture={() => { if (pointerProgress.current) { pointerProgress.current = false; stage.current?.focus({ preventScroll: true }) } }}
           onChange={event => seekTo(Number(event.target.value))} />
         <span>{playbackTime(state.duration)}</span></div>
       <div className="video-controls-row">

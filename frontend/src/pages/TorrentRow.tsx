@@ -6,6 +6,7 @@ import { formatBytes, formatDateTime, formatEta } from '../lib/format'
 import type { TorrentStage, TorrentTask, WorkMagnet } from '../types'
 import { DownloadRecoveryActions } from './DownloadRecovery'
 import { t } from '../lib/i18n'
+import { LocalPlaybackLink } from '../components/WatchActions'
 
 const stageLabels: Record<TorrentStage, string> = {
   queued: t('排队中'),
@@ -106,6 +107,7 @@ export function TorrentRow({
         {task.tags ? <span>{task.tags}</span> : null}
       </div>
       <div className="torrent-actions" role="cell">
+        {task.stage === 'completed' ? task.catalog_codes.map(code => <LocalPlaybackLink key={code} code={code} showCode={task.catalog_codes.length > 1} />) : null}
         {task.can_pause ? (
           <IconButton label={t('暂停任务：{name}', { name: task.name })} onClick={() => onAction('pause')} disabled={busy}>
             <Pause aria-hidden="true" />

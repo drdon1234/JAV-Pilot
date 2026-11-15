@@ -10,6 +10,7 @@ import { bookmarkLabels, editionLabel, watching, watchHref, type Bookmark, type 
 import { t } from '../lib/i18n'
 import { StableImage } from './WorkUi'
 import { requestJson } from '../lib/api'
+import { LocalPlaybackLink } from '../components/WatchActions'
 import { useSelection, SelectionTools, SelectionCheck, RemoveSelection } from '../components/SelectionTools'
 
 export function FavoritesPage() {
@@ -59,6 +60,7 @@ function FavoriteRow({ item, removing, onRemove }: { item: Bookmark; removing: b
     </div>
     <div className="watch-entry-actions"><Link className={`button button-small ${item.kind === 'playback' ? 'button-primary' : 'button-secondary'}`} to={destination}>
       {item.kind === 'playback' ? <Play aria-hidden="true" /> : <ArrowRight aria-hidden="true" />}{item.kind === 'playback' ? t('直接播放') : item.kind === 'detail' ? t('查看资料') : t('进入作品')}</Link>
+      <LocalPlaybackLink code={item.code} />
       <Button type="button" size="small" variant="ghost" onClick={onRemove} disabled={removing} aria-label={t('取消收藏 {title}', { title: item.title })}><Trash2 aria-hidden="true" />{t('取消收藏')}</Button></div>
   </article>
 }

@@ -504,14 +504,20 @@ export function DetailPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const detailKey = ['work', workId, lookupCode, sourceScope, recoveryScope, detailSearchParams.get('detail_url')]
+  const detailScope = JSON.stringify(detailKey)
+  const [partialWork, setPartialWork] = useState<{ scope: string; work: WorkResult } | null>(null)
   const workQuery = useQuery({
-    queryKey: ['work', workId, lookupCode, sourceScope, recoveryScope, detailSearchParams.get('detail_url')],
-    queryFn: ({ signal }) => api.work(workId, detailSearchParams, signal),
+    queryKey: detailKey,
+    queryFn: ({ signal }) => api.work(workId, detailSearchParams, signal, work => {
+      if (!signal.aborted) setPartialWork({ scope: detailScope, work })
+    }),
     enabled: Boolean(workId),
     placeholderData: routeWork,
     staleTime: (query) => hasSourceError(query.state.data) ? 0 : 15 * 60_000,
     refetchOnMount: (query) => hasSourceError(query.state.data) ? 'always' : true,
     gcTime: 60 * 60_000,
+    retry: false,
   })
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings })
   const [activeSourceSelection, setActiveSourceSelection] = useState({ workId: '', sourceId: '' })
@@ -560,7 +566,8 @@ export function DetailPage() {
     retry: false,
   })
 
-  const work = workQuery.data ?? routeWork
+  const streamedWork = partialWork?.scope === detailScope ? partialWork.work : undefined
+  const work = (workQuery.isFetching || workQuery.isError ? streamedWork : undefined) ?? workQuery.data ?? streamedWork ?? routeWork
   const translation = useTranslationPreferences(settings.data?.settings.workflow_defaults?.translation)
   const titleTranslations = useTranslations(work?.title ? [work.title] : [], translation.preferences.enabled)
   const translatedTitle = translation.preferences.enabled && work ? titleTranslations.translate(work.title) : null
@@ -671,12 +678,10 @@ export function DetailPage() {
     || work?.sources.find((source) => source.source_id === defaultDetailSourceId)
     || work?.sources[0]
   const activeSourceDetailUrl = externalHttpUrl(activeSource?.detail_url)
-  const resolvedActiveSource = workQuery.data?.sources.find(
+  const resolvedActiveSource = work?.sources.find(
     (source) => source.source_id === activeSource?.source_id,
   )
-  const activeSourceError = workQuery.dataUpdatedAt > 0
-    && !workQuery.isPlaceholderData
-    && !workQuery.isFetching
+  const activeSourceError = (streamedWork || workQuery.dataUpdatedAt > 0 && !workQuery.isPlaceholderData)
     ? resolvedActiveSource?.error
       || resolvedActiveSource?.details_error
       || resolvedActiveSource?.image_error
@@ -1039,7 +1044,7 @@ export function DetailPage() {
       {workQuery.isError && work ? (
         <InlineNotice tone="warning" role="alert">
           <strong>{t('完整详情加载失败')}</strong>
-          <span>{(workQuery.error as Error).message}</span>
+          {(workQuery.error as Error).message !== t('完整详情加载失败') ? <span>{(workQuery.error as Error).message}</span> : null}
           <Button type="button" size="small" onClick={() => void workQuery.refetch()} disabled={workQuery.isFetching}>
             {t('重新加载')}
           </Button>
@@ -1292,7 +1297,7 @@ export function DetailPage() {
                   />
                 ) : null}
 
-                <WorkMediaGallery
+                {workQuery.isFetching && activeSource.parse_status === 'summary' && !images.length ? <SkeletonRows count={1} /> : <WorkMediaGallery
                   sourceId={activeSource.source_id}
                   sourceLabel={sourceName(activeSource.source_id, sites)}
                   images={images}
@@ -1301,11 +1306,11 @@ export function DetailPage() {
                   imageStates={activeImageStates}
                   onImageState={markImageState}
                   onOpen={setLightboxIndex}
-                />
+                />}
               </div>
             ) : null}
           </>
-        ) : <EmptyState className="compact-empty" title={t('暂无站点详情')} />}
+        ) : workQuery.isFetching ? <SkeletonRows count={1} /> : <EmptyState className="compact-empty" title={t('暂无站点详情')} />}
       </section>
 
       <section className="work-detail-section" aria-labelledby="work-magnets-title">
@@ -1349,7 +1354,7 @@ export function DetailPage() {
             {selectionStartError || (selectionQuery.error as Error | null)?.message || selection?.error}
           </InlineNotice>
         ) : null}
-        <WorkMagnetList
+        {workQuery.isFetching && !work.magnets.length ? <div className="magnet-empty" role="status">{t('正在解析')}</div> : <WorkMagnetList
           magnets={work.magnets}
           sites={sites}
           states={downloadStates}
@@ -1357,7 +1362,7 @@ export function DetailPage() {
           selectionItems={selectionItems}
           onDownload={(magnet) => void addDownload(magnet)}
           onOpenDownloads={() => navigate('/downloads')}
-        />
+        />}
       </section>
 
       <dialog

@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 
-from ..core.catalog_code import canonical_catalog_code
+from ..core.catalog_code import canonical_catalog_code, parse_code_pattern
 from .media_probe import LocalFileIdentity
 from .errors import (
     MediaLibraryConflictError,
@@ -32,7 +32,6 @@ from .fields import (
     validate_root_key,
 )
 from .filesystem import (
-    exact_catalog_query,
     identity_scalar,
     is_below,
     optional_web_download_variant,
@@ -46,6 +45,15 @@ from .folders import catalog_prefix
 __all__ = [
     "MediaLibraryStore",
 ]
+
+
+def _catalog_keys(value: object) -> tuple[str, ...]:
+    pattern = parse_code_pattern(value)
+    if pattern is None or pattern.number is None:
+        return ()
+    number = str(pattern.number)
+    # Query the indexed canonical keys, including every supported padding width.
+    return tuple(pattern.prefix + number.zfill(width) for width in range(len(number), 10))
 
 
 class MediaLibraryStore:
@@ -968,10 +976,10 @@ class MediaLibraryStore:
             "max_height": max_height,
         }
         clauses, values = self._entry_filters(**filter_values)
-        exact_code = exact_catalog_query(query)
+        exact_codes = _catalog_keys(query)
         base_clauses: list[str] | None = None
         base_values: list[object] | None = None
-        if exact_code is not None:
+        if exact_codes:
             base_clauses, base_values = self._entry_filters(
                 **{**filter_values, "query": None}
             )
@@ -980,21 +988,22 @@ class MediaLibraryStore:
         )
         with self._connect() as connection:
             if (
-                exact_code is not None
+                exact_codes
                 and base_clauses is not None
                 and base_values is not None
             ):
                 base_where = " AND ".join(base_clauses) if base_clauses else "1 = 1"
+                code_clause = "e.code_key IN (" + ",".join("?" for _ in exact_codes) + ")"
                 exact_match = connection.execute(
                     "SELECT 1 FROM media_library_entries e "
                     "JOIN media_library_roots r ON r.root_key = e.root_key "
                     "WHERE e.retired_generation_id IS NULL "
-                    f"AND {base_where} AND e.code_key = ? LIMIT 1",
-                    (*base_values, exact_code),
+                    f"AND {base_where} AND {code_clause} LIMIT 1",
+                    (*base_values, *exact_codes),
                 ).fetchone()
                 if exact_match is not None:
-                    clauses = [*base_clauses, "e.code_key = ?"]
-                    values = [*base_values, exact_code]
+                    clauses = [*base_clauses, code_clause]
+                    values = [*base_values, *exact_codes]
             where = " AND ".join(clauses) if clauses else "1 = 1"
             group_expression = "library_prefix(e.code)"
             if group_key is not None:

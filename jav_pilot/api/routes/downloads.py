@@ -9,6 +9,7 @@ from ...config.settings import SettingsError, load_settings, normalize_settings
 from ...core.guards import QueryError
 from ...downloads.history import (
     DownloadHistoryError,
+    code_identities_in_name,
     lookup_download_history,
     normalize_lookup_codes,
 )
@@ -164,7 +165,10 @@ class DownloadRoutes(CommonErrorResponses):
             return
         count = len(filtered_tasks)
         tasks = [
-            with_qb_reselection(task, category=category)
+            {
+                **with_qb_reselection(task, category=category),
+                "catalog_codes": [f"{prefix}-{number}" for prefix, number in sorted(code_identities_in_name(task.get("name")))],
+            }
             for task in filtered_tasks[offset : offset + limit]
         ]
         tasks = attach_download_recovery(tasks)

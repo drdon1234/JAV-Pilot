@@ -402,6 +402,7 @@
 
 .torrent-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
@@ -411,6 +412,12 @@
   width: 38px;
   height: 38px;
   flex-basis: 38px;
+}
+
+.torrent-actions .button {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .web-download-table {
@@ -872,7 +879,7 @@
   }
 
   .torrent-row {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .web-download-row {
@@ -930,8 +937,11 @@
   }
 
   .torrent-actions {
-    grid-column: 2;
-    grid-row: 1;
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-content: flex-start;
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
   }
 }
 

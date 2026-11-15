@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import os
+import queue
 import threading
 from collections.abc import Callable, Iterable
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import replace
 
 from ...core.models import (
@@ -173,6 +174,7 @@ def _enrich_stream_result(
     *,
     include_images: bool = False,
     cancelled: Callable[[], bool] | None = None,
+    on_update: Callable[[SearchResult], None] | None = None,
 ) -> SearchResult:
     if cancelled is not None and cancelled():
         return result
@@ -190,6 +192,8 @@ def _enrich_stream_result(
         return enriched[0] if enriched else result
     if isinstance(indexer, JavBusIndexer):
         enrichment_options: dict[str, object] = {"include_images": include_images}
+        if on_update is not None:
+            enrichment_options["on_update"] = on_update
         if cancelled is not None:
             enrichment_options["cancelled"] = cancelled
         enriched = indexer._enrich_magnets((result,), bounds, **enrichment_options)
@@ -243,6 +247,8 @@ def _enrich_stream_result(
             return result
         candidate = enriched[0] if enriched else result
         if mode == "auto" and _detail_enrichment_failed(candidate):
+            if on_update is not None:
+                on_update(candidate)
             if cancelled is not None and cancelled():
                 return result
             browser = _pooled_javdb_fetcher(javdb_fetcher, indexer)
@@ -275,21 +281,17 @@ def enrich_stream_work(
     *,
     include_images: bool = False,
     cancelled: Callable[[], bool] | None = None,
+    on_update: Callable[[WorkResult], None] | None = None,
 ) -> WorkResult:
-    enriched_records: list[SearchResult] = []
-    for source in work.sources:
+    updates: queue.SimpleQueue[SearchResult] = queue.SimpleQueue()
+    def enrich(source: WorkSource) -> SearchResult:
         if cancelled is not None and cancelled():
-            return work
+            return source_record(work, source)
         try:
-            enriched_records.append(
-                _enrich_stream_result(
-                    source_record(work, source),
-                    registry,
-                    bounds,
-                    javdb_fetcher,
-                    include_images=include_images,
-                    cancelled=cancelled,
-                )
+            return _enrich_stream_result(
+                source_record(work, source), registry, bounds, javdb_fetcher,
+                include_images=include_images, cancelled=cancelled,
+                on_update=updates.put if on_update is not None else None,
             )
         except Exception as exc:  # noqa: BLE001 - isolate one source from the detail response.
             failed_source = replace(
@@ -297,14 +299,34 @@ def enrich_stream_work(
                 parse_status="error",
                 error=sanitize_source_error(exc) or "source enrichment failed",
             )
-            enriched_records.append(source_record(work, failed_source))
-    if cancelled is not None and cancelled():
+            return source_record(work, failed_source)
+
+    if not work.sources:
         return work
-    if not enriched_records:
-        return work
-    return merge_work_records(
-        work, ((record.source, record) for record in enriched_records)
-    )
+    records = {source.source_id: source_record(work, source) for source in work.sources}
+    def accept(record: SearchResult) -> WorkResult:
+        records[record.source] = record
+        updated = merge_work_records(work, records.items())
+        if on_update is not None:
+            on_update(updated)
+        return updated
+
+    if len(work.sources) == 1 and on_update is None:
+        return accept(enrich(work.sources[0]))
+    updated = work
+    with ThreadPoolExecutor(max_workers=min(4, len(work.sources)), thread_name_prefix="work-detail") as pool:
+        futures = {pool.submit(enrich, source) for source in work.sources}
+        while futures:
+            if cancelled is not None and cancelled():
+                for pending in futures:
+                    pending.cancel()
+                break
+            done, futures = wait(futures, timeout=0.1, return_when=FIRST_COMPLETED)
+            while not updates.empty():
+                updated = accept(updates.get())
+            for future in done:
+                updated = accept(future.result())
+    return updated
 
 
 def stream_source_work(work: WorkResult, source_id: str) -> WorkResult | None:

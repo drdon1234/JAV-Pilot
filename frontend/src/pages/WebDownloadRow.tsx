@@ -16,6 +16,7 @@ import {
 import type { WebDownloadJob, WorkMagnet } from '../types'
 import { DownloadRecoveryActions } from './DownloadRecovery'
 import { t } from '../lib/i18n'
+import { LocalPlaybackLink } from '../components/WatchActions'
 
 export type WebDownloadActionName = 'pause' | 'resume' | 'cancel' | 'retry' | 'restart' | 'remove'
 
@@ -195,6 +196,7 @@ export function WebDownloadRow({
         <span title={targetDescription}>{targetDescription}</span>
       </div>
       <div className="web-download-actions" role="cell">
+        {task.status === 'completed' ? <LocalPlaybackLink code={task.code} /> : null}
         {task.can_pause ? (
           <IconButton label={t('暂停 {taskIdentity} 下载', { taskIdentity })} onClick={() => onAction('pause')} disabled={busy}>
             <Pause aria-hidden="true" />

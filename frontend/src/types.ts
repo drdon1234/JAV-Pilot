@@ -1084,6 +1084,7 @@ export interface MagnetSelectionPayload {
 export type TorrentStage = 'queued' | 'downloading' | 'checking' | 'paused' | 'completed' | 'error'
 
 export interface TorrentTask {
+  catalog_codes: string[]
   hash: string
   name: string
   state: string
@@ -1965,6 +1966,7 @@ export interface DownloadHistoryItem {
   web: 'completed' | 'active' | null
   library: boolean
   library_path: string | null
+  local_entries: string[]
   state: 'downloaded' | 'active' | 'none'
 }
 
