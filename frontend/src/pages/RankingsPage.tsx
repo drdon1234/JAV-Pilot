@@ -51,6 +51,8 @@ function detailHref(item: RankingItem, enabled: string[]): string | null {
   if (item.code) params.set('code', item.code)
   if (item.title) params.set('title', item.title)
   if (source && item.detail_url) {
+    // Paired with detail_url, source identifies the seed link's owner.
+    // The detail endpoint discovers the work across all enabled search sites.
     params.set('source', source)
     params.set('detail_url', item.detail_url)
   }

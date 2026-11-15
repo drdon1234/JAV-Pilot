@@ -993,16 +993,21 @@ class SearchRoutes(BaseHandler):
             return
         recovery_query = single_param(params, "q").strip()
         settings = load_settings()
-        sources = source_list(single_param(params, "source") or "all", settings)
         source_url = single_param(params, "detail_url").strip()
+        # With a direct URL, source identifies the URL's owner, not a search
+        # filter. A ranked/saved work must still discover other enabled sites.
+        # Without a direct URL, preserve an explicitly selected search scope.
+        selected_source = single_param(params, "source") or "all"
+        sources = source_list("all" if source_url else selected_source, settings)
         requested_title = single_param(params, "title").strip()[:500]
         linked_work = None
         if source_url:
             try:
-                if len(sources) != 1:
+                linked_sources = source_list(selected_source, settings, strict=True)
+                if len(linked_sources) != 1:
                     raise DetailPrefetchValidationError("detail link requires one source")
                 linked_work = work_result_from_snapshot(detail_snapshot_from_url(
-                    work_id, requested, sources[0], source_url, settings,
+                    work_id, requested, linked_sources[0], source_url, settings,
                     title=requested_title,
                 ))
             except (ValueError, DetailPrefetchValidationError) as exc:
