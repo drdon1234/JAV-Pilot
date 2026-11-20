@@ -1,3 +1,4 @@
+import '../styles/webCatalog.css'
 import { api } from '../lib/api'
 import { createWebDownloadIntentKey } from '../lib/webDownloads'
 import { useToast } from '../components/ToastProvider'

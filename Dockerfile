@@ -55,7 +55,8 @@ RUN --mount=type=cache,id=jav-pilot-ffmpeg-apt,target=/var/cache/apt,sharing=loc
         --disable-protocols \
         --disable-shared \
         --enable-demuxer=asf,avi,flv,matroska,mov,mpegps,mpegvideo,mpegts,rm \
-        --enable-muxer=mov,mp4 \
+        --enable-encoder=mjpeg \
+        --enable-muxer=image2,mov,mp4 \
         --enable-protocol=file \
         --enable-pthreads \
         --enable-small \
@@ -101,7 +102,7 @@ COPY frontend/src/lib/rankingCategoryLabels.json ./docs/licenses/rankingCategory
 ARG VCS_REF=unknown
 
 LABEL org.opencontainers.image.title="JAV Pilot" \
-      org.opencontainers.image.version="0.3.11" \
+      org.opencontainers.image.version="0.3.12" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.source="https://github.com/drdon1234/JAV-Pilot" \
       org.opencontainers.image.revision="${VCS_REF}"

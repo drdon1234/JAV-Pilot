@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import io
 import posixpath
 import re
+import subprocess
 import threading
 import time
 from collections import OrderedDict
 from datetime import datetime, timezone
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from email.utils import parsedate_to_datetime
 from http.client import HTTPException
 from typing import Any, Callable
@@ -15,6 +17,7 @@ from urllib.parse import SplitResult, unquote, urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 from .fc2_images import fc2_image_path_pattern, fc2_image_referer
+from .preview_frame import preview_jpeg
 from ..net.http_client import DEFAULT_HEADERS
 from ..net.network_guard import PublicHostResolver
 from ..net.pinned_http import PinnedHTTPHandler, PinnedHTTPSHandler
@@ -52,6 +55,8 @@ _IMAGE_ACCEPT = (
     "image/avif,image/webp,image/apng,image/png,image/jpeg,image/gif;q=0.9,*/*;q=0.1"
 )
 _PERCENT_ESCAPE = re.compile(r"%[0-9a-fA-F]{2}")
+_AV123_COVER_PATH = re.compile(r"/img2/(?:s\d+/)?(?P<work>[a-f0-9]{2}/[a-z0-9_-]+)/cover(?:-t)?\.(?:jpg|webp|png)")
+_AV123_PREVIEW_PATH = re.compile(r"/preview/[a-f0-9]{2}/[a-z0-9_-]+/preview\.png")
 _JAVBUS_DMM_PATH_PREFIXES = {
     "awsimgsrc.dmm.co.jp": ("/pics_dig/",),
     "pics.dmm.co.jp": ("/pics_dig/", "/digital/video/"),
@@ -77,6 +82,10 @@ class CoverRequestError(CoverProxyError):
 
 class CoverUpstreamError(CoverProxyError):
     category = "upstream"
+
+
+class _CoverNotFound(CoverUpstreamError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -213,13 +222,40 @@ def open_cover(
     if not origin_slot.acquire(timeout=COVER_ORIGIN_QUEUE_TIMEOUT_SECONDS):
         raise CoverUpstreamError("cover upstream is busy; retry later")
     try:
-        stream = _open_cover_stream(url, policy, timeout=timeout, max_bytes=max_bytes)
+        try:
+            stream = _open_cover_stream(url, policy, timeout=timeout, max_bytes=max_bytes)
+        except _CoverNotFound:
+            # Recommendations can advertise a static cover before the CDN has it.
+            match = _AV123_COVER_PATH.fullmatch(urlsplit(url).path)
+            if source != "av123" or not match:
+                raise
+            preview = f"https://icdn.123av.me/preview/{match['work']}/preview.png"
+            stream = _open_cover_stream(
+                preview, replace(policy, path_pattern=_AV123_PREVIEW_PATH),
+                timeout=timeout, max_bytes=max_bytes,
+            )
     except BaseException:
         origin_slot.release()
         raise
     # The stream owns the slot from here and releases it when closed.
     stream.release_slot = origin_slot.release
     return stream
+
+
+def _preview_image(stream: CoverStream) -> CoverStream:
+    with stream:
+        data = b"".join(stream.iter_chunks())
+    # 123AV also serves MP4 clips under the .png suffix and image/png MIME type.
+    content_type = "image/png"
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        try:
+            data = preview_jpeg(data)
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            raise CoverUpstreamError("cover preview frame is unavailable") from exc
+        content_type = "image/jpeg"
+    if not data or len(data) > stream.max_bytes:
+        raise CoverUpstreamError("cover preview frame size is invalid")
+    return CoverStream(io.BytesIO(data), content_type, stream.source_url, len(data), stream.max_bytes)
 
 
 def _open_cover_stream(
@@ -261,7 +297,8 @@ def _open_cover_stream(
                 ) from exc
 
             content_type = _response_content_type(response.headers)
-            if content_type not in _RASTER_IMAGE_TYPES:
+            is_preview = policy.path_pattern is _AV123_PREVIEW_PATH
+            if content_type not in _RASTER_IMAGE_TYPES and not (is_preview and content_type == "video/mp4"):
                 raise CoverUpstreamError(
                     "cover upstream did not return a supported raster image"
                 )
@@ -269,19 +306,22 @@ def _open_cover_stream(
             content_length = _content_length(response.headers)
             if content_length is not None and content_length > max_bytes:
                 raise CoverUpstreamError(f"cover response exceeded {max_bytes} bytes")
-            return CoverStream(
+            stream = CoverStream(
                 response=response,
                 content_type=content_type,
                 source_url=final_url,
                 content_length=content_length,
                 max_bytes=max_bytes,
             )
+            return _preview_image(stream) if is_preview else stream
         except CoverProxyError:
             if response is not None:
                 response.close()
             raise
         except HTTPError as exc:
             exc.close()
+            if exc.code == 404:
+                raise _CoverNotFound("cover upstream returned HTTP 404") from exc
             error = CoverUpstreamError(f"cover upstream returned HTTP {exc.code}")
             retryable = exc.code == 429 or 500 <= exc.code <= 599
             cause: BaseException = exc
@@ -351,7 +391,7 @@ def _policy_for_source(
         if not PublicHostResolver(max_hosts=1).is_public(target.hostname):
             raise CoverRequestError("cover URL host must resolve to a public address")
         return _CoverPolicy(origin=_origin(target), referer="https://123av.com/",
-                            path_pattern=re.compile(r"/img2/(?:s\d+/)?[a-f0-9]{2}/[a-z0-9_-]+/cover(?:-t)?\.(?:jpg|webp|png)"))
+                            path_pattern=_AV123_PREVIEW_PATH if _AV123_PREVIEW_PATH.fullmatch(target.path) else _AV123_COVER_PATH)
     if profile == "javbus":
         return _javbus_cover_policy(parsed, target, referer=base_url + "/")
     if profile == "fc2":

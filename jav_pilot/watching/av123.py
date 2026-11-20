@@ -17,6 +17,12 @@ from ..web_download.providers import ProviderManifest, WebDownloadProviderError,
 _VISITOR = str(uuid.uuid4())
 
 
+def artwork_url(slug: str, *, preview: bool = False) -> str:
+    prefix = hashlib.md5(slug.encode(), usedforsecurity=False).hexdigest()[:2]
+    asset = f'preview/{prefix}/{slug}/preview.png' if preview else f'img2/s360/{prefix}/{slug}/cover.jpg'
+    return f'https://icdn.123av.me/{asset}'
+
+
 def episodes(document: str) -> list[dict]:
     node = BeautifulSoup(document, "html.parser").select_one('.watch__main[x-data]')
     match = re.match(r"player\(JSON\.parse\('((?:\\.|[^'\\])*)'\)", str(node.get('x-data', '')) if node else '')
@@ -98,9 +104,8 @@ def related(document: str, page_url: str) -> list[dict]:
         if not re.fullmatch(r'[a-z0-9][a-z0-9_-]{1,120}', slug):
             continue
         work_code, editions = identity(slug)
-        prefix = hashlib.md5(slug.encode(), usedforsecurity=False).hexdigest()[:2]
         items.append({'source': 'av123', 'url': 'https://123av.com/cn/v/' + slug,
             'title': (slug.upper() + ' ' + str(item.get('title_cn', '')))[:500],
             'code': work_code, 'editions': editions,
-            'cover': f'https://icdn.123av.me/img2/s360/{prefix}/{slug}/cover.jpg'})
+            'cover': artwork_url(slug)})
     return items

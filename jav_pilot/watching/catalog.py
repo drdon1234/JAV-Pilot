@@ -107,6 +107,10 @@ def parse_catalog(source: str, origin: str, document: str, query: str = "", page
             if exact and canonical_catalog_code(code) != exact:
                 continue
             cover = str((image.get("data-original") or image.get("data-src") or image.get("data-lazy-src") or image.get("src") or "") if image else "")
+            if source == "av123" and not cover:
+                preview = card.select_one(".card__poster[data-preview]")
+                if preview:
+                    cover = str(preview["data-preview"])
             cover = urljoin(origin, cover) if cover else ""
             if urlsplit(cover).scheme != "https":
                 cover = ""
@@ -184,8 +188,8 @@ def describe(source: str, url: str) -> dict:
     image = soup.select_one('meta[property="og:image"]')
     cover = urljoin(origin, str(image.get("content") or "")) if image else ""
     if source == "av123":
-        from .av123 import poster
-        cover = poster(document)
+        from .av123 import artwork_url, poster
+        cover = poster(document) or artwork_url(urlsplit(url).path.rsplit("/", 1)[-1], preview=True)
     if not cover:
         image = soup.select_one("img.img, .video-info img, .post-content img")
         if image:
