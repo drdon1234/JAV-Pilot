@@ -26,8 +26,7 @@ __all__ = [
 ]
 
 
-MEDIA_ORIGIN = "https://surrit.com"
-MEDIA_HOST = "surrit.com"
+MISSAV_MEDIA_HOSTS = frozenset({"surrit.com", "c.surrit.com"})
 PLAYER_ASSET_HOST = "cdnjs.cloudflare.com"
 # Cloudflare's managed challenge/Turnstile page intentionally loads a small
 # set of cross-origin resources from this exact host.  Keep this separate from

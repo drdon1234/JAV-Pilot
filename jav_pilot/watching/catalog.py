@@ -81,6 +81,11 @@ def parse_catalog(source: str, origin: str, document: str, query: str = "", page
         raise WebDownloadProviderError("站点验证尚未完成", code="challenge_active")
     soup = BeautifulSoup(document, "html.parser")
     selectors = {"jable": ".video-img-box", "missav": ".thumbnail", "av123": ".card"}
+    preview_selector, preview_attr = {
+        "jable": ("img[data-preview]", "data-preview"),
+        "missav": ("video[data-src]", "data-src"),
+        "av123": (".card__poster[data-preview]", "data-preview"),
+    }[source]
     cards = soup.select(selectors[source])
     entries, seen = [], set()
     valid_cards = 0
@@ -107,16 +112,16 @@ def parse_catalog(source: str, origin: str, document: str, query: str = "", page
             if exact and canonical_catalog_code(code) != exact:
                 continue
             cover = str((image.get("data-original") or image.get("data-src") or image.get("data-lazy-src") or image.get("src") or "") if image else "")
+            preview_node = card.select_one(preview_selector)
+            preview = urljoin(origin, str(preview_node[preview_attr])) if preview_node and preview_node.get(preview_attr) else ""
             if source == "av123" and not cover:
-                preview = card.select_one(".card__poster[data-preview]")
-                if preview:
-                    cover = str(preview["data-preview"])
+                cover = preview
             cover = urljoin(origin, cover) if cover else ""
             if urlsplit(cover).scheme != "https":
                 cover = ""
             seen.add(target)
             entries.append({"source": source, "url": target, "code": code,
-                            "title": title or code, "editions": editions, "cover": cover})
+                            "title": title or code, "editions": editions, "cover": cover, "preview": preview})
             break
     empty = soup.select_one(".no-results, .no-result, .search-no-results, h5.inactive-color")
     if not cards and empty is None and not re.search(
@@ -257,5 +262,6 @@ def recommendations(source: str, url: str) -> list[dict]:
             editions = ['中文字幕'] + [value for value in editions if value != '原片']
         entries.append({'source': source, 'url': target, 'code': code,
                         'title': str(values.get('title_zh') or code)[:500], 'editions': editions,
-                        'cover': image_origin + '/' + target_slug + '/cover-t.jpg' if image_origin.startswith('https://') else ''})
+                        'cover': image_origin + '/' + target_slug + '/cover-t.jpg' if image_origin.startswith('https://') else '',
+                        'preview': image_origin + '/' + target_slug + '/preview.mp4' if image_origin == 'https://fourhoi.com' else ''})
     return entries

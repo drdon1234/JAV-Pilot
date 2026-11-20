@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import { watching, type WatchEntry } from '../lib/watching'
 import { t } from '../lib/i18n'
@@ -155,7 +156,8 @@ export function WatchPlayer({ entry }: { entry: WatchEntry }) {
       </div>
     </div>
     {status ? <p className="watch-player-status" role="status">{status}</p> : null}
-    {error ? <InlineNotice tone="danger" role="alert">{error}</InlineNotice> : null}
+    {error ? <InlineNotice tone="danger" role="alert">{error}{entry.code && <Link className="button button-small"
+      to={`/watch?${new URLSearchParams({ q: entry.code })}`}>{t('搜索番号')} {entry.code}</Link>}</InlineNotice> : null}
     {saveError ? <InlineNotice tone="warning">{t('播放进度保存失败，请检查网络。')}</InlineNotice> : null}
   </section>
 }

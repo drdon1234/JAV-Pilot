@@ -7,6 +7,8 @@ from http import HTTPStatus
 from urllib.parse import parse_qs
 
 from ...watching import catalog, playback, store
+from ...watching.previews import fetch_preview
+from ...net.http_client import FetchError
 from ...web_download.media import SafeMediaError
 from ...web_download.providers import WebDownloadProviderError
 from ...core.selection import selected_ids
@@ -14,6 +16,7 @@ from ..base import BaseHandler
 
 _CATALOG_SLOTS = threading.BoundedSemaphore(4)
 _CAPTURE_SLOTS = threading.BoundedSemaphore(2)
+_PREVIEW_SLOTS = threading.BoundedSemaphore(4)
 
 
 def _param(query: str, key: str, default: str = "") -> str:
@@ -34,6 +37,7 @@ class WatchingRoutes(BaseHandler):
             message = {
                 "not_found": "此作品暂无可用播放线路，可返回结果选择其他版本或站点",
                 "challenge_active": "站点验证尚未完成，请稍后重试",
+                "media_forbidden": "视频源拒绝提供播放资源（HTTP 403），请稍后重试或切换站点",
                 "rate_limited": "站点请求频繁，请稍后重试",
                 "timeout": "站点响应超时，请稍后重试",
                 "busy": "后台验证繁忙，请稍后重试",
@@ -44,6 +48,20 @@ class WatchingRoutes(BaseHandler):
 
     def _handle_watch_sites(self) -> None:
         self._send_json({"sites": catalog.sites()})
+
+    def _handle_watch_preview(self, query: str) -> None:
+        if not _PREVIEW_SLOTS.acquire(blocking=False):
+            self._send_json({"error": "预览请求繁忙"}, HTTPStatus.TOO_MANY_REQUESTS)
+            return
+        try:
+            source = _param(query, "source")
+            site = catalog.enabled_site(source)
+            body, mime = fetch_preview(source, _param(query, "url"), site["base_url"])
+            self._send_bytes(body, content_type=mime, cache_control="private, max-age=3600")
+        except (ValueError, WebDownloadProviderError, FetchError) as exc:
+            self._watch_error(exc)
+        finally:
+            _PREVIEW_SLOTS.release()
 
     def _handle_watch_detail(self, query: str) -> None:
         if not _CATALOG_SLOTS.acquire(blocking=False):

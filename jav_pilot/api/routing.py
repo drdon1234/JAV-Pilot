@@ -32,6 +32,7 @@ GET_ROUTES: dict[str, Route] = {
     "/api/library/subtitle": Route("_handle_local_subtitle", with_query=True),
     "/api/watch/recommendations": Route("_handle_watch_recommendations", with_query=True),
     "/api/watch/sites": Route("_handle_watch_sites"),
+    "/api/watch/preview": Route("_handle_watch_preview", with_query=True),
     "/api/watch/detail": Route("_handle_watch_detail", with_query=True),
     "/api/watch/catalog": Route("_handle_watch_catalog", with_query=True),
     "/api/watch/media": Route("_handle_watch_media", with_query=True),

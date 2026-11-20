@@ -13,6 +13,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 
 import { BookmarkButton, LocalPlaybackLink } from '../components/WatchActions'
 import { WatchPlayer } from '../components/WatchPlayer'
+import { WatchCardPreview } from '../components/WatchCardPreview'
 import { Button, EmptyState, InlineNotice, PageHeader, SkeletonRows, StatusBadge } from '../components/ui'
 import { t } from '../lib/i18n'
 import { editionLabel, watching, watchHref, type WatchEntry, type WatchSite } from '../lib/watching'
@@ -23,10 +24,7 @@ function EntryCard({ entry, sourceName, query }: { entry: WatchEntry; sourceName
   const params = new URLSearchParams(location.search)
   params.set('source', entry.source); params.set('url', entry.url); params.delete('play')
   const detailHref = `${location.pathname === '/search' ? '/search' : '/watch'}?${params}`
-  return <article className="watch-card">
-    <Link className="watch-card-cover" to={detailHref} tabIndex={-1} aria-hidden="true">
-      <StableImage src={watchCoverUrl(entry.source, entry.cover)} alt="" loading="lazy" referrerPolicy="no-referrer" />
-    </Link>
+  return <WatchCardPreview entry={entry} href={detailHref}>
     <div className="watch-card-body">
       <div className="watch-inline-actions"><strong>{entry.code || sourceName}</strong>{entry.editions.map(edition =>
         <StatusBadge key={edition} tone={edition === '原片' ? 'neutral' : 'info'}>{editionLabel(edition)}</StatusBadge>)}</div>
@@ -39,7 +37,7 @@ function EntryCard({ entry, sourceName, query }: { entry: WatchEntry; sourceName
       <DownloadWork entry={entry} />
       <BookmarkButton entry={entry} kind="work" />
     </div>
-  </article>
+  </WatchCardPreview>
 }
 
 function downloadVariant(entry: WatchEntry) {

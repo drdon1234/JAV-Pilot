@@ -15,7 +15,7 @@ from .site import (
     CLOUDFLARE_DYNAMIC_LABEL_RE,
     HEADER_NAME_RE,
     LOCAL_RESOURCE_SCHEMES,
-    MEDIA_HOST,
+    MISSAV_MEDIA_HOSTS,
     PLAYER_ASSET_HOST,
     PLAYER_ASSET_RESOURCE_TYPES,
     REPLAY_HEADER_NAMES,
@@ -205,7 +205,7 @@ def route_request(
     parsed = validated_https_url(
         request_url,
         allowed_hosts=frozenset(
-            {missav_host, MEDIA_HOST, PLAYER_ASSET_HOST, CLOUDFLARE_CHALLENGE_HOST}
+            {missav_host, *MISSAV_MEDIA_HOSTS, PLAYER_ASSET_HOST, CLOUDFLARE_CHALLENGE_HOST}
         ),
         allowed_host_suffixes=frozenset({CLOUDFLARE_CHALLENGE_HOST}),
     )
@@ -231,13 +231,13 @@ def route_request(
         route.abort()
         return
     if (
-        host == MEDIA_HOST
+        host in MISSAV_MEDIA_HOSTS
         and media_gate is not None
         and media_gate.block_surrit_requests
     ):
         route.abort()
         return
-    if resource_type == "media" and host != MEDIA_HOST:
+    if resource_type == "media" and host not in MISSAV_MEDIA_HOSTS:
         route.abort()
         return
     route.continue_()

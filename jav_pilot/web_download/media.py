@@ -16,16 +16,11 @@ from tempfile import TemporaryDirectory
 from typing import Mapping
 from urllib.parse import urljoin, urlsplit
 
+from ..missav.site import MISSAV_MEDIA_HOSTS
 from ..net.network_guard import PublicHostResolver
 from .resume import MediaPlaylist, parse_media_playlist
 
 
-MEDIA_HOST = "surrit.com"
-_PROVIDER_MEDIA_SUFFIXES = {
-    "missav": ("surrit.com",),
-    "av123": (),
-    "jable": ("mushroomtrack.com",),
-}
 MAX_MANIFEST_BYTES = 4 * 1024 * 1024
 MAX_PROBE_SEGMENT_BYTES = 32 * 1024 * 1024
 _COPY_CHUNK_BYTES = 1024 * 1024
@@ -67,7 +62,7 @@ class MediaTransportDisposition(Enum):
 @contextmanager
 def media_provider_scope(provider: object, *, allowed_hosts: tuple[str, ...] = ()):
     clean = str(provider or "").strip().lower()
-    if clean not in _PROVIDER_MEDIA_SUFFIXES:
+    if clean not in {"missav", "jable", "av123"}:
         raise SafeMediaError("media provider was rejected")
     token = _ACTIVE_MEDIA_PROVIDER.set(clean)
     hosts_token = _SESSION_MEDIA_HOSTS.set(allowed_hosts if clean in {'av123'} else ())
@@ -278,13 +273,12 @@ def require_allowed_media_url(
         raise SafeMediaError("media URL was rejected") from exc
     hostname = (parsed.hostname or "").lower()
     provider = _ACTIVE_MEDIA_PROVIDER.get()
-    suffixes = _PROVIDER_MEDIA_SUFFIXES.get(provider, ())
-    allowed_host = any(
-        hostname == suffix or (suffix != MEDIA_HOST and hostname.endswith(f".{suffix}"))
-        for suffix in suffixes
-    )
-    if provider in {'av123'}:
-        allowed_host = allowed_host or hostname in _SESSION_MEDIA_HOSTS.get()
+    if provider == "missav":
+        allowed_host = hostname in MISSAV_MEDIA_HOSTS
+    elif provider == "jable":
+        allowed_host = hostname == "mushroomtrack.com" or hostname.endswith(".mushroomtrack.com")
+    else:
+        allowed_host = provider == "av123" and hostname in _SESSION_MEDIA_HOSTS.get()
     if (
         parsed.scheme != "https"
         or not allowed_host

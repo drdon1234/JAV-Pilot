@@ -65,7 +65,6 @@ from .routing import (
 from .site import (
     MAX_SERIES_CANDIDATES,
     MAX_SERIES_PAGES,
-    MEDIA_HOST,
     PLAYER_ASSET_HOST,
     QualityStrategy,
     current_missav_site,
@@ -671,7 +670,7 @@ def capture_with_playwright(
     deadline = time.monotonic() + timeout_seconds
     resolver = PublicHostResolver(max_hosts=_RESOLVER_MAX_HOSTS)
     _require_public_hosts(
-        (current_missav_site().host, MEDIA_HOST, PLAYER_ASSET_HOST), resolver
+        (current_missav_site().host, PLAYER_ASSET_HOST), resolver
     )
     # The isolated capture keeps media traffic blocked except while a player
     # source is probed; the request event still exposes the manifest request.
@@ -712,7 +711,7 @@ def discover_with_playwright(
     deadline = time.monotonic() + timeout_seconds
     resolver = PublicHostResolver(max_hosts=_RESOLVER_MAX_HOSTS)
     _require_public_hosts(
-        (current_missav_site().host, MEDIA_HOST, PLAYER_ASSET_HOST), resolver
+        (current_missav_site().host, PLAYER_ASSET_HOST), resolver
     )
     media_gate = BrowserMediaGate()
     try:

@@ -82,6 +82,7 @@ WEB_SOURCE_FAILURE_CODES = frozenset(
         "configuration",
         "host_policy",
         "manifest_invalid",
+        "media_forbidden",
         "not_found",
         "redirect_policy",
         "response_invalid",

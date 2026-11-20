@@ -14,7 +14,7 @@ from ..web_download.media import (
     SafeMediaError, SilentYtdlpLogger, allowlisted_youtube_dl_type,
     media_provider_scope, require_allowed_media_url,
 )
-from ..web_download.providers import ProviderManifest
+from ..web_download.providers import ProviderManifest, WebDownloadProviderError
 
 _LOCK = threading.RLock()
 _SLOTS = threading.BoundedSemaphore(8)
@@ -207,7 +207,7 @@ def _fetch(session: PlaybackSession, url: str, headers: dict, playlist: bool):
                 }))
             except Exception as exc:
                 if getattr(exc, 'status', None) == 403:
-                    raise SafeMediaError("播放线路拒绝访问，请重新解析；如仍失败，请检查代理是否为站点和视频 CDN 使用同一出口") from None
+                    raise WebDownloadProviderError("Media CDN refused the request", code="media_forbidden") from None
                 raise SafeMediaError("播放线路暂不可用，请重新解析或切换站点") from None
             with response:
                 final = require_allowed_media_url(response.url, resolver=PublicHostResolver(max_hosts=1))

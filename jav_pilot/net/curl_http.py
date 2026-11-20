@@ -10,6 +10,21 @@ from .network_guard import resolve_public_addresses
 
 
 def fetch_text(url, *, timeout, max_bytes, allowed_origins, headers=None, data=None):
+    body, charset = _fetch(url, timeout=timeout, max_bytes=max_bytes, allowed_origins=allowed_origins,
+                           headers=headers, data=data)
+    try:
+        return body.decode(charset or "utf-8", errors="replace")
+    except LookupError as exc:
+        raise FetchError("response declared an unsupported charset") from exc
+
+
+def fetch_bytes(url, *, timeout, max_bytes, allowed_origins, headers=None):
+    body, _ = _fetch(url, timeout=timeout, max_bytes=max_bytes, allowed_origins=allowed_origins,
+                     headers=headers, data=None)
+    return body
+
+
+def _fetch(url, *, timeout, max_bytes, allowed_origins, headers, data):
     from curl_cffi import CurlOpt, requests
 
     origins = frozenset(_url_origin(item) for item in allowed_origins)
@@ -54,7 +69,7 @@ def fetch_text(url, *, timeout, max_bytes, allowed_origins, headers=None, data=N
                             raise FetchError(f"response exceeded {max_bytes} bytes")
                         if time.monotonic() >= deadline:
                             raise FetchError("request timed out")
-                    return body.decode(response.charset or "utf-8", errors="replace")
+                    return bytes(body), response.charset
                 finally:
                     response.close()
         except FetchError:

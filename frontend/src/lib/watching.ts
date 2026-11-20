@@ -13,6 +13,7 @@ export interface WatchEntry {
   code: string
   title: string
   cover: string
+  preview?: string
   editions: string[]
   description?: string
   recommendations?: WatchEntry[]

@@ -102,7 +102,7 @@ COPY frontend/src/lib/rankingCategoryLabels.json ./docs/licenses/rankingCategory
 ARG VCS_REF=unknown
 
 LABEL org.opencontainers.image.title="JAV Pilot" \
-      org.opencontainers.image.version="0.3.12" \
+      org.opencontainers.image.version="0.3.13" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.source="https://github.com/drdon1234/JAV-Pilot" \
       org.opencontainers.image.revision="${VCS_REF}"

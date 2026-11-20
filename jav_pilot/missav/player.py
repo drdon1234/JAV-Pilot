@@ -19,7 +19,7 @@ from .errors import MissavError
 from .models import ManifestRequest
 from .routing import BrowserMediaGate, clean_replay_headers
 from .site import (
-    MEDIA_HOST,
+    MISSAV_MEDIA_HOSTS,
     PLAYER_SOURCE_NAMES,
     QUALITY_HEIGHT_LADDER,
     remaining_milliseconds,
@@ -449,7 +449,7 @@ def _player_source_candidates(page: object) -> tuple[str, ...]:
             continue
         parsed = validated_https_url(
             raw_url,
-            allowed_hosts=frozenset({MEDIA_HOST}),
+            allowed_hosts=MISSAV_MEDIA_HOSTS,
         )
         if parsed is None or parsed.fragment:
             continue
@@ -679,7 +679,7 @@ def _manifest_from_request(
         return None
     try:
         url = str(getattr(request, "url", "") or "")
-        if validated_https_url(url, allowed_hosts=frozenset({MEDIA_HOST})) is None:
+        if validated_https_url(url, allowed_hosts=MISSAV_MEDIA_HOSTS) is None:
             return None
         if str(getattr(request, "method", "") or "").upper() != "GET":
             return None

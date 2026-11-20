@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 
 from ..core.catalog_code import canonical_catalog_code, normalize_catalog_code
 from ..core.guards import contains_sensitive_transport_text
+from ..missav.site import MISSAV_MEDIA_HOSTS
 from ..net.network_guard import PublicHostResolver
 from ..search.resources.errors import (
     ResourceSearchCancelledError,
@@ -1076,7 +1077,7 @@ def _capture_missav(
     )
     manifest_url = _extract_missav_manifest(document)
     media_host = (urlsplit(manifest_url).hostname or "").lower()
-    if media_host != "surrit.com":
+    if media_host not in MISSAV_MEDIA_HOSTS:
         raise WebDownloadProviderError(
             "MissAV media host was rejected", code="host_policy"
         )
@@ -1363,6 +1364,8 @@ def _bounded_get(
         raise WebDownloadProviderNotFound()
     if int(response.status_code) == 429:
         raise WebDownloadProviderError("Provider rate limit is active", code="rate_limited")
+    if int(response.status_code) == 403 and request_host in MISSAV_MEDIA_HOSTS:
+        raise WebDownloadProviderError("Media CDN refused the request", code="media_forbidden")
     if int(response.status_code) in {403, 503}:
         raise WebDownloadProviderError(
             "Provider challenge is active", code="challenge_active"

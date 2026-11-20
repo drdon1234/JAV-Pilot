@@ -107,5 +107,5 @@ def related(document: str, page_url: str) -> list[dict]:
         items.append({'source': 'av123', 'url': 'https://123av.com/cn/v/' + slug,
             'title': (slug.upper() + ' ' + str(item.get('title_cn', '')))[:500],
             'code': work_code, 'editions': editions,
-            'cover': artwork_url(slug)})
+            'cover': artwork_url(slug), 'preview': artwork_url(slug, preview=True)})
     return items
