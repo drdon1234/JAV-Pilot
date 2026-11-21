@@ -44,7 +44,7 @@ export function SearchResultCard({
 }: SearchResultCardProps) {
   const code = result.code || result.canonical_code || t('未知番号')
   const cover = workCover(result)
-  const coverUrl = cover ? coverImageUrl(cover.sourceId, cover.url, sites) : ''
+  const coverUrl = cover ? coverImageUrl(cover.sourceId, cover.url) : ''
 
   return (
     <article className="result-row">

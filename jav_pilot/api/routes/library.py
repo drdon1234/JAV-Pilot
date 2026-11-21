@@ -15,6 +15,8 @@ from ...library.errors import (
 from ..base import BaseHandler
 from ..request import int_param, query_params, single_param
 from ..services.media import media_library_manager
+from ..services import selection_batches
+from ...web_download.errors import WebDownloadError
 from ...library.playback import open_library_file
 from ...library.folders import cover_selection, set_cover_selection, catalog_prefix
 from ...library.artwork import portrait_thumbnail, cover_entry
@@ -22,6 +24,28 @@ from .local_playback import indexed_file
 
 
 class MediaLibraryRoutes(BaseHandler):
+    def _handle_selection_batches(self, query_string: str) -> None:
+        try:
+            result = selection_batches.recent(single_param(query_params(query_string), "scope"))
+        except ValueError as exc:
+            self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+        except (OSError, sqlite3.Error):
+            self._send_json({"error": "批次存储暂不可用"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        self._send_json({"batches": result})
+
+    def _handle_selection_submit(self) -> None:
+        try:
+            batch = selection_batches.submit(self._read_json_body(1024 * 1024))
+        except (ValueError, MediaLibraryError, WebDownloadError) as exc:
+            self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+        except (OSError, sqlite3.Error):
+            self._send_json({"error": "批次存储暂不可用"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        self._send_json({"id": batch}, HTTPStatus.ACCEPTED)
+
     def _handle_library_folder_cover(self, query_string: str) -> None:
         try:
             params = query_params(query_string)

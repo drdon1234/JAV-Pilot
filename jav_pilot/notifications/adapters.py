@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 import hashlib
 import hmac
 import http.client
@@ -16,7 +15,7 @@ import ssl
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Protocol
-from urllib.parse import quote, unquote, urlencode, urlsplit, urlunsplit
+from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 from urllib.request import getproxies, proxy_bypass
 
 from ..net.network_guard import address_is_public
@@ -460,16 +459,7 @@ class StdlibNotificationTransport:
                 else None
             )
             if proxy is not None:
-                proxy_host, proxy_port, proxy_headers = proxy
-                connection = http.client.HTTPSConnection(
-                    proxy_host,
-                    proxy_port,
-                    timeout=request.timeout,
-                    context=ssl.create_default_context(),
-                )
-                connection.set_tunnel(
-                    request.hostname, request.port, headers=proxy_headers
-                )
+                return _send_via_proxy(request, proxy)
             elif request.scheme == "https":
                 connection = _PinnedHTTPSConnection(
                     request.hostname,
@@ -510,26 +500,54 @@ class StdlibNotificationTransport:
                 connection.close()
 
 
-def _https_proxy_for(hostname: str) -> tuple[str, int, dict[str, str]] | None:
-    """Return the HTTP CONNECT proxy configured for public HTTPS traffic, if any."""
-    raw = (os.environ.get("JAV_PILOT_PROXY") or "").strip() or getproxies().get(
-        "https", ""
-    )
+def _https_proxy_for(hostname: str) -> str | None:
+    raw = (os.environ.get("JAV_PILOT_PROXY") or "").strip() or getproxies().get("https", "")
     if not raw or proxy_bypass(hostname):
         return None
+    url = raw if "://" in raw else f"http://{raw}"
     try:
-        parsed = urlsplit(raw if "://" in raw else f"http://{raw}")
-        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        parsed = urlsplit(url)
+        if (parsed.scheme not in {"http", "https", "socks4", "socks4a", "socks5", "socks5h"}
+                or not parsed.hostname or parsed.port == 0 or parsed.query or parsed.fragment
+                or parsed.path not in {"", "/"}):
+            raise ValueError
     except ValueError:
-        return None
-    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
-        return None
-    headers: dict[str, str] = {}
-    if parsed.username is not None:
-        credentials = f"{unquote(parsed.username)}:{unquote(parsed.password or '')}"
-        token = base64.b64encode(credentials.encode("utf-8")).decode("ascii")
-        headers["Proxy-Authorization"] = f"Basic {token}"
-    return parsed.hostname, port, headers
+        raise NotificationTransportError("invalid notification proxy") from None
+    return url
+
+
+def _send_via_proxy(request: HttpRequest, proxy: str) -> HttpResponse:
+    from curl_cffi import CurlOpt, requests
+    from curl_cffi.curl import CURL_WRITEFUNC_ERROR
+
+    host = _host_header(request.hostname, request.port, request.scheme)
+    address = request.pinned_address
+    pinned = f"[{address}]" if ":" in address else address
+    received = 0
+
+    def discard(chunk: bytes) -> int:
+        nonlocal received
+        received += len(chunk)
+        return len(chunk) if received <= MAX_RESPONSE_BYTES else CURL_WRITEFUNC_ERROR
+
+    try:
+        with requests.Session(trust_env=False, curl_options={
+            CurlOpt.NOPROXY: b"",
+            CurlOpt.RESOLVE: [f"{request.hostname}:{request.port}:{pinned}"],
+        }) as session:
+            response = session.request(
+                request.method, f"{request.scheme}://{host}{request.target}",
+                headers=dict(request.headers), data=request.body, proxy=proxy,
+                timeout=request.timeout, allow_redirects=False, content_callback=discard,
+            )
+    except requests.RequestsError as exc:
+        # The delivery result is already known if we intentionally stopped
+        # consuming a large response after its headers. Retrying could resend it.
+        if received <= MAX_RESPONSE_BYTES or exc.response is None or not exc.response.status_code:
+            raise NotificationTransportError("notification proxy request failed") from None
+        response = exc.response
+    return HttpResponse(status=response.status_code,
+                        headers={k.lower(): v for k, v in response.headers.items()})
 
 
 class _PinnedHTTPSConnection(http.client.HTTPSConnection):

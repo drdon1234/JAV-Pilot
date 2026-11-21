@@ -126,6 +126,17 @@ def ranking_boards() -> list[dict[str, Any]]:
     return [board.public() for board in BOARDS]
 
 
+def ranking_cover_referer(board: str, url: str) -> str | None:
+    """Only authorize exact image URLs returned by the board's own parser."""
+    with _CACHE_LOCK:
+        for key, (_, listing) in _CACHE.items():
+            if key[0] == board:
+                for item in listing["items"]:
+                    if item.get("cover") == url:
+                        return item.get("detail_url") or url
+    return None
+
+
 def fetch_ranking(request: RankingRequest, *, refresh: bool = False) -> dict[str, Any]:
     board = _BOARDS_BY_ID.get(request.board)
     if board is None or request.period not in {option.value for option in board.periods}:

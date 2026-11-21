@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Check, ListChecks } from 'lucide-react'
+import { Check, ListChecks, X } from 'lucide-react'
 import { Button } from './ui'
 import { useToast } from './ToastProvider'
 import { t } from '../lib/i18n'
@@ -15,15 +15,21 @@ export function useSelection(scope = '') {
 }
 type Selection = ReturnType<typeof useSelection>
 
-export function SelectionTools({ selection, ids, children, busy = false }: { selection: Selection; ids: string[]; children?: ReactNode; busy?: boolean }) {
+export function SelectionTools({ selection, ids, children, busy = false, exitAction = 'done' }: { selection: Selection; ids: string[]; children?: ReactNode; busy?: boolean; exitAction?: 'cancel' | 'done' }) {
   const toast = useToast()
-  if (!ids.length) return null
+  if (!ids.length && !selection.managing) return null
+  const count = ids.filter(id => selection.selected.has(id)).length
   return <div className="selection-tools" aria-label={t('批量管理')}>
     {!selection.managing ? <Button type="button" size="small" variant="ghost" onClick={selection.start}><ListChecks aria-hidden="true" />{t('批量管理')}</Button> : <>
-      <label className="selection-all"><input type="checkbox" disabled={busy} checked={ids.length > 0 && ids.every(id => selection.selected.has(id))} onChange={event => event.target.checked ? selection.all(ids) : selection.clear()} />{t('全选已加载')}</label>
+      <label className="selection-all"><input type="checkbox" disabled={busy || !ids.length}
+        ref={input => { if (input) input.indeterminate = count > 0 && count < ids.length }}
+        checked={count > 0 && count === ids.length}
+        onChange={event => event.target.checked ? selection.all(ids) : selection.clear()} />{t('全选已加载')}</label>
       <span role="status">{t('已选 {count} 项', { count: selection.selected.size })}</span>
       <div className="selection-actions">{children}</div>
-      <Button type="button" size="small" variant="secondary" onClick={() => { selection.finish(); toast.push(t('已退出批量管理'), 'success') }} disabled={busy}><Check aria-hidden="true" />{t('完成')}</Button>
+      <Button type="button" size="small" variant="secondary" onClick={() => { selection.finish(); toast.push(t('已退出批量管理'), 'success') }} disabled={busy}>
+        {exitAction === 'cancel' ? <><X aria-hidden="true" />{t('取消')}</> : <><Check aria-hidden="true" />{t('完成')}</>}
+      </Button>
     </>}
   </div>
 }

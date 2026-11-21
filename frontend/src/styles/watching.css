@@ -237,7 +237,8 @@
 .video-stage:not(.controls-visible):not(:has(details[open])):not(:has(:focus-visible)) { cursor: none; }
 .video-stage:has(:focus-visible) { cursor: auto; }
 .player-menu-panel { touch-action: pan-y; }
-.watch-card h3 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 3.2em; }
+.watch-card h3 { min-height: 2lh; }
+.watch-card h3 a { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .watch-grid .watch-card { height: 100%; }
 
 .catalog-load-boundary { min-height: 2px; color: var(--ink-soft); text-align: center; }

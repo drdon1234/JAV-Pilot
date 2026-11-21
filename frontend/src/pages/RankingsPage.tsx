@@ -433,7 +433,7 @@ export function RankingsPage() {
       {board && items.length ? (
         <ol className="rankings-list" aria-label={worksBoard ? t('榜单作品') : t('榜单人物')}>
           {items.map((item) => {
-            const cover = item.cover ? coverImageUrl(item.source_id, item.cover, sites) : ''
+            const cover = item.cover && ranking.data ? coverImageUrl(`ranking:${ranking.data.board}`, item.cover) : ''
             const detailUrl = externalHttpUrl(item.detail_url)
             const openLabel = t('在 {source} 打开 {value}', { source: board.source, value: item.code ?? item.title })
             if (!worksBoard) {

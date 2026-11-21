@@ -4,6 +4,7 @@
 
 .watch-preview-clip { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; opacity: 0; }
 .watch-preview-clip.is-playing { opacity: 1; }
+.watch-preview-status { position: absolute; inset-inline-end: 8px; bottom: 8px; padding: 2px 7px; border-radius: var(--radius-control); background: #171717db; color: white; font-size: 12px; pointer-events: none; }
 
 .web-catalog-tools { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 
@@ -26,6 +27,50 @@
 .web-site-rail { display: grid; grid-auto-flow: column; grid-auto-columns: 240px; gap: 16px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding-bottom: 12px; }
 
 .web-site-rail .watch-card { scroll-snap-align: start; }
+
+.web-catalog-workspace .selection-poster .selection-check {
+  inset: 0 0 auto;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  place-items: start;
+  background: transparent;
+  box-shadow: none;
+}
+.web-catalog-workspace .selection-check input {
+  appearance: none;
+  display: grid;
+  place-content: center;
+  width: 24px;
+  height: 24px;
+  margin: 8px;
+  padding: 0;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: rgb(24 26 31 / 72%);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 40%);
+  cursor: pointer;
+}
+.web-catalog-workspace .selection-check input:checked { background: var(--primary); }
+.web-catalog-workspace .selection-check input:checked::after {
+  content: '';
+  width: 6px;
+  height: 11px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: translateY(-1px) rotate(45deg);
+}
+.web-catalog-workspace .selection-check input:disabled { opacity: .55; cursor: default; }
+.web-catalog-workspace .selection-poster:has(input:checked) .watch-card { border-color: var(--primary); }
+.web-catalog-workspace .selection-check:has(:focus-visible) { outline: 3px solid var(--primary); outline-offset: -3px; }
+.web-catalog-workspace .selection-all input:indeterminate {
+  border-color: var(--primary);
+  background: var(--primary) linear-gradient(white, white) center / 10px 2px no-repeat;
+}
+@media (forced-colors: active) {
+  .web-catalog-workspace .selection-check input { appearance: auto; }
+  .web-catalog-workspace .selection-check input::after { display: none; }
+}
 
 .web-site-rail:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 

@@ -1,54 +1,50 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
-import { watchCoverUrl, type WatchEntry } from '../lib/watching'
+import { Link, useNavigate } from 'react-router-dom'
+import { t } from '../lib/i18n'
+import { coverImageUrl } from '../lib/api'
+import { type WatchEntry } from '../lib/watching'
 import { StableImage } from '../pages/WorkUi'
 
-function PreviewClip({ source, url }: { source: string; url: string }) {
+function PreviewClip({ source, url, touch }: { source: string; url: string; touch: boolean }) {
   const [clip, setClip] = useState<{ url: string; gif: boolean } | null>(null)
   const [show, setShow] = useState(false)
+  const [failed, setFailed] = useState(false)
   useEffect(() => {
     const controller = new AbortController()
     let objectUrl = ''
     async function load() {
       const response = await fetch(`/api/watch/preview?${new URLSearchParams({ source, url })}`, { signal: controller.signal })
-      if (!response.ok) return
+      if (!response.ok) throw new Error('Preview unavailable')
       const blob = await response.blob()
       if (controller.signal.aborted) return
       objectUrl = URL.createObjectURL(blob)
       setClip({ url: objectUrl, gif: blob.type === 'image/gif' })
     }
-    void load().catch(() => {})
+    void load().catch(() => { if (!controller.signal.aborted) setFailed(true) })
     return () => {
       controller.abort()
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
   }, [source, url])
-  if (!clip) return null
   const className = `watch-preview-clip${show ? ' is-playing' : ''}`
-  return clip.gif
-    ? <img src={clip.url} alt="" className={className} onLoad={() => setShow(true)} onError={() => setShow(false)} />
+  return <>
+    {clip && !failed && (clip.gif
+    ? <img src={clip.url} alt="" className={className} onLoad={() => setShow(true)} onError={() => setFailed(true)} />
     : <video src={clip.url} className={className} muted autoPlay loop playsInline disableRemotePlayback
-        onPlaying={() => setShow(true)} onError={() => setShow(false)} />
+        onPlaying={() => setShow(true)} onError={() => setFailed(true)} />)}
+    {touch && <span className="watch-preview-status">{failed ? t('加载失败') : show ? t('播放') : t('正在加载')}</span>}
+  </>
 }
 
-export function WatchCardPreview({ entry, href, children }: { entry: WatchEntry; href: string; children: ReactNode }) {
-  const [active, setActive] = useState(false)
+export function WatchCardPreview({ entry, href, playHref, children }: { entry: WatchEntry; href: string; playHref: string; children: ReactNode }) {
+  const navigate = useNavigate()
+  const [active, setActive] = useState<'mouse' | 'touch' | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const touch = useRef<{ x: number; y: number } | null>(null)
-  const held = useRef(false)
+  const touch = useRef(false)
   const card = useRef<HTMLElement>(null)
   const stop = () => {
     clearTimeout(timer.current)
-    touch.current = null
-    setActive(false)
-  }
-  const schedule = (isTouch: boolean) => {
-    clearTimeout(timer.current)
-    if (!entry.preview) return
-    timer.current = setTimeout(() => {
-      held.current = isTouch
-      setActive(true)
-    }, isTouch ? 350 : 180)
+    setActive(null)
   }
   useEffect(() => () => clearTimeout(timer.current), [])
   useEffect(() => {
@@ -56,29 +52,39 @@ export function WatchCardPreview({ entry, href, children }: { entry: WatchEntry;
     const observer = new IntersectionObserver(([item]) => { if (!item.isIntersecting) stop() })
     observer.observe(card.current)
     const hidden = () => { if (document.hidden) stop() }
+    const outside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !card.current?.contains(event.target)) stop()
+    }
+    document.addEventListener('pointerdown', outside, true)
     document.addEventListener('visibilitychange', hidden)
-    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', hidden) }
+    return () => {
+      observer.disconnect()
+      document.removeEventListener('visibilitychange', hidden)
+      document.removeEventListener('pointerdown', outside, true)
+    }
   }, [active])
   return <article ref={card} className="watch-card"
-    onPointerEnter={event => { if (event.pointerType === 'mouse') schedule(false) }}
+    onPointerEnter={event => {
+      if (event.pointerType === 'mouse' && entry.preview) {
+        clearTimeout(timer.current)
+        timer.current = setTimeout(() => setActive('mouse'), 180)
+      }
+    }}
     onPointerLeave={event => { if (event.pointerType === 'mouse') stop() }}>
     <Link className="watch-card-cover" to={href} tabIndex={-1} aria-hidden="true" draggable={false}
       onPointerDown={event => {
-        held.current = false
-        if (event.pointerType === 'mouse' || !event.isPrimary || !entry.preview) return
-        touch.current = { x: event.clientX, y: event.clientY }
-        schedule(true)
+        touch.current = event.isPrimary && (event.pointerType === 'touch' || event.pointerType === 'pen')
       }}
-      onPointerMove={event => {
-        const start = touch.current
-        if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) stop()
-      }}
-      onPointerUp={event => { if (event.pointerType !== 'mouse') stop() }}
-      onPointerCancel={stop}
-      onContextMenu={event => { if (touch.current || held.current) event.preventDefault() }}
-      onClick={event => { if (held.current) { event.preventDefault(); held.current = false } }}>
-      <StableImage src={watchCoverUrl(entry.source, entry.cover)} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} />
-      {active && entry.preview ? <PreviewClip key={entry.preview} source={entry.source} url={entry.preview} /> : null}
+      onPointerCancel={() => { touch.current = false }}
+      onClick={event => {
+        if (!touch.current || event.detail === 0) return
+        touch.current = false
+        event.preventDefault()
+        if (entry.preview && active !== 'touch') setActive('touch')
+        else navigate(playHref)
+      }}>
+      <StableImage src={coverImageUrl(entry.source, entry.cover)} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} />
+      {active && entry.preview ? <PreviewClip key={entry.preview} source={entry.source} url={entry.preview} touch={active === 'touch'} /> : null}
     </Link>
     {children}
   </article>

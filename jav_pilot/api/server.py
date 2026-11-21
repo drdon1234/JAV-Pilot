@@ -202,6 +202,11 @@ def run_server(host: str, port: int) -> None:
             previous_signal_handlers.clear()
             break
     organizer_stop = threading.Event()
+    from .services.selection_batches import run as run_selection_batches
+    selection_worker = threading.Thread(target=run_selection_batches, args=(organizer_stop,),
+                                        name="selection-batches", daemon=True)
+    if not maintenance_mode:
+        selection_worker.start()
     organizer_worker = (
         None if maintenance_mode else _start_background_services(organizer_stop)
     )
@@ -236,6 +241,8 @@ def run_server(host: str, port: int) -> None:
         state.SERVER_STOPPING.set()
         invalidate_readiness_probes()
         organizer_stop.set()
+        if selection_worker.is_alive():
+            selection_worker.join(timeout=3)
         services: dict[str, Callable[..., object]] = {
             "site_diagnostics": stop_site_diagnostic_scheduler,
             "history_retention": stop_history_retention_scheduler,

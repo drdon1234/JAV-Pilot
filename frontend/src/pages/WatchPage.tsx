@@ -1,11 +1,11 @@
+import { SelectionBatches, useSubmitSelection } from '../components/SelectionBatches'
 import '../styles/webCatalog.css'
-import { api } from '../lib/api'
+import { api, coverImageUrl } from '../lib/api'
 import { createWebDownloadIntentKey } from '../lib/webDownloads'
 import { useToast } from '../components/ToastProvider'
 import { SelectionCheck, SelectionTools, useSelection } from '../components/SelectionTools'
 import { PlaybackPreview } from '../components/PlaybackPreview'
 import { usePlaybackActivity } from '../lib/playbackActivity'
-import { watchCoverUrl } from '../lib/watching'
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query'
 import { ArrowLeft, ArrowRight, Bookmark, Download, ExternalLink, Play, RefreshCw, Search, Settings } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -24,7 +24,8 @@ function EntryCard({ entry, sourceName, query }: { entry: WatchEntry; sourceName
   const params = new URLSearchParams(location.search)
   params.set('source', entry.source); params.set('url', entry.url); params.delete('play')
   const detailHref = `${location.pathname === '/search' ? '/search' : '/watch'}?${params}`
-  return <WatchCardPreview entry={entry} href={detailHref}>
+  const playHref = watchHref(entry, true, query)
+  return <WatchCardPreview entry={entry} href={detailHref} playHref={playHref}>
     <div className="watch-card-body">
       <div className="watch-inline-actions"><strong>{entry.code || sourceName}</strong>{entry.editions.map(edition =>
         <StatusBadge key={edition} tone={edition === '原片' ? 'neutral' : 'info'}>{editionLabel(edition)}</StatusBadge>)}</div>
@@ -32,7 +33,7 @@ function EntryCard({ entry, sourceName, query }: { entry: WatchEntry; sourceName
       <span className="watch-help">{sourceName}</span>
     </div>
     <div className="watch-card-actions">
-      <Link className="button button-primary button-small" to={watchHref(entry, true, query)}><Play aria-hidden="true" />{t('应用内播放')}</Link>
+      <Link className="button button-primary button-small" to={playHref}><Play aria-hidden="true" />{t('应用内播放')}</Link>
       <LocalPlaybackLink code={entry.code} />
       <DownloadWork entry={entry} />
       <BookmarkButton entry={entry} kind="work" />
@@ -116,14 +117,14 @@ function SiteResults({ site, query }: { site: WatchSite; query: string }) {
   const allEntries = Array.from(new Map(result.data?.pages.flatMap(page => page.items).map(entry => [entry.url, entry]) ?? []).values())
   const entries = allEntries.filter(entry => (!edition || entry.editions.includes(edition)) && (!keyword || `${entry.code} ${entry.title}`.toLocaleLowerCase().includes(keyword.toLocaleLowerCase())))
   if (order) entries.sort((a, b) => (order === 'desc' ? -1 : 1) * a.code.localeCompare(b.code, undefined, { numeric: true }))
-  const bulk = useMutation({ mutationFn: async () => {
-    let added = 0
-    for (const entry of allEntries.filter(item => selection.selected.has(item.url))) {
-      await api.addWebDownload(entry.code, createWebDownloadIntentKey(), { provider: site.id, variant: downloadVariant(entry) })
-      selection.toggle(entry.url); added++
-    }
-    return added
-  }, onSuccess: count => { selection.finish(); toast.push(t('已加入 {count} 项下载', { count }), 'success') }, onError: (error: Error) => toast.push(error.message, 'error') })
+  const selectableIds = entries.filter(entry => entry.code).map(entry => entry.url)
+  const submit = useSubmitSelection(site.id)
+  const bulk = useMutation({
+    mutationFn: () => submit({ action: 'download', items: allEntries.filter(entry => selection.selected.has(entry.url))
+      .map(entry => ({ code: entry.code, variant: downloadVariant(entry) })) }),
+    onSuccess: id => { selection.finish(); toast.push(`${t('已提交')} · ${id.slice(0, 8)}`, 'success') },
+    onError: (error: Error) => toast.push(error.message, 'error'),
+  })
   return <section className="watch-site-results" aria-label={site.name}>
     <header className="watch-section-heading"><h2>{site.name}</h2><div className="watch-inline-actions"><span className="watch-help">{t('已加载 {count} 个作品', { count: allEntries.length })}</span><Button type="button" size="small" disabled={result.isFetching} onClick={() => void result.refetch()}><RefreshCw aria-hidden="true" />{t('刷新')}</Button></div></header>
     <fieldset className="web-site-filters"><legend>{t('筛选当前站点已加载作品')}</legend>
@@ -131,7 +132,10 @@ function SiteResults({ site, query }: { site: WatchSite; query: string }) {
       <label>{t('版本')}<select aria-label={t('版本')} value={edition} onChange={event => filter('edition', event.target.value)}><option value="">{t('全部')}</option>{['原片', '中文字幕', '无码', '无码流出', '英文字幕'].map(value => <option key={value} value={value}>{editionLabel(value)}</option>)}</select></label>
       <label>{t('排序')}<select aria-label={t('排序')} value={order} onChange={event => filter('order', event.target.value)}><option value="">{t('站点默认')}</option><option value="asc">{t('番号升序')}</option><option value="desc">{t('番号降序')}</option></select></label>
     </fieldset>
-    <SelectionTools selection={selection} ids={entries.filter(entry => entry.code).map(entry => entry.url)} busy={bulk.isPending}><Button type="button" size="small" disabled={!selection.selected.size || bulk.isPending} onClick={() => bulk.mutate()}><Download aria-hidden="true" />{t('下载所选')}</Button></SelectionTools>
+    <SelectionTools selection={selection} ids={selectableIds} busy={bulk.isPending} exitAction="cancel">
+      <Button type="button" size="small" disabled={!selection.selected.size || bulk.isPending} onClick={() => bulk.mutate()}><Download aria-hidden="true" />{t('下载所选')}</Button>
+    </SelectionTools>
+    <SelectionBatches scope={site.id} />
     {result.isPending ? <SkeletonRows count={2} /> : entries.length ? <div className="watch-grid">{entries.map(entry => <div key={entry.url} className="selection-poster"><SelectionCheck selection={selection} id={entry.url} name={entry.title} disabled={!entry.code || bulk.isPending} /><EntryCard entry={entry} sourceName={site.name} query={query} /></div>)}</div> : <p className="watch-empty-line">{t('没有符合条件的作品，可调整筛选或继续加载。')}</p>}
     {result.isError ? <InlineNotice tone="warning">{result.error.message} <Button type="button" onClick={() => void (result.isFetchNextPageError ? result.fetchNextPage() : result.refetch())}>{t('重试此站点')}</Button></InlineNotice> : null}
     {result.hasNextPage ? <AutoLoad enabled={!result.isError} loading={result.isFetching} onLoad={() => void result.fetchNextPage()} /> : null}
@@ -154,7 +158,7 @@ export function SelectedWork({ source, url, play, onPlay }: {
       <a href={entry.url} className="button button-ghost button-small" target="_blank" rel="noopener noreferrer">{t('查看来源')}<ExternalLink aria-hidden="true" /></a></div>
     {play ? <WatchPlayer key={`${source}:${url}`} entry={entry} /> : null}
     <section className={`watch-work-info${play ? ' watch-playing-info' : ''}`}>
-      <div className="watch-work-cover"><StableImage src={watchCoverUrl(entry.source, entry.cover)} alt={t('作品封面')} referrerPolicy="no-referrer" /></div>
+      <div className="watch-work-cover"><StableImage src={coverImageUrl(entry.source, entry.cover)} alt={t('作品封面')} referrerPolicy="no-referrer" /></div>
       <div><div className="watch-inline-actions"><strong>{entry.code || source}</strong>{entry.editions.map(edition => <StatusBadge key={edition}>{editionLabel(edition)}</StatusBadge>)}</div>
         <h2>{entry.title}</h2>{entry.description ? <p className="watch-work-description">{entry.description}</p> : null}
         <div className="watch-inline-actions">

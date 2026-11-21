@@ -1,3 +1,4 @@
+import { SelectionBatches, useSubmitSelection } from '../components/SelectionBatches'
 import '../styles/library.css'
 import { useMutation, useInfiniteQuery } from '@tanstack/react-query'
 import {
@@ -187,9 +188,15 @@ function LibraryBrowser() {
     .filter((key) => key !== 'q')
     .filter((key) => draft[key]).length
   const returnPath = `${location.pathname}${location.search}`
+  const submit = useSubmitSelection('library')
   const [batchResult, setBatchResult] = useState('')
   const batch = useMutation({
     mutationFn: async (action: 'subtitles' | 'metadata' | 'export') => {
+      if (action !== 'export') {
+        const { group: _group, grouped: _grouped, offset: _offset, limit: _limit, ...filters } = applied
+        const id = await submit({ action, grouped: !group, filters, items: [...selection.selected] })
+        return `${t('已提交')} · ${id.slice(0, 8)}`
+      }
       const chosen: MediaLibraryEntry[] = []
       if (group) chosen.push(...items.filter(entry => selection.selected.has(entry.entry_id)))
       else for (const prefix of selection.selected) {
@@ -202,30 +209,12 @@ function LibraryBrowser() {
           offset += page.items.length
         }
       }
-      if (action === 'export') {
-        const url = URL.createObjectURL(new Blob([JSON.stringify(chosen, null, 2)], { type: 'application/json' }))
-        const link = document.createElement('a'); link.href = url; link.download = 'jav-pilot-library.json'; link.click()
-        window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-        return { done: chosen.length, failed: 0, skipped: 0 }
-      }
-      const eligible = chosen.filter(entry => entry.presence === 'present' && entry.code && (action !== 'subtitles' || entry.media_paths.length === 1))
-      const queue = action === 'metadata' ? [...new Map(eligible.map(entry => [entry.code, entry])).values()] : eligible
-      let done = 0, failed = 0
-      const skipped = chosen.length - eligible.length
-      await Promise.all(Array.from({ length: Math.min(3, queue.length) }, async () => {
-        for (;;) {
-          const entry = queue.shift()
-          if (!entry) return
-          try {
-            if (action === 'subtitles') await api.subtitleAction({ action: 'fetch', entry_id: entry.entry_id })
-            else await api.scanMediaMetadata(entry.code!)
-            done++
-          } catch { failed++ }
-        }
-      }))
-      return { done, failed, skipped }
+      const url = URL.createObjectURL(new Blob([JSON.stringify(chosen, null, 2)], { type: 'application/json' }))
+      const link = document.createElement('a'); link.href = url; link.download = 'jav-pilot-library.json'; link.click()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+      return t('完成 {done} 项，失败 {failed} 项，跳过 {skipped} 项。', { done: chosen.length, failed: 0, skipped: 0 })
     },
-    onSuccess: result => { setBatchResult(t('完成 {done} 项，失败 {failed} 项，跳过 {skipped} 项。', result)); if (!result.failed) selection.finish() },
+    onSuccess: result => { setBatchResult(result); selection.finish() },
     onError: (error: Error) => setBatchResult(error.message),
   })
 
@@ -273,6 +262,7 @@ function LibraryBrowser() {
         <Button size="small" disabled={!selection.selected.size || batch.isPending} onClick={() => batch.mutate('export')}>{t('导出所选')}</Button>
       </SelectionTools>
       {selection.managing ? <p className="selection-note">{group ? t('仅处理所选作品；元数据补全按番号处理全部版本。') : t('选择目录后处理其中全部作品，包含尚未滚动加载的作品。')}</p> : null}
+      <SelectionBatches scope="library" />
       {batchResult ? <p className="selection-note" role="status">{batchResult}</p> : null}
 
       <section className="library-workspace" aria-label={t('媒体库作品')}>

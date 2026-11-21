@@ -169,7 +169,6 @@ const GalleryThumbnail = memo(function GalleryThumbnail({
   sourceLabel,
   image,
   index,
-  sites,
   retryToken,
   onImageState,
   onOpen,
@@ -178,13 +177,12 @@ const GalleryThumbnail = memo(function GalleryThumbnail({
   sourceLabel: string
   image: WorkImage
   index: number
-  sites: readonly SiteSettings[]
   retryToken: number
   onImageState: (sourceId: string, key: string, state: ImageLoadState) => void
   onOpen: (index: number) => void
 }) {
   const alt = t('{sourceLabel} 截图 {value}', { sourceLabel, value: index + 1 })
-  const thumbnailUrl = coverImageUrl(sourceId, image.url, sites)
+  const thumbnailUrl = coverImageUrl(sourceId, image.url)
   return (
     <button
       type="button"
@@ -208,7 +206,6 @@ export const WorkMediaGallery = memo(function WorkMediaGallery({
   sourceId,
   sourceLabel,
   images,
-  sites,
   retryToken,
   imageStates,
   onImageState,
@@ -217,7 +214,6 @@ export const WorkMediaGallery = memo(function WorkMediaGallery({
   sourceId: string
   sourceLabel: string
   images: readonly WorkImage[]
-  sites: readonly SiteSettings[]
   retryToken?: number
   imageStates: Readonly<Record<string, ImageLoadState>>
   onImageState: (sourceId: string, key: string, state: ImageLoadState) => void
@@ -248,7 +244,6 @@ export const WorkMediaGallery = memo(function WorkMediaGallery({
             sourceLabel={sourceLabel}
             image={image}
             index={index}
-            sites={sites}
             retryToken={retryToken ?? 0}
             onImageState={onImageState}
             onOpen={onOpen}
@@ -1009,9 +1004,9 @@ export function DetailPage() {
 
   const displayCode = work.code || work.canonical_code || lookupCode || t('未知番号')
   const cover = workCover(work, true)
-  const coverUrl = cover ? coverImageUrl(cover.sourceId, cover.url, sites) : ''
+  const coverUrl = cover ? coverImageUrl(cover.sourceId, cover.url) : ''
   const backdrop = workBackdrop(work, true)
-  const backdropUrl = backdrop ? coverImageUrl(backdrop.sourceId, backdrop.url, sites) : ''
+  const backdropUrl = backdrop ? coverImageUrl(backdrop.sourceId, backdrop.url) : ''
   return (
     <div className="page detail-page">
       <BackLink fallback={returnTo} />
@@ -1301,7 +1296,6 @@ export function DetailPage() {
                   sourceId={activeSource.source_id}
                   sourceLabel={sourceName(activeSource.source_id, sites)}
                   images={images}
-                  sites={sites}
                   retryToken={workQuery.dataUpdatedAt}
                   imageStates={activeImageStates}
                   onImageState={markImageState}
@@ -1389,7 +1383,7 @@ export function DetailPage() {
                 <ChevronLeft aria-hidden="true" />
               </IconButton>
               <StableImage
-                src={coverImageUrl(activeSource.source_id, lightboxImage.url, sites)}
+                src={coverImageUrl(activeSource.source_id, lightboxImage.url)}
                 alt={t('{value} 截图 {value2}', { value: sourceName(activeSource.source_id, sites), value2: lightboxIndex + 1 })}
                 retryToken={workQuery.dataUpdatedAt}
                 referrerPolicy="no-referrer"

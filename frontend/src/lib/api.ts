@@ -67,7 +67,6 @@ import type {
   SiteDiagnosticProbePayload,
   SiteDiagnosticsPayload,
   SiteDiagnosticSite,
-  SiteSettings,
   SubtitleActionPayload,
   SubtitleActionRequest,
   SubtitleCandidatesPayload,
@@ -91,7 +90,6 @@ import type {
   WorkResult,
 } from '../types'
 import { serviceErrorMessage } from './presentation'
-import { METADATA_PROFILES } from './sources'
 import { t, translationTarget } from './i18n'
 import { loginUrl } from './loginDestination'
 
@@ -105,8 +103,6 @@ const LONG_REQUEST_TIMEOUT_MS = 120_000
 const MAINTENANCE_REQUEST_TIMEOUT_MS = 600_000
 
 type RequestJsonInit = RequestInit & { timeoutMs?: number }
-
-type CoverSite = Pick<SiteSettings, 'id' | 'enabled' | 'parser_profile' | 'base_url'>
 
 export interface PersistedMetadataSearchRequest {
   query: string
@@ -131,118 +127,10 @@ export interface PersistedMetadataSearchSession {
   updated_at: number
 }
 
-const JAVBUS_DMM_IMAGE_PATH_PREFIXES = new Map<string, readonly string[]>([
-  ['awsimgsrc.dmm.co.jp', ['/pics_dig/']],
-  ['pics.dmm.co.jp', ['/pics_dig/', '/digital/video/']],
-])
-const JAVBUS_CDN_PATH_PREFIXES = ['/pics/', '/cover/', '/covers/', '/sample/', '/samples/', '/thumb/', '/thumbs/']
-
-function decodedSafeImagePath(pathname: string): string | null {
-  let decoded = pathname
-  try {
-    for (let attempt = 0; attempt < 6; attempt += 1) {
-      const next = decodeURIComponent(decoded)
-      if (next === decoded) break
-      decoded = next
-    }
-  } catch {
-    return null
-  }
-  if (/%[0-9a-f]{2}/i.test(decoded) || decoded.includes('\\') || decoded.includes('\0')) return null
-  if (decoded.split('/').some((segment) => segment === '.' || segment === '..')) return null
-  return decoded
-}
-
-function isTrustedJavBusImage(imageUrl: URL, baseUrl: URL): boolean {
-  if (imageUrl.username || imageUrl.password || imageUrl.hash) return false
-
-  const path = decodedSafeImagePath(imageUrl.pathname)
-  if (!path) return false
-  if (imageUrl.origin === baseUrl.origin) return path.startsWith('/pics/')
-  if (imageUrl.protocol !== 'https:' || (imageUrl.port && imageUrl.port !== '443')) return false
-
-  const baseHost = baseUrl.hostname.toLowerCase().replace(/\.$/, '')
-  const targetHost = imageUrl.hostname.toLowerCase().replace(/\.$/, '')
-  const siteDomain = baseHost.startsWith('www.') ? baseHost.slice(4) : baseHost
-  if (siteDomain && targetHost === `pics.${siteDomain}`) {
-    return JAVBUS_CDN_PATH_PREFIXES.some((prefix) => path.startsWith(prefix))
-  }
-  const dmmPathPrefixes = JAVBUS_DMM_IMAGE_PATH_PREFIXES.get(targetHost)
-  return dmmPathPrefixes?.some((prefix) => path.startsWith(prefix)) === true
-}
-
-function isTrustedFc2Image(imageUrl: URL): boolean {
-  if (
-    imageUrl.protocol !== 'https:'
-    || (imageUrl.port && imageUrl.port !== '443')
-    || imageUrl.username
-    || imageUrl.password
-    || imageUrl.hash
-    || imageUrl.search
-  ) return false
-
-  const path = decodedSafeImagePath(imageUrl.pathname)
-  if (!path) return false
-
-  const hostname = imageUrl.hostname.toLowerCase().replace(/\.$/, '')
-  if (hostname === 'file.netcdn.space') {
-    return /^\/storage\/fc2ppv\/\d{2,9}\/[^/]+\.(?:avif|jpe?g|png|webp)$/i.test(path)
-      || /^\/storage\/fc2\/movies\/FC2-PPV\/\d{2,9}\/[^/]+\.(?:avif|jpe?g|png|webp)$/i.test(path)
-      || /^\/ave\/vodimages\/screenshot\/(?:small|large)\/FC2-PPV-\d{2,9}\/[^/]+\.(?:avif|jpe?g|png|webp)$/i.test(path)
-  }
-  if (/^storage\d+\.contents\.fc2\.com$/.test(hostname)) {
-    return /^\/file\/.+\.(?:avif|jpe?g|png|webp)$/i.test(path)
-  }
-  if (/^contents-thumbnail\d*\.fc2\.com$/.test(hostname)) {
-    return /^\/w\d+\/storage\d+\.contents\.fc2\.com\/file\/.+\.(?:avif|jpe?g|png|webp)$/i.test(path)
-  }
-  if (hostname === 'ppvdatabank.com') {
-    return /^\/article\/\d{2,9}\/img\/(?:thumb|p[sl]\d+)\.webp$/i.test(path)
-  }
-  return false
-}
-
-export function coverImageUrl(source: string, coverUrl: string, sites: readonly CoverSite[]): string {
-  if (!coverUrl) return ''
-  const site = sites.find((item) =>
-    item.id === source
-    && item.enabled
-    && METADATA_PROFILES.some((profile) => profile === item.parser_profile),
-  )
-  if (!site) return coverUrl
-  try {
-    const imageUrl = new URL(coverUrl)
-    if (site.parser_profile === 'javbus') {
-      const baseUrl = new URL(site.base_url)
-      if (
-        !['http:', 'https:'].includes(baseUrl.protocol)
-        || baseUrl.username
-        || baseUrl.password
-        || baseUrl.search
-        || baseUrl.hash
-        || !isTrustedJavBusImage(imageUrl, baseUrl)
-      ) return coverUrl
-    } else if (site.parser_profile === 'javdb') {
-      const hostname = imageUrl.hostname.toLowerCase()
-      const trustedHost = hostname === 'jdbstatic.com' || hostname.endsWith('.jdbstatic.com')
-      const trustedPath = imageUrl.pathname.startsWith('/covers/') || imageUrl.pathname.startsWith('/samples/')
-      if (
-        imageUrl.protocol !== 'https:'
-        || (imageUrl.port && imageUrl.port !== '443')
-        || imageUrl.username
-        || imageUrl.password
-        || !trustedHost
-        || !trustedPath
-      ) return coverUrl
-    } else if (site.parser_profile === 'fc2' && !isTrustedFc2Image(imageUrl)) {
-      return coverUrl
-    } else if (imageUrl.protocol !== 'https:' || imageUrl.username || imageUrl.password) {
-      return ''
-    }
-  } catch {
-    return coverUrl
-  }
-  return `/api/covers?source=${encodeURIComponent(site.id)}&url=${encodeURIComponent(coverUrl)}`
+export function coverImageUrl(source: string, url: string): string {
+  if (!url) return ''
+  if (url.startsWith('/api/library/artwork?')) return url
+  return `/api/covers?${new URLSearchParams({ source, url })}`
 }
 
 export function createSearchRequestId(): string {

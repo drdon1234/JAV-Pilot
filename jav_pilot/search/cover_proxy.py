@@ -356,6 +356,16 @@ def _policy_for_source(
     url: str,
     settings: dict[str, Any],
 ) -> _CoverPolicy:
+    if source.startswith("ranking:"):
+        from .rankings import ranking_cover_referer
+        target = _split_http_url(url)
+        referer = ranking_cover_referer(source.removeprefix("ranking:"), url)
+        if (not referer or target.scheme != "https" or (target.port or 443) != 443
+                or not PublicHostResolver(max_hosts=1).is_public(str(target.hostname))):
+            raise CoverRequestError("ranking cover is unavailable")
+        page = _split_http_url(referer)
+        return _CoverPolicy(origin=_origin(target), referer=f"{page.scheme}://{page.netloc}/",
+                            path_pattern=re.compile(re.escape(target.path)))
     sites = settings.get("sites", []) if isinstance(settings, dict) else []
     if not isinstance(sites, list):
         raise CoverUpstreamError("cover source configuration is invalid")
@@ -366,7 +376,7 @@ def _policy_for_source(
             continue
         if site.get("id") != source:
             continue
-        if not site.get("enabled") or (site.get("parser_profile") not in METADATA_PROFILES and source != "av123"):
+        if not site.get("enabled") or (site.get("parser_profile") not in METADATA_PROFILES and source not in {"av123", "jable", "missav"}):
             break
         selected = site
         break
@@ -385,6 +395,18 @@ def _policy_for_source(
 
     profile = str(selected.get("parser_profile") or "")
     target = _split_http_url(url)
+    if source == "missav":
+        if _origin(target) != ("https", "fourhoi.com", 443):
+            raise CoverRequestError("cover URL is outside the configured source")
+        return _CoverPolicy(origin=_origin(target), referer=base_url + "/",
+                            path_pattern=re.compile(r"/[a-zA-Z0-9._-]+/cover(?:-[nt])?\.jpg"))
+    if source == "jable":
+        if _origin(target) != ("https", "assets.fs1.app", 443):
+            raise CoverRequestError("cover URL is outside the configured source")
+        if not PublicHostResolver(max_hosts=1).is_public("assets.fs1.app"):
+            raise CoverRequestError("cover URL host must resolve to a public address")
+        return _CoverPolicy(origin=_origin(target), referer=base_url + "/",
+                            path_pattern=re.compile(r"/contents/videos_screenshots/\d+/\d+/(?:\d+x\d+/\d+|preview)\.jpg"))
     if source == "av123":
         if target.scheme != "https" or target.hostname != "icdn.123av.me" or (target.port or 443) != 443:
             raise CoverRequestError("cover URL is outside the configured source")

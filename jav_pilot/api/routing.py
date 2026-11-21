@@ -24,6 +24,7 @@ class PatternRoute:
 
 
 GET_ROUTES: dict[str, Route] = {
+    "/api/selection-batches": Route("_handle_selection_batches", with_query=True),
     "/api/library/artwork": Route("_handle_library_artwork", with_query=True),
     "/api/library/folder-cover": Route("_handle_library_folder_cover", with_query=True),
     "/api/playback-history": Route("_handle_playback_history", with_query=True),
@@ -102,6 +103,7 @@ GET_PATTERN_ROUTES: tuple[PatternRoute, ...] = (
 )
 
 POST_ROUTES: dict[str, Route] = {
+    "/api/selection-batches": Route("_handle_selection_submit"),
     "/api/library/folder-cover/action": Route("_handle_library_folder_cover_action"),
     "/api/playback-history/action": Route("_handle_playback_history_action"),
     "/api/library/playback/progress": Route("_handle_local_progress"),

@@ -26,8 +26,8 @@ from .request import request_is_secure
 CONTENT_SECURITY_POLICY = (
     "default-src 'self'; script-src 'self' "
     "'sha256-IHVJxNTxF+p7uXRaHZ2A/YiUQerTP2cWRz9fipQp9+A='; "
-    "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; "
-    "media-src 'self' blob: https:; connect-src 'self'; object-src 'none'; "
+    "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+    "media-src 'self' blob:; connect-src 'self'; object-src 'none'; "
     "base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
 )
 
