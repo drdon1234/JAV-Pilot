@@ -23,7 +23,7 @@ from .. import state
 from ..base import BaseHandler
 from ..request import (
     request_client_host,
-    request_is_secure,
+    request_has_https_origin,
     request_server_host,
     request_server_port,
 )
@@ -93,7 +93,7 @@ class AuthRoutes(BaseHandler):
             headers={
                 "Set-Cookie": make_session_cookie(
                     config,
-                    secure=request_is_secure(self),
+                    secure=request_has_https_origin(self),
                 )
             },
         )
@@ -154,7 +154,7 @@ class AuthRoutes(BaseHandler):
             {"ok": True},
             headers={
                 "Set-Cookie": clear_session_cookie(
-                    secure=request_is_secure(self),
+                    secure=request_has_https_origin(self),
                 )
             },
         )
@@ -217,7 +217,7 @@ class AuthRoutes(BaseHandler):
             headers={
                 "Set-Cookie": make_session_cookie(
                     next_config,
-                    secure=request_is_secure(self),
+                    secure=request_has_https_origin(self),
                 )
             },
         )

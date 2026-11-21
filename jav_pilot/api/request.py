@@ -117,7 +117,7 @@ def same_origin_request(
     forwarded = (
         str(get("X-Forwarded-Host", "") or "") if trusted_proxy_peer(peer_host) else ""
     )
-    host = str(forwarded or get("Host", "") or "").split(",", 1)[0].strip().lower()
+    host = str(forwarded.split(",", 1)[0] or get("Host", "") or "").strip().lower()
     try:
         parsed = urlsplit(origin)
         if (
@@ -131,6 +131,8 @@ def same_origin_request(
         ):
             return False
         target = urlsplit(f"{parsed.scheme}://{host}")
+        if target.netloc != host or target.username is not None or "," in host:
+            return False
         default_port = 443 if parsed.scheme == "https" else 80
         origin_address = (parsed.hostname, parsed.port if parsed.port is not None else default_port)
         target_address = (target.hostname, target.port if target.port is not None else default_port)
@@ -207,3 +209,17 @@ def request_is_secure(handler: object) -> bool:
         return False
     forwarded_proto = str(get("X-Forwarded-Proto", "") or "").split(",", 1)[0]
     return forwarded_proto.strip().lower() == "https"
+
+
+def request_has_https_origin(handler: object) -> bool:
+    """Recognize HTTPS for same-origin POSTs and their session cookies."""
+    if trusted_proxy_peer(request_peer_host(handler)):
+        return request_is_secure(handler)
+    headers = getattr(handler, "headers", {})
+    # Browser fetch metadata describes the public origin even when the last
+    # hop is HTTP. Match the actual Host without consulting forwarding headers.
+    return (
+        headers.get("Sec-Fetch-Site", "").strip().lower() == "same-origin"
+        and bool(headers.get("Origin", "").strip())
+        and same_origin_request(headers, expected_scheme="https")
+    )

@@ -96,7 +96,7 @@ docker compose stop -t 120 jav-pilot
 docker compose up -d
 ```
 
-默认跟随 `latest`；需要固定版本时，把 `.env` 中的 `JAV_PILOT_IMAGE` 改成例如 `drdon1234/jav-pilot:0.3.13`。发布说明提到部署配置有变化时，重新下载 `docker-compose.yml`，`.env` 保持不变。更新前的备份方法见[备份与运维](operations.md#备份与恢复)。
+默认跟随 `latest`；需要固定版本时，把 `.env` 中的 `JAV_PILOT_IMAGE` 改成例如 `drdon1234/jav-pilot:0.3.14`。发布说明提到部署配置有变化时，重新下载 `docker-compose.yml`，`.env` 保持不变。更新前的备份方法见[备份与运维](operations.md#备份与恢复)。
 
 ## 方式二：从源码构建镜像
 
@@ -226,7 +226,8 @@ journalctl -u jav-pilot -f
 
 方式一、二默认在所有网卡上监听 8766 端口，局域网设备可以直接访问；方式三要按[上文](#作为局域网-web-服务运行)设置。不要把这个端口直接映射到公网。需要从外网访问时，请通过 HTTPS 反向代理：
 
-- 把反向代理的地址写入 `JAV_PILOT_TRUSTED_PROXY_CIDRS`，只有这些来源才能提供转发的主机名和协议头。反向代理还要传递 `X-Forwarded-For`，登录限流才会按真实访客地址计数，而不是把所有人都算作代理地址。
+- 反向代理保留公网 `Host`（含非默认端口）时，现代浏览器可以直接通过 HTTPS 登录。浏览器提交的 `Origin` 必须与该主机和端口一致，并携带 `Sec-Fetch-Site: same-origin`。
+- 如果代理改写了 `Host`、客户端缺少上述浏览器头，或需要按真实访客 IP 限流，请把直接连接容器的代理地址写入 `JAV_PILOT_TRUSTED_PROXY_CIDRS`。代理应设置正确的 `X-Forwarded-Host`、`X-Forwarded-Proto` 和 `X-Forwarded-For`。默认按直接连接的地址计数，共用代理的访客也会共用其 IP 限流额度。
 - 保持 `JAV_PILOT_ALLOW_INSECURE_REMOTE=0`；未配置完整登录时，服务拒绝在非本机地址上启动。
 
 通过普通 HTTP 访问时，浏览器不允许网页直接写入剪贴板，复制磁链会改为展开完整文本供手动复制。
