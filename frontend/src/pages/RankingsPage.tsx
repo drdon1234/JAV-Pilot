@@ -16,6 +16,7 @@ import { AiTranslateButton, AiTranslationLine } from '../components/AiTranslatio
 import type { DetailPrefetchItemStatus, RankingBoard, RankingBoardsPayload, RankingGroup, RankingItem, RankingOption } from '../types'
 import { QuickWebDownload } from './QuickWebDownload'
 import { StableImage } from './WorkUi'
+import { InventoryStatus } from '../components/WorkStatus'
 import { t } from '../lib/i18n'
 import { serverText } from '../lib/serverTexts'
 import { useRankingCategories } from '../lib/rankingCategories'
@@ -479,6 +480,7 @@ export function RankingsPage() {
                 <div className="ranking-main">
                   <span className="ranking-code-line">
                     <strong>{detailLink ? <Link to={detailLink} state={{ returnTo: '/rankings' }}>{item.code ?? t('详情')}</Link> : item.code ?? t('未知番号')}</strong>
+                    {item.code && <InventoryStatus code={item.code}/>}
                     {prefetchStatus ? <StatusBadge tone={PREFETCH_STATUS[prefetchStatus].tone}>{PREFETCH_STATUS[prefetchStatus].label}</StatusBadge> : null}
                   </span>
                   <p>{translated || item.title}</p>

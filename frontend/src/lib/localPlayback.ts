@@ -3,7 +3,7 @@ import { api } from './api'
 import type { DownloadHistoryItem } from '../types'
 
 // Share equivalent site codes and coalesce visible cards into bounded lookups.
-const codeKey = (code: string) => {
+export const codeKey = (code: string) => {
   const clean = code.normalize('NFKC').trim().toUpperCase()
   const fc2 = /^FC2(?:[-._\s]*PPV)?[-._\s]*(\d{2,9})$/.exec(clean)
   if (fc2) return `FC2PPV:${Number(fc2[1])}`
@@ -14,7 +14,7 @@ type Pending = { code: string; resolve: (item: DownloadHistoryItem | null) => vo
 let pending: Pending[] = []
 let timer: ReturnType<typeof setTimeout> | undefined
 
-function lookup(code: string): Promise<DownloadHistoryItem | null> {
+export function lookupWorkAvailability(code: string): Promise<DownloadHistoryItem | null> {
   return new Promise((resolve, reject) => {
     pending.push({ code, resolve, reject })
     if (timer !== undefined) return
@@ -37,7 +37,7 @@ function lookup(code: string): Promise<DownloadHistoryItem | null> {
 export function useLocalPlayback(code: string) {
   return useQuery({
     queryKey: ['local-playback-availability', codeKey(code)],
-    queryFn: () => lookup(code),
+    queryFn: () => lookupWorkAvailability(code),
     enabled: Boolean(code.trim()) && code.length <= 64,
     staleTime: 15_000,
     refetchInterval: 30_000,

@@ -22,6 +22,7 @@ import type {
 } from '../types'
 import { MetadataReviewPanel } from './MetadataReviewPanel'
 import { t } from '../lib/i18n'
+import { metadataJobLabels as statusLabels } from '../lib/metadataStatus'
 import { BackLink } from '../components/BackLink'
 
 import '../styles/metadata.css'
@@ -40,14 +41,7 @@ const metadataHistoryFilters = [
 const DISPLAY_CODE_PATTERN = /^[A-Z0-9]+(?:[-._][A-Z0-9]+)*$/
 const QUALITY_CODE_PATTERN = /^(?:(?:[248]K|720P|1080P|2160P|4320P|SD|HD|FHD|UHD|VR|HDR|HEVC|H26[45]|X26[45]|AV1|\d{2,3}FPS))+$/
 
-const statusLabels: Record<MediaMetadataStatus, string> = {
-  waiting_media: t('等待媒体'),
-  queued: t('排队中'),
-  running: t('补全中'),
-  retry: t('等待重试'),
-  completed: t('已完成'),
-  failed: t('失败'),
-}
+
 
 const kindLabels: Record<MediaMetadataKind, string> = {
   qb: 'BT',

@@ -7,6 +7,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'reac
 
 import { useToast } from '../components/ToastProvider'
 import { BookmarkButton, WatchLink } from '../components/WatchActions'
+import { WorkProgress, InventoryStatus } from '../components/WorkStatus'
 import { WantButton, WorkEditions } from '../components/CollectionTracking'
 import { Button, EmptyState, InlineNotice, PageHeader, ProgressBar, SkeletonRows, StatusBadge } from '../components/ui'
 import { api, workRecoveryScope } from '../lib/api'
@@ -935,7 +936,7 @@ export function DetailPage() {
         }
       />
 
-      {work.code && <WorkEditions code={work.code} />}
+      {work.code && <><InventoryStatus code={work.code}/><WorkEditions code={work.code} /><WorkProgress code={work.code}/></>}
       {workQuery.isError && work ? (
         <InlineNotice tone="warning" role="alert">
           <strong>{t('完整详情加载失败')}</strong>

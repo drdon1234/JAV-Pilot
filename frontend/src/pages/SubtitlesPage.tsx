@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, ListChecks, RefreshCw, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { SubtitleCandidatesDialog, type SubtitleDialogTarget } from '../components/SubtitleCandidatesDialog'
 import { useToast } from '../components/ToastProvider'
@@ -38,8 +38,9 @@ export function SubtitlesPage() {
   const toast = useToast()
   const queryClient = useQueryClient()
   const [filter, setFilter] = useState('all')
-  const [queryInput, setQueryInput] = useState('')
-  const [query, setQuery] = useState('')
+  const [params] = useSearchParams()
+  const [queryInput, setQueryInput] = useState(params.get('q') || '')
+  const [query, setQuery] = useState(params.get('q') || '')
   const [page, setPage] = useState(0)
   const selection = useSelection(`${filter}:${query}:${page}`)
   const [dialog, setDialog] = useState<SubtitleDialogTarget | null>(null)

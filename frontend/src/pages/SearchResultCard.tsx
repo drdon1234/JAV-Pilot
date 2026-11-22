@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { StatusBadge } from '../components/ui'
+import { InventoryStatus } from '../components/WorkStatus'
 import { WatchLink } from '../components/WatchActions'
 import { coverImageUrl } from '../lib/api'
 import type { SiteSettings, WorkMagnet, WorkResult } from '../types'
@@ -55,6 +56,7 @@ export function SearchResultCard({
         <div>
           <div className="result-code-line">
             <strong><Link className="result-detail-content" to={detailHref} state={detailState} tabIndex={-1}>{code}</Link></strong>
+            {result.code && <InventoryStatus code={result.code}/>}
             {result.sources.map((source) => <StatusBadge key={source.source_id}>{sourceName(source.source_id, sites)}</StatusBadge>)}
           </div>
           <h3><Link className="result-detail-content" to={detailHref} state={detailState} tabIndex={-1}>{titleContent ?? result.title}</Link></h3>

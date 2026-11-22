@@ -32,6 +32,7 @@ import type {
   WebDownloadVariant,
 } from '../types'
 import { t } from '../lib/i18n'
+import { BatchImpact } from '../components/BatchImpact'
 
 const activeWebDownloadBatchStatuses = new Set<WebDownloadBatchStatus>(['queued', 'discovering'])
 
@@ -584,6 +585,7 @@ export function WebDownloadBatchTool({
               </span>
               {currentBatch.error ? <span className="task-issue">{currentBatch.error}</span> : null}
             </div>
+            {currentBatch.can_commit && <BatchImpact batch={currentBatch} intents={currentIntents}/>}
             <div className="web-batch-state-actions">
               {currentBatch.can_cancel ? (
                 <Button type="button" size="small" variant="ghost" onClick={() => runBatchAction('cancel')} disabled={batchAction.isPending}>
