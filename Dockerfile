@@ -58,6 +58,7 @@ RUN --mount=type=cache,id=jav-pilot-ffmpeg-apt,target=/var/cache/apt,sharing=loc
         --disable-shared \
         --enable-demuxer=asf,avi,flv,matroska,mov,mpegps,mpegvideo,mpegts,rm \
         --enable-gpl --enable-libx264 \
+        --pkg-config-flags=--static \
         --enable-encoder=mjpeg,libx264,aac \
         --enable-muxer=image2,mov,mp4 \
         --enable-protocol=file,pipe,fd \
