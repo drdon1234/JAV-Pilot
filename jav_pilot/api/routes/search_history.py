@@ -14,7 +14,7 @@ from ...config.settings import load_settings
 from ..services.detail_prefetch import detail_snapshot_from_url
 from ..base import BaseHandler
 from ..request import int_param, query_params, single_param
-from ..services.search_history import search_history_limit, search_history_store
+from ..services.search_history import record_detail_history, search_history_limit, search_history_store
 
 
 class SearchHistoryRoutes(BaseHandler):
@@ -63,6 +63,17 @@ class SearchHistoryRoutes(BaseHandler):
             )
             return
         self._send_json({"ok": True, **result})
+
+    def _handle_search_history_record(self) -> None:
+        try:
+            payload = self._read_json_body(16 * 1024)
+            if set(payload) != {"work_id", "code", "title", "source", "detail_url"}:
+                raise ValueError("search history record is invalid")
+            record_detail_history(payload)
+        except ValueError as exc:
+            self._send_json({"ok": False, "error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            return
+        self._send_json({"ok": True})
 
     def _handle_rankings(self, query_string: str) -> None:
         try:

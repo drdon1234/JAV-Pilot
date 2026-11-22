@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Clapperboard, Database, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { Clapperboard, Database, FileText, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -38,7 +38,7 @@ export function SearchHistoryPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const sessions = useSearchSessions()
-  const [kind, setKind] = useState<'all' | 'metadata' | 'resource'>('all')
+  const [kind, setKind] = useState<'all' | 'metadata' | 'resource' | 'detail'>('all')
   const selection = useSelection(kind)
   const [pendingId, setPendingId] = useState('')
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings })
@@ -104,6 +104,20 @@ export function SearchHistoryPage() {
         navigate(`/results?${routeParams.toString()}`)
         return
       }
+      if (item.kind === 'detail') {
+        const workId = text(item.params.work_id)
+        if (!workId) {
+          toast.push(t('这条详情记录缺少作品标识，请重新打开详情页'), 'error')
+          return
+        }
+        const routeParams = new URLSearchParams()
+        for (const key of ['code', 'title', 'source', 'detail_url']) {
+          const value = text(item.params[key])
+          if (value) routeParams.set(key, value)
+        }
+        navigate(`/works/${encodeURIComponent(workId)}${routeParams.size ? `?${routeParams.toString()}` : ''}`)
+        return
+      }
       const params = item.params
       const source = text(params.source_id)
       const routeParams = new URLSearchParams({ workspace: 'resource', q: text(params.query) || item.query, ...(source && source !== 'all' ? { source } : {}) })
@@ -117,6 +131,7 @@ export function SearchHistoryPage() {
 
   function describe(item: SearchHistoryItem): string[] {
     const params = item.params
+    if (item.kind === 'detail') return [text(params.source) && siteName(text(params.source)), t('作品详情')].filter(Boolean)
     if (item.kind === 'metadata') {
       const sources = Array.isArray(params.sources) ? params.sources.filter((value): value is string => typeof value === 'string') : []
       return [
@@ -164,7 +179,7 @@ export function SearchHistoryPage() {
       />
       <HistoryTabs />
       <div className="segmented-control search-history-filter" role="group" aria-label={t('记录类型')}>
-        {([['all', t('全部')], ['metadata', t('站点搜索')], ['resource', t('Web 搜索')]] as const).map(([value, label]) => (
+        {([['all', t('全部')], ['metadata', t('站点搜索')], ['resource', t('Web 搜索')], ['detail', t('作品详情')]] as const).map(([value, label]) => (
           <button type="button" className={kind === value ? 'active' : ''} aria-pressed={kind === value} onClick={() => setKind(value)} key={value}>{label}</button>
         ))}
       </div>
@@ -174,7 +189,7 @@ export function SearchHistoryPage() {
       ) : null}
       {history.isLoading ? <SkeletonRows count={5} /> : null}
       {history.data && !items.length ? (
-        <EmptyState title={t('还没有搜索记录')} description={t('在搜索页进行的站点搜索和 Web 搜索会自动保存在这里')} />
+        <EmptyState title={t('还没有搜索记录')} description={t('搜索页和作品详情页的访问记录会自动保存在这里')} />
       ) : null}
       {items.length ? (
         <ul className="search-history-list" aria-label={t('搜索记录')}>
@@ -183,14 +198,14 @@ export function SearchHistoryPage() {
               <SelectionCheck selection={selection} id={item.id} name={item.query} disabled={bulk.isPending} />
               <button type="button" className="search-history-open" onClick={() => void rerun(item)} disabled={Boolean(pendingId)} aria-busy={pendingId === item.id}>
                 <span className="search-history-icon" aria-hidden="true">
-                  {item.kind === 'metadata' ? <Database /> : <Clapperboard />}
+                  {item.kind === 'metadata' ? <Database /> : item.kind === 'resource' ? <Clapperboard /> : <FileText />}
                 </span>
                 <span className="search-history-main">
                   <strong>{item.query}</strong>
                   <span>{describe(item).join(' · ')}</span>
                 </span>
                 <span className="search-history-meta">
-                  <StatusBadge tone={item.kind === 'metadata' ? 'info' : 'neutral'}>{item.kind === 'metadata' ? t('站点搜索') : t('Web 搜索')}</StatusBadge>
+                  <StatusBadge tone={item.kind === 'metadata' ? 'info' : item.kind === 'resource' ? 'neutral' : 'success'}>{item.kind === 'metadata' ? t('站点搜索') : item.kind === 'resource' ? t('Web 搜索') : t('作品详情')}</StatusBadge>
                   <span>{formatDateTime(item.used_at)}{item.use_count > 1 ? t(' · {use_count} 次', { use_count: item.use_count }) : ''}</span>
                 </span>
                 <span className="search-history-go" aria-hidden="true">

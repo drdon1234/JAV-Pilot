@@ -116,7 +116,7 @@ export function workCover(work: WorkResult, preferOriginal = false): { url: stri
   return null
 }
 
-function isVideoAssetUrl(value: string | null | undefined): boolean {
+export function isVideoAssetUrl(value: string | null | undefined): boolean {
   const candidate = value?.trim()
   if (!candidate) return false
   if (candidate.toLowerCase().startsWith('data:video/')) return true
@@ -137,14 +137,6 @@ function imageIdentity(value: string): string {
   } catch {
     return candidate
   }
-}
-
-export function workBackdrop(work: WorkResult, preferOriginal = false): { url: string; sourceId: string } | null {
-  for (const source of work.sources) {
-    const backdrop = source.images.find((image) => image.kind === 'backdrop' && image.url && !isVideoAssetUrl(image.url) && !isVideoAssetUrl(image.thumbnail_url))
-    if (backdrop) return { url: preferOriginal ? backdrop.url : backdrop.thumbnail_url || backdrop.url, sourceId: source.source_id }
-  }
-  return null
 }
 
 export function uniqueSampleImages(images: readonly WorkImage[]): WorkImage[] {

@@ -3,6 +3,7 @@ import '../styles/library.css'
 import { useMutation, useInfiniteQuery } from '@tanstack/react-query'
 import {
   ChevronDown,
+  Clock3,
   Filter,
   Library,
   RefreshCw,
@@ -99,8 +100,9 @@ function appliedFilters(params: URLSearchParams): MediaLibraryListParams {
   const request: MediaLibraryListParams = {
     limit: LIBRARY_PAGE_SIZE,
     offset: 0,
-    grouped: !params.get('group'),
+    grouped: !params.get('group') && params.get('sort') !== 'ingested',
     group: params.get('group') || undefined,
+    sort: params.get('sort') === 'ingested' ? 'ingested' : 'code',
   }
   if (filters.q) request.query = filters.q
   if (filters.actor) request.actor = filters.actor
@@ -145,6 +147,7 @@ function LibraryBrowser() {
   const [searchParams, setSearchParams] = useSearchParams()
   const routeKey = searchParams.toString()
   const group = searchParams.get('group') || ''
+  const ingestedSort = searchParams.get('sort') === 'ingested'
   const selection = useSelection(routeKey)
   const sentinel = useRef<HTMLDivElement>(null)
   const applied = useMemo(() => appliedFilters(searchParams), [routeKey])
@@ -194,11 +197,11 @@ function LibraryBrowser() {
     mutationFn: async (action: 'subtitles' | 'metadata' | 'export') => {
       if (action !== 'export') {
         const { group: _group, grouped: _grouped, offset: _offset, limit: _limit, ...filters } = applied
-        const id = await submit({ action, grouped: !group, filters, items: [...selection.selected] })
+        const id = await submit({ action, grouped: !group && !ingestedSort, filters, items: [...selection.selected] })
         return `${t('已提交')} · ${id.slice(0, 8)}`
       }
       const chosen: MediaLibraryEntry[] = []
-      if (group) chosen.push(...items.filter(entry => selection.selected.has(entry.entry_id)))
+      if (group || ingestedSort) chosen.push(...items.filter(entry => selection.selected.has(entry.entry_id)))
       else for (const prefix of selection.selected) {
         let offset = 0
         for (;;) {
@@ -244,8 +247,8 @@ function LibraryBrowser() {
     <div className="page library-page">
       {group ? <BackLink fallback={location.state?.libraryReturnPath || '/library'} /> : null}
       <PageHeader
-        title={group ? folderLabel(group) : t('媒体库')}
-        description={group ? t('选择作品，查看详情并播放。') : t('按番号前缀浏览本地作品，进入目录选择影片。')}
+        title={group ? folderLabel(group) : ingestedSort ? t('最近入库') : t('媒体库')}
+        description={group ? t('选择作品，查看详情并播放。') : ingestedSort ? t('按入库时间倒序显示最近添加的作品。') : t('按番号前缀浏览本地作品，进入目录选择影片。')}
         actions={(
           <IconButton
             label={t('重建媒体库索引')}
@@ -256,12 +259,24 @@ function LibraryBrowser() {
           </IconButton>
         )}
       />
-      <SelectionTools selection={selection} ids={items.map(entry => group ? entry.entry_id : entry.group_key!)} busy={batch.isPending}>
+      {!group && !ingestedSort ? (
+        <Link className="button button-secondary library-latest-link" to="/library?sort=ingested">
+          <Clock3 aria-hidden="true" />
+          {t('按入库顺序查看')}
+        </Link>
+      ) : null}
+      {!group && ingestedSort ? (
+        <Link className="button button-secondary library-latest-link" to="/library">
+          <Library aria-hidden="true" />
+          {t('返回默认排序')}
+        </Link>
+      ) : null}
+      <SelectionTools selection={selection} ids={items.map(entry => !group && !ingestedSort ? entry.group_key! : entry.entry_id)} busy={batch.isPending}>
         <Button size="small" disabled={!selection.selected.size || batch.isPending} onClick={() => batch.mutate('subtitles')}>{t('获取字幕')}</Button>
         <Button size="small" disabled={!selection.selected.size || batch.isPending} onClick={() => batch.mutate('metadata')}>{t('补全所选番号')}</Button>
         <Button size="small" disabled={!selection.selected.size || batch.isPending} onClick={() => batch.mutate('export')}>{t('导出所选')}</Button>
       </SelectionTools>
-      {selection.managing ? <p className="selection-note">{group ? t('仅处理所选作品；元数据补全按番号处理全部版本。') : t('选择目录后处理其中全部作品，包含尚未滚动加载的作品。')}</p> : null}
+      {selection.managing ? <p className="selection-note">{group || ingestedSort ? t('仅处理当前列表中选中的作品。') : t('选择目录后处理其中全部作品，包含尚未滚动加载的作品。')}</p> : null}
       <SelectionBatches scope="library" />
       {batchResult ? <p className="selection-note" role="status">{batchResult}</p> : null}
 
@@ -448,7 +463,7 @@ function LibraryBrowser() {
         {library.data?.ok && library.data.items.length ? (
           <div className="library-poster-grid" aria-label={t('媒体库作品列表')}>
             {items.map(entry => {
-              if (!group) return <div className={selection.managing ? 'selection-poster' : undefined} key={entry.group_key}><SelectionCheck selection={selection} id={entry.group_key!} name={folderLabel(entry.group_key!)} disabled={batch.isPending} /><LibraryFolder prefix={entry.group_key!} count={entry.group_count!} revision={entry.revision} returnPath={returnPath} /></div>
+              if (!group && !ingestedSort) return <div className={selection.managing ? 'selection-poster' : undefined} key={entry.group_key}><SelectionCheck selection={selection} id={entry.group_key!} name={folderLabel(entry.group_key!)} disabled={batch.isPending} /><LibraryFolder prefix={entry.group_key!} count={entry.group_count!} revision={entry.revision} returnPath={returnPath} /></div>
               const target = `/library?${new URLSearchParams({ entry: entry.entry_id })}`
               return <article className={`library-poster-card${selection.managing ? ' selection-poster' : ''}`} key={entry.entry_id}>
                 <SelectionCheck selection={selection} id={entry.entry_id} name={entry.code || entry.title || t('本地媒体')} disabled={batch.isPending} />

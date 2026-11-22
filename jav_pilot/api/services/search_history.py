@@ -53,3 +53,19 @@ def record_metadata_search_history(request: object) -> None:
         "semantic_refs": request.get("semantic_refs") or {},
     }
     record_search_history("metadata", str(request.get("query") or ""), params)
+
+
+def record_detail_history(params: dict[str, object]) -> None:
+    code = str(params.get("code") or "").strip()
+    title = str(params.get("title") or "").strip()
+    work_id = str(params.get("work_id") or "").strip()
+    if not work_id or not (code or title):
+        return
+    clean = {
+        "work_id": work_id[:200],
+        "code": code[:64],
+        "title": title[:500],
+        "source": str(params.get("source") or "all")[:200],
+        "detail_url": str(params.get("detail_url") or "")[:2000],
+    }
+    record_search_history("detail", code or title, clean)

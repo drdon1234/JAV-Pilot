@@ -1,14 +1,14 @@
 import '../styles/downloadLayout.css'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Download, ExternalLink, LoaderCircle, RadioTower, RotateCcw, WandSparkles, X } from 'lucide-react'
+import { Download, ExternalLink, LoaderCircle, RadioTower, RotateCcw, WandSparkles, X } from 'lucide-react'
 import { BackLink } from '../components/BackLink'
-import { type KeyboardEvent, type ReactNode, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { useToast } from '../components/ToastProvider'
 import { BookmarkButton, WatchLink } from '../components/WatchActions'
-import { Button, EmptyState, IconButton, InlineNotice, PageHeader, ProgressBar, SkeletonRows, StatusBadge } from '../components/ui'
-import { api, coverImageUrl, workRecoveryScope } from '../lib/api'
+import { Button, EmptyState, InlineNotice, PageHeader, ProgressBar, SkeletonRows, StatusBadge } from '../components/ui'
+import { api, workRecoveryScope } from '../lib/api'
 import { externalHttpUrl, formatBytes, formatEta } from '../lib/format'
 import { downloadHistorySummary } from '../lib/downloadHistory'
 import { useTranslationPreferences, useTranslations } from '../lib/translation'
@@ -17,12 +17,12 @@ import { AiTranslateButton, AiTranslationLine } from '../components/AiTranslatio
 import { parseStatusLabel, serviceErrorMessage } from '../lib/presentation'
 import { METADATA_PROFILES } from '../lib/sources'
 import { createWebDownloadIntentKey, currentWebDownloadJob, WEB_DOWNLOAD_HISTORY_QUERY_ROOT, webDownloadCanReselect, webDownloadContinueHint, webDownloadIsActive, webDownloadPollInterval, webDownloadProgress, webDownloadQualityLabel, webDownloadRetryStatus, webDownloadStatusLabel, webDownloadStatusTone, webDownloadVariantLabel } from '../lib/webDownloads'
-import type { DownloadReselection, MagnetProbePayload, MagnetSelectionPayload, RelatedRef, SiteSettings, WebDownloadBatch, WebDownloadJob, WebDownloadListPayload, WorkImage, WorkMagnet, WorkResult, WorkSource, WorkSourceDetails } from '../types'
-import { canonicalMagnetAction, magnetDownloadAddedMessage, magnetDownloadRequest, sourceName, StableImage, type DownloadState, uniqueSampleImages, WorkMagnetList, workBackdrop, workCover } from './WorkUi'
+import type { DownloadReselection, MagnetProbePayload, MagnetSelectionPayload, RelatedRef, SiteSettings, WebDownloadBatch, WebDownloadJob, WebDownloadListPayload, WorkMagnet, WorkResult, WorkSource, WorkSourceDetails } from '../types'
+import { canonicalMagnetAction, magnetDownloadAddedMessage, magnetDownloadRequest, sourceName, type DownloadState, uniqueSampleImages, WorkMagnetList, workCover } from './WorkUi'
 import { t } from '../lib/i18n'
+import { artworkUrls, DetailGalleries, DetailImage, readyArtworkSources } from './DetailArtwork'
 import '../styles/detail.css'
 
-type ImageLoadState = 'loaded' | 'failed'
 const TERMINAL_PROBE_STATUSES = new Set(['complete', 'failed', 'cancelled'])
 const TERMINAL_SELECTION_STATUSES = new Set(['complete', 'failed', 'cancelled'])
 const ACTIVE_WEB_DOWNLOAD_INTENT_STATUSES = new Set(['queued', 'discovering', 'ready'])
@@ -163,97 +163,6 @@ function ExternalTextLink({ href, children }: { href: string | null | undefined;
   const url = externalHttpUrl(href)
   return url ? <a href={url} target="_blank" rel="noopener noreferrer">{children}</a> : <>{children}</>
 }
-
-const GalleryThumbnail = memo(function GalleryThumbnail({
-  sourceId,
-  sourceLabel,
-  image,
-  index,
-  retryToken,
-  onImageState,
-  onOpen,
-}: {
-  sourceId: string
-  sourceLabel: string
-  image: WorkImage
-  index: number
-  retryToken: number
-  onImageState: (sourceId: string, key: string, state: ImageLoadState) => void
-  onOpen: (index: number) => void
-}) {
-  const alt = t('{sourceLabel} 截图 {value}', { sourceLabel, value: index + 1 })
-  const thumbnailUrl = coverImageUrl(sourceId, image.url)
-  return (
-    <button
-      type="button"
-      className="gallery-item gallery-item-sample"
-      aria-label={t('查看 {alt}', { alt })}
-      onClick={() => onOpen(index)}
-    >
-      <StableImage
-        src={thumbnailUrl}
-        alt={alt}
-        retryToken={retryToken}
-        referrerPolicy="no-referrer"
-        onLoad={() => onImageState(sourceId, image.url, 'loaded')}
-        onError={() => onImageState(sourceId, image.url, 'failed')}
-      />
-    </button>
-  )
-})
-
-export const WorkMediaGallery = memo(function WorkMediaGallery({
-  sourceId,
-  sourceLabel,
-  images,
-  retryToken,
-  imageStates,
-  onImageState,
-  onOpen,
-}: {
-  sourceId: string
-  sourceLabel: string
-  images: readonly WorkImage[]
-  retryToken?: number
-  imageStates: Readonly<Record<string, ImageLoadState>>
-  onImageState: (sourceId: string, key: string, state: ImageLoadState) => void
-  onOpen: (index: number) => void
-}) {
-  if (!images.length) return <EmptyState className="compact-empty" title={t('该站点暂无截图')} />
-
-  const loadedImageCount = images.filter((image) => imageStates[image.url] === 'loaded').length
-  const failedImageCount = images.filter((image) => imageStates[image.url] === 'failed').length
-  const settledImageCount = loadedImageCount + failedImageCount
-
-  return (
-    <>
-      <div className="gallery-progress" aria-live="polite">
-        <div>
-          <span>{t('已处理 {settledImageCount} / {count}', { settledImageCount, count: images.length })}</span>
-          {failedImageCount ? <span className="gallery-failure-count">{t('{failedImageCount} 张失败', { failedImageCount })}</span> : null}
-        </div>
-        <ProgressBar
-          value={settledImageCount / images.length}
-          label={t('{sourceLabel} 截图加载进度', { sourceLabel })}
-        />
-      </div>
-      <div className="source-gallery">
-        {images.map((image, index) => (
-          <GalleryThumbnail
-            sourceId={sourceId}
-            sourceLabel={sourceLabel}
-            image={image}
-            index={index}
-            retryToken={retryToken ?? 0}
-            onImageState={onImageState}
-            onOpen={onOpen}
-            key={image.url}
-          />
-        ))}
-      </div>
-    </>
-  )
-})
 
 function probeAnnouncement(probe: MagnetProbePayload, availableCount: number): string {
   if (probe.status === 'queued') return t('做种探测已排队')
@@ -514,10 +423,19 @@ export function DetailPage() {
     gcTime: 60 * 60_000,
     retry: false,
   })
+  useEffect(() => {
+    if (!workId) return
+    void api.recordDetailHistory({
+      work_id: workId,
+      code: lookupCode,
+      title: detailSearchParams.get('title')?.trim() || '',
+      source: detailSearchParams.get('source')?.trim() || 'all',
+      detail_url: detailSearchParams.get('detail_url')?.trim() || '',
+    }).catch(() => undefined)
+  }, [workId, lookupCode, detailSearchParams.toString()])
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings })
   const [activeSourceSelection, setActiveSourceSelection] = useState({ workId: '', sourceId: '' })
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
-  const [imageLoadStates, setImageLoadStates] = useState<Record<string, Record<string, ImageLoadState>>>({})
+  const [imageRetry, setImageRetry] = useState(0)
   const [downloadStates, setDownloadStates] = useState<Record<string, DownloadState>>({})
   const [probeId, setProbeId] = useState('')
   const [probeOwnerWorkId, setProbeOwnerWorkId] = useState(workId)
@@ -529,7 +447,6 @@ export function DetailPage() {
   const [selectionSeed, setSelectionSeed] = useState<MagnetSelectionPayload | null>(null)
   const [selectionStarting, setSelectionStarting] = useState(false)
   const [selectionStartError, setSelectionStartError] = useState('')
-  const dialogRef = useRef<HTMLDialogElement | null>(null)
   const probeGenerationRef = useRef(0)
   const probeWorkIdRef = useRef(workId)
   const selectionGenerationRef = useRef(0)
@@ -562,7 +479,7 @@ export function DetailPage() {
   })
 
   const streamedWork = partialWork?.scope === detailScope ? partialWork.work : undefined
-  const work = (workQuery.isFetching || workQuery.isError ? streamedWork : undefined) ?? workQuery.data ?? streamedWork ?? routeWork
+  const work = (!workQuery.isPlaceholderData ? workQuery.data : undefined) ?? streamedWork ?? routeWork
   const translation = useTranslationPreferences(settings.data?.settings.workflow_defaults?.translation)
   const titleTranslations = useTranslations(work?.title ? [work.title] : [], translation.preferences.enabled)
   const translatedTitle = translation.preferences.enabled && work ? titleTranslations.translate(work.title) : null
@@ -669,8 +586,24 @@ export function DetailPage() {
     ? activeSourceSelection.sourceId
     : ''
   const defaultDetailSourceId = settings.data?.settings.detail_default_site_id?.trim() || ''
+  const allowedSites = sites.filter(site => site.capabilities.includes('metadata_detail') && (
+    detailSearchParams.has('detail_url') || sourceScope === 'all' || sourceScope.split(',').includes(site.id)
+  ))
+  const allowedIds = new Set(allowedSites.map(site => site.id))
+  const artworkOrder = [
+    defaultDetailSourceId,
+    ...(settings.data?.settings.metadata_scraper_site_priority ?? []),
+    ...allowedIds,
+  ].filter(id => allowedIds.has(id))
+  const artworkPending = workQuery.isFetching && (workQuery.isPlaceholderData || !workQuery.data)
+  const artworkReady = settings.isPending ? [] : readyArtworkSources(work, artworkOrder, artworkPending)
+  const galleryReady = manuallySelectedSourceId && !settings.isPending
+    ? readyArtworkSources(work, [manuallySelectedSourceId, ...artworkOrder], artworkPending)
+    : artworkReady
+  const gallerySamples = new Map(galleryReady.map(source => [source.source_id, sourceScreenshots.get(source.source_id) ?? []]))
   const activeSource = work?.sources.find((source) => source.source_id === manuallySelectedSourceId)
     || work?.sources.find((source) => source.source_id === defaultDetailSourceId)
+    || artworkReady[0]
     || work?.sources[0]
   const activeSourceDetailUrl = externalHttpUrl(activeSource?.detail_url)
   const resolvedActiveSource = work?.sources.find(
@@ -682,9 +615,6 @@ export function DetailPage() {
       || resolvedActiveSource?.image_error
       || resolvedActiveSource?.magnet_error
     : null
-  const images = activeSource ? sourceScreenshots.get(activeSource.source_id) ?? [] : []
-  const lightboxImage = lightboxIndex === null ? null : images[lightboxIndex]
-  const activeImageStates = activeSource ? imageLoadStates[activeSource.source_id] ?? {} : {}
   const probe = probeOwnerWorkId === workId ? probeQuery.data ?? probeSeed : null
   const probeActive = probeStarting || Boolean(probe && !TERMINAL_PROBE_STATUSES.has(probe.status))
   const probeItems = Object.fromEntries((probe?.items ?? []).map((item) => [item.info_hash, item]))
@@ -728,23 +658,6 @@ export function DetailPage() {
         : webDownloadIntent?.status === 'failed' && !activeWebDownloadJob
           ? webDownloadIntent.error || t('未找到可用的 Web 视频资源。')
           : ''
-  const markImageState = useCallback((sourceId: string, key: string, state: ImageLoadState) => {
-    setImageLoadStates((current) => {
-      const sourceStates = current[sourceId] ?? {}
-      if (sourceStates[key] === state) return current
-      return {
-        ...current,
-        [sourceId]: { ...sourceStates, [key]: state },
-      }
-    })
-  }, [])
-
-  useEffect(() => {
-    setLightboxIndex(null)
-  }, [activeSource?.source_id])
-
-  useEffect(() => setImageLoadStates({}), [workId, workQuery.dataUpdatedAt])
-
   useLayoutEffect(() => {
     webDownloadAttemptRef.current = null
     startWebDownload.reset()
@@ -776,19 +689,6 @@ export function DetailPage() {
       selectionGenerationRef.current += 1
     }
   }, [workId])
-
-  useEffect(() => {
-    const dialog = dialogRef.current
-    if (!dialog) return
-    if (lightboxIndex !== null && !dialog.open) {
-      if (typeof dialog.showModal === 'function') dialog.showModal()
-      else dialog.setAttribute('open', '')
-    }
-    if (lightboxIndex === null && dialog.open) {
-      if (typeof dialog.close === 'function') dialog.close()
-      else dialog.removeAttribute('open')
-    }
-  }, [lightboxIndex])
 
   function submitWebDownload() {
     if (!canonicalCode || !webDownloadReady || startWebDownload.isPending) return
@@ -973,14 +873,9 @@ export function DetailPage() {
     document.getElementById(`work-source-tab-${nextSource.source_id}`)?.focus()
   }
 
-  function moveLightbox(offset: number) {
-    if (lightboxIndex === null || !images.length) return
-    setLightboxIndex((lightboxIndex + offset + images.length) % images.length)
-  }
-
-  function handleDialogKeyDown(event: KeyboardEvent<HTMLDialogElement>) {
-    if (event.key === 'ArrowLeft') moveLightbox(-1)
-    if (event.key === 'ArrowRight') moveLightbox(1)
+  function refreshDetail() {
+    setImageRetry(current => current + 1)
+    void workQuery.refetch()
   }
 
   if (workQuery.isLoading && !work) return <div className="page detail-page"><BackLink fallback={returnTo} /><SkeletonRows count={5} /></div>
@@ -994,7 +889,7 @@ export function DetailPage() {
           role="alert"
           title={t('无法加载作品详情')}
           description={(workQuery.error as Error).message}
-          action={<Button type="button" onClick={() => void workQuery.refetch()}>{t('重新加载')}</Button>}
+          action={<Button type="button" onClick={refreshDetail}>{t('重新加载')}</Button>}
         />
       </div>
     )
@@ -1004,9 +899,11 @@ export function DetailPage() {
 
   const displayCode = work.code || work.canonical_code || lookupCode || t('未知番号')
   const cover = workCover(work, true)
-  const coverUrl = cover ? coverImageUrl(cover.sourceId, cover.url) : ''
-  const backdrop = workBackdrop(work, true)
-  const backdropUrl = backdrop ? coverImageUrl(backdrop.sourceId, backdrop.url) : ''
+  const covers = artworkUrls(artworkReady, work.cover, 'cover')
+  const backdrops = artworkUrls(artworkReady, work.cover, 'backdrop')
+  // Only allocate a second slot when the metadata describes a separate backdrop.
+  const hasBackdrop = artworkReady.some(source => source.images.some(image => image.kind === 'backdrop'))
+    && (Boolean(work.cover) || artworkReady.some(source => source.images.some(image => image.kind === 'cover')))
   return (
     <div className="page detail-page">
       <BackLink fallback={returnTo} />
@@ -1026,7 +923,7 @@ export function DetailPage() {
               type="button"
               size="small"
               variant="secondary"
-              onClick={() => void workQuery.refetch()}
+              onClick={refreshDetail}
               disabled={workQuery.isFetching}
             >
               <RotateCcw className={workQuery.isFetching ? 'spin' : ''} aria-hidden="true" />
@@ -1040,29 +937,33 @@ export function DetailPage() {
         <InlineNotice tone="warning" role="alert">
           <strong>{t('完整详情加载失败')}</strong>
           {(workQuery.error as Error).message !== t('完整详情加载失败') ? <span>{(workQuery.error as Error).message}</span> : null}
-          <Button type="button" size="small" onClick={() => void workQuery.refetch()} disabled={workQuery.isFetching}>
+          <Button type="button" size="small" onClick={refreshDetail} disabled={workQuery.isFetching}>
             {t('重新加载')}
           </Button>
         </InlineNotice>
       ) : null}
 
-      <div className={`work-overview${backdrop ? ' has-backdrop' : ''}`}>
+      <div className={`work-overview${hasBackdrop ? ' has-backdrop' : ''}`}>
         <div className="work-cover">
-          <StableImage
-            src={coverUrl}
+          <DetailImage
+            key={detailScope}
+            urls={covers}
+            pending={artworkPending || settings.isPending}
             alt={t('{displayCode} 封面', { displayCode })}
-            retryToken={workQuery.dataUpdatedAt}
+            retry={imageRetry}
             referrerPolicy="no-referrer"
             loading="eager"
             fetchPriority="high"
           />
         </div>
-        {backdrop ? (
+        {hasBackdrop ? (
           <div className="work-backdrop">
-            <StableImage
-              src={backdropUrl}
+            <DetailImage
+              key={detailScope}
+              urls={backdrops}
+              pending={artworkPending}
               alt={t('{displayCode} 横版主图', { displayCode })}
-              retryToken={workQuery.dataUpdatedAt}
+              retry={imageRetry}
               referrerPolicy="no-referrer"
               loading="eager"
             />
@@ -1292,15 +1193,14 @@ export function DetailPage() {
                   />
                 ) : null}
 
-                {workQuery.isFetching && activeSource.parse_status === 'summary' && !images.length ? <SkeletonRows count={1} /> : <WorkMediaGallery
-                  sourceId={activeSource.source_id}
-                  sourceLabel={sourceName(activeSource.source_id, sites)}
-                  images={images}
-                  retryToken={workQuery.dataUpdatedAt}
-                  imageStates={activeImageStates}
-                  onImageState={markImageState}
-                  onOpen={setLightboxIndex}
-                />}
+                <DetailGalleries
+                  key={detailScope}
+                  active={activeSource}
+                  samples={gallerySamples}
+                  sites={sites}
+                  pending={artworkPending || settings.isPending}
+                  retry={imageRetry}
+                />
               </div>
             ) : null}
           </>
@@ -1358,43 +1258,6 @@ export function DetailPage() {
           onOpenDownloads={() => navigate('/downloads')}
         />}
       </section>
-
-      <dialog
-        ref={dialogRef}
-        className="image-lightbox"
-        aria-label={t('图片查看器')}
-        onClose={() => setLightboxIndex(null)}
-        onCancel={() => setLightboxIndex(null)}
-        onKeyDown={handleDialogKeyDown}
-        onClick={(event) => {
-          if (event.target === event.currentTarget) setLightboxIndex(null)
-        }}
-      >
-        {lightboxImage && activeSource && lightboxIndex !== null ? (
-          <div className="lightbox-content">
-            <div className="lightbox-toolbar">
-              <span>{lightboxIndex + 1} / {images.length}</span>
-              <IconButton label={t('关闭图片查看器')} onClick={() => setLightboxIndex(null)} autoFocus>
-                <X aria-hidden="true" />
-              </IconButton>
-            </div>
-            <div className="lightbox-stage">
-              <IconButton label={t('上一张')} onClick={() => moveLightbox(-1)} disabled={images.length <= 1}>
-                <ChevronLeft aria-hidden="true" />
-              </IconButton>
-              <StableImage
-                src={coverImageUrl(activeSource.source_id, lightboxImage.url)}
-                alt={t('{value} 截图 {value2}', { value: sourceName(activeSource.source_id, sites), value2: lightboxIndex + 1 })}
-                retryToken={workQuery.dataUpdatedAt}
-                referrerPolicy="no-referrer"
-              />
-              <IconButton label={t('下一张')} onClick={() => moveLightbox(1)} disabled={images.length <= 1}>
-                <ChevronRight aria-hidden="true" />
-              </IconButton>
-            </div>
-          </div>
-        ) : null}
-      </dialog>
     </div>
   )
 }

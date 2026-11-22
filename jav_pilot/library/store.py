@@ -958,9 +958,13 @@ class MediaLibraryStore:
         max_height: object | None = None,
         grouped: bool = False,
         group_key: str | None = None,
+        sort: object | None = None,
     ) -> dict[str, object]:
         clean_limit = bounded_int(limit, "limit", minimum=1, maximum=500)
         clean_offset = bounded_int(offset, "offset", minimum=0, maximum=10_000_000)
+        clean_sort = str(sort or "code").strip().lower()
+        if clean_sort not in {"code", "ingested"}:
+            raise ValueError("library sort is invalid")
         filter_values = {
             "root_key": root_key,
             "query": query,
@@ -1029,16 +1033,19 @@ class MediaLibraryStore:
                         SELECT e.*, e.created_generation_id AS generation_id,
                                r.revision AS library_revision,
                                {effective_presence} AS effective_presence,
+                               MAX(generations.started_at) OVER (PARTITION BY {group_expression}) AS ingested_at,
                                {group_expression} AS folder_prefix,
                                COUNT(*) OVER (PARTITION BY {group_expression}) AS group_count,
                                ROW_NUMBER() OVER (PARTITION BY {group_expression}
                                    ORDER BY e.code_key IS NULL, e.code_key, e.scope_path, e.entry_id) AS group_rank
                         FROM media_library_entries e
                         JOIN media_library_roots r ON r.root_key = e.root_key
+                        JOIN media_library_generations generations
+                          ON generations.generation_id = e.created_generation_id
                         WHERE e.retired_generation_id IS NULL AND {where}
                     )
                     SELECT * FROM ranked WHERE group_rank = 1
-                    ORDER BY code_key IS NULL, code_key, scope_path, entry_id
+                    ORDER BY {"ingested_at DESC, code_key IS NULL, code_key, scope_path, entry_id" if clean_sort == "ingested" else "code_key IS NULL, code_key, scope_path, entry_id"}
                     LIMIT ? OFFSET ?
                     """,
                     (*values, clean_limit, clean_offset),
@@ -1048,12 +1055,15 @@ class MediaLibraryStore:
                     f"""
                 SELECT e.*, e.created_generation_id AS generation_id,
                        r.revision AS library_revision,
-                       {effective_presence} AS effective_presence
+                       {effective_presence} AS effective_presence,
+                       generations.started_at AS ingested_at
                 FROM media_library_entries e
                 JOIN media_library_roots r
                   ON r.root_key = e.root_key
+                JOIN media_library_generations generations
+                  ON generations.generation_id = e.created_generation_id
                 WHERE e.retired_generation_id IS NULL AND {where}
-                ORDER BY e.code_key IS NULL, e.code_key, e.scope_path, e.entry_id
+                ORDER BY {"generations.started_at DESC, e.code_key IS NULL, e.code_key, e.scope_path, e.entry_id" if clean_sort == "ingested" else "e.code_key IS NULL, e.code_key, e.scope_path, e.entry_id"}
                 LIMIT ? OFFSET ?
                 """,
                     (*values, clean_limit, clean_offset),

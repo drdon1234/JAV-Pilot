@@ -18,7 +18,7 @@ from pathlib import Path
 
 from ..config.paths import default_database_path
 
-KINDS = ("metadata", "resource")
+KINDS = ("metadata", "resource", "detail")
 MAX_PARAMS_BYTES = 8 * 1024
 DEFAULT_LIMIT = 100
 _LOCK = threading.Lock()

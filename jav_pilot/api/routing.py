@@ -136,6 +136,7 @@ POST_ROUTES: dict[str, Route] = {
     "/api/ai-translation/config": Route("_handle_ai_translation_config_save"),
     "/api/ai-translation/test": Route("_handle_ai_translation_test"),
     "/api/search-history/action": Route("_handle_search_history_action"),
+    "/api/search-history/record": Route("_handle_search_history_record"),
     "/api/downloads/history-lookup": Route("_handle_download_history_lookup"),
     "/api/downloads/import/preview": Route("_handle_download_import_preview"),
     "/api/downloads/import/inspect": Route("_handle_download_import_inspect"),

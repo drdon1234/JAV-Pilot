@@ -1783,6 +1783,7 @@ export interface MediaLibraryEntry {
 }
 
 export interface MediaLibraryListParams {
+  sort?: 'code' | 'ingested'
   grouped?: boolean
   group?: string
   query?: string
@@ -1978,7 +1979,7 @@ export interface DownloadHistoryLookupPayload {
 
 export interface SearchHistoryItem {
   id: string
-  kind: 'metadata' | 'resource'
+  kind: 'metadata' | 'resource' | 'detail'
   query: string
   params: Record<string, unknown>
   result_count: number | null

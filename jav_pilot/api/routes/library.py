@@ -241,6 +241,7 @@ class MediaLibraryRoutes(BaseHandler):
                 max_height=single_param(params, "max_height") or None,
                 grouped=single_param(params, "grouped") == "1",
                 group_key=single_param(params, "group") or None,
+                sort=single_param(params, "sort") or "code",
             )
             status = manager.status()
         except MediaLibraryUnavailableError:

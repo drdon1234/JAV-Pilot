@@ -539,13 +539,18 @@ export const api = {
       timeoutMs: LONG_REQUEST_TIMEOUT_MS,
       body: JSON.stringify({ texts, target }),
     }),
-  searchHistory: (params: { limit?: number; offset?: number; kind?: 'metadata' | 'resource' } = {}) => {
+  searchHistory: (params: { limit?: number; offset?: number; kind?: 'metadata' | 'resource' | 'detail' } = {}) => {
     const search = new URLSearchParams()
     if (params.limit) search.set('limit', String(params.limit))
     if (params.offset) search.set('offset', String(params.offset))
     if (params.kind) search.set('kind', params.kind)
     return requestJson<SearchHistoryPayload>(`/api/search-history${search.size ? `?${search.toString()}` : ''}`)
   },
+  recordDetailHistory: (payload: { work_id: string; code: string; title: string; source: string; detail_url: string }) =>
+    requestJson<{ ok: boolean }>('/api/search-history/record', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   searchHistoryAction: (payload: { action: 'clear' } | { action: 'remove'; id: string }) =>
     requestJson<{ ok: boolean; cleared?: number; removed?: boolean }>('/api/search-history/action', {
       method: 'POST',
@@ -716,6 +721,7 @@ export const api = {
     const strings: Array<[string, string | undefined]> = [
       ['grouped', params.grouped ? '1' : undefined],
       ['group', params.group],
+      ['sort', params.sort],
       ['q', params.query],
       ['actor', params.actor],
       ['maker', params.maker],

@@ -2,6 +2,11 @@
   min-width: 0;
 }
 
+.library-latest-link {
+  margin-bottom: 12px;
+  text-decoration: none;
+}
+
 .library-filter-form {
   display: grid;
   gap: 10px;
