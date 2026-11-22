@@ -137,6 +137,21 @@ class WatchingRoutes(BaseHandler):
         except Exception:
             self._send_json({"error": "播放资源暂不可用，请重新解析"}, HTTPStatus.BAD_GATEWAY)
 
+    def _handle_tracking(self) -> None:
+        from ...watching.tracking import items
+        try:
+            self._send_json({"items": items()})
+        except (OSError, sqlite3.Error) as exc:
+            self._watch_error(exc)
+
+    def _handle_tracking_action(self) -> None:
+        from ...watching.tracking import update
+        try:
+            update(self._read_json_body(8192))
+            self._send_json({"ok": True})
+        except (ValueError, OSError, sqlite3.Error) as exc:
+            self._watch_error(exc)
+
     def _handle_bookmarks(self) -> None:
         try:
             self._send_json({"items": store.list_bookmarks()})

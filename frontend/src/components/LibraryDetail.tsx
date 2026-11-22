@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation } from 'react-router-dom'
 import { Captions, FileImage, Film, Play } from 'lucide-react'
+import { WorkEditions } from './CollectionTracking'
 import { BackLink } from './BackLink'
 import { requestJson } from '../lib/api'
 import { t } from '../lib/i18n'
@@ -59,6 +60,7 @@ export function LibraryDetail({ entryId }: { entryId: string }) {
           {entry.code ? <Link className="library-text-link" to={`/library?${new URLSearchParams({ group: entry.code.replace(/[-_ ]?\d+$/, '').replace(/[-_ ]+$/, '') })}`} state={{ libraryReturnPath: '/library' }}>{t('查看同系列目录')}</Link> : null}
         </div>
       </section>
+      {entry.code && entry.duplicate_count > 1 && <WorkEditions code={entry.code} />}
       <section className="library-detail-files"><h2>{t('视频文件')}</h2>
         {entry.media_paths.map((path, index) => <div className="library-detail-file" key={path}><div><strong>{t('视频文件')} {index + 1}</strong><code>{path}</code></div>
           {entry.presence === 'present' ? <Link className="button button-secondary" to={`/player?${new URLSearchParams({ entry: entry.entry_id, file: String(index) })}`}><Play aria-hidden="true" />{t('播放')}</Link> : null}

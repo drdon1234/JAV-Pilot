@@ -7,6 +7,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'reac
 
 import { useToast } from '../components/ToastProvider'
 import { BookmarkButton, WatchLink } from '../components/WatchActions'
+import { WantButton, WorkEditions } from '../components/CollectionTracking'
 import { Button, EmptyState, InlineNotice, PageHeader, ProgressBar, SkeletonRows, StatusBadge } from '../components/ui'
 import { api, workRecoveryScope } from '../lib/api'
 import { externalHttpUrl, formatBytes, formatEta } from '../lib/format'
@@ -913,6 +914,7 @@ export function DetailPage() {
         actions={
           <>
             <WatchLink code={displayCode} />
+            {work.code && <WantButton code={work.code} />}
             <BookmarkButton kind="detail" entry={{ source: '', url: location.pathname + location.search, code: displayCode, title: work.title, cover: cover?.url || '', editions: [] }} />
             {workQuery.isFetching ? (
               <StatusBadge tone="info">
@@ -933,6 +935,7 @@ export function DetailPage() {
         }
       />
 
+      {work.code && <WorkEditions code={work.code} />}
       {workQuery.isError && work ? (
         <InlineNotice tone="warning" role="alert">
           <strong>{t('完整详情加载失败')}</strong>
@@ -1007,7 +1010,7 @@ export function DetailPage() {
             <div className="work-terms" role="group" aria-label={t('演员')}>
               {work.actors.map((actor) => {
                 const item = relatedRefForLabel('actor', actor)
-                return <Link to={relatedSearchHref(item)} key={actor}>{actor}</Link>
+                return <span className="watch-inline-actions" key={actor}><Link to={'/tracking?person='+encodeURIComponent(actor)}>{actor}</Link><Link to={relatedSearchHref(item)}>{t('搜索作品')}</Link></span>
               })}
             </div>
           ) : null}

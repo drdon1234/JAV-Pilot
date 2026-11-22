@@ -205,7 +205,10 @@ def run_server(host: str, port: int) -> None:
     from .services.selection_batches import run as run_selection_batches
     selection_worker = threading.Thread(target=run_selection_batches, args=(organizer_stop,),
                                         name="selection-batches", daemon=True)
+    from ..watching.tracking import run as run_tracking
+    tracking_worker = threading.Thread(target=run_tracking, args=(organizer_stop,), name="collection-tracking", daemon=True)
     if not maintenance_mode:
+        tracking_worker.start()
         selection_worker.start()
     organizer_worker = (
         None if maintenance_mode else _start_background_services(organizer_stop)
@@ -241,6 +244,8 @@ def run_server(host: str, port: int) -> None:
         state.SERVER_STOPPING.set()
         invalidate_readiness_probes()
         organizer_stop.set()
+        if tracking_worker.is_alive():
+            tracking_worker.join(timeout=3)
         if selection_worker.is_alive():
             selection_worker.join(timeout=3)
         services: dict[str, Callable[..., object]] = {
