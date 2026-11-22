@@ -1,7 +1,6 @@
 """Read indexed local videos without accepting client-provided filesystem paths."""
 from __future__ import annotations
 
-import hashlib
 import os
 import re
 import sqlite3
@@ -10,7 +9,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from ..config.paths import default_database_path
-from .filesystem import is_linklike, join_relative, regular_root, require_within_root
+from .filesystem import media_file_identity, is_linklike, join_relative, regular_root, require_within_root
 from .models import MutableMetrics, VIDEO_SUFFIXES
 
 
@@ -55,7 +54,7 @@ def open_library_file(root: Path, relative: str):
         info = os.fstat(stream.fileno())
         if not stat.S_ISREG(info.st_mode) or info.st_size <= 0:
             raise ValueError("Media file is unavailable")
-        identity = hashlib.sha256(f"{relative}:{info.st_dev}:{info.st_ino}:{info.st_size}:{info.st_mtime_ns}".encode()).hexdigest()
+        identity = media_file_identity(relative, info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
         yield stream, info.st_size, identity
 
 

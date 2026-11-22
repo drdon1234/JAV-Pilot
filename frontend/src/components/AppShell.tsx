@@ -258,6 +258,7 @@ const navigationGroups: NavigationGroup[] = [
     label: tc('导航', '任务'),
     icon: ListChecks,
     items: [
+      { to: '/tasks', label: t('任务总览'), icon: ListChecks },
       { to: '/downloads', label: t('下载'), icon: Download },
       { to: '/metadata', label: t('元数据'), icon: FileImage },
       { to: '/subtitles', label: t('字幕'), icon: Captions },

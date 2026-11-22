@@ -147,6 +147,10 @@ def regular_file_fingerprint(
     )
 
 
+def media_file_identity(relative, device, inode, size, modified_ns) -> str:
+    return hashlib.sha256(f"{relative}:{device}:{inode}:{size}:{modified_ns}".encode()).hexdigest()
+
+
 def identity_scalar(value: object) -> str:
     try:
         clean = int(value)

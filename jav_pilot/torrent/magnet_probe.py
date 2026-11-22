@@ -1001,6 +1001,14 @@ class MagnetProbeManager:
                 "a temporary magnet probe for this hash has not been cleaned"
             )
 
+    def summaries(self) -> list[dict[str, object]]:
+        with self._lock:
+            self._purge_locked()
+            return [
+                {key: copy.deepcopy(job.get(key)) for key in ("probe_id", "status", "progress", "purpose")}
+                for job in reversed(self._jobs.values())
+            ]
+
     def get(self, probe_id: str) -> dict[str, object]:
         clean_probe_id = str(probe_id or "")
         if not PROBE_ID_RE.fullmatch(clean_probe_id):

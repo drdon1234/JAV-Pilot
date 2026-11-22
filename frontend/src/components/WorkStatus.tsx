@@ -6,6 +6,7 @@ import { codeKey, useLocalPlayback } from '../lib/localPlayback'
 import { downloadHistorySummary } from '../lib/downloadHistory'
 import { subtitleStatusLabel } from '../lib/subtitles'
 import { webDownloadVariantLabel, webDownloadStatusLabel } from '../lib/webDownloads'
+import { taskHref } from '../lib/taskSummary'
 import { StatusBadge } from './ui'
 import { metadataJobLabels } from '../lib/metadataStatus'
 
@@ -67,7 +68,7 @@ export function WorkProgress({ code }: { code: string }) {
           ? webDownloadStatusLabel(latest.status)
           : downloadHistorySummary(inventory.data) || t('暂无任务'),
       ),
-      latest ? '/downloads?view=web' : '/downloads?view=torrent',
+      taskHref(latest ? 'web' : 'bt', code),
     ],
     [
       t('归档'),
@@ -104,6 +105,7 @@ export function WorkProgress({ code }: { code: string }) {
   return (
     <section className="library-detail-files">
       <h2>{t('作品处理进度')}</h2>
+      <Link to={'/tasks?q='+encodeURIComponent(code)}>{t('任务总览')}</Link>
       <dl className="library-detail-facts">
         {rows.map(([label, value, to]) => (
           <div key={label}>

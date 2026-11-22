@@ -34,6 +34,7 @@ from .fields import (
 )
 from .filesystem import (
     identity_scalar,
+    media_file_identity,
     is_below,
     optional_web_download_variant,
     safe_relative_path,
@@ -1319,7 +1320,7 @@ class MediaLibraryStore:
                 chunk = tuple(entry_ids[start : start + 400])
                 slots = ", ".join("?" for _ in chunk)
                 files = connection.execute(
-                    "SELECT entry_id, relative_path, variant "
+                    "SELECT entry_id, relative_path, variant, device, inode, size, modified_ns, part_key, quality_height "
                     "FROM media_library_files WHERE root_key = ? "
                     "AND retired_generation_id IS NULL "
                     f"AND entry_id IN ({slots}) ORDER BY entry_id, relative_path",
@@ -1330,6 +1331,9 @@ class MediaLibraryStore:
                     result[key].append(
                         {
                             "relative_path": str(item["relative_path"]),
+                            "identity": media_file_identity(*(item[k] for k in ("relative_path", "device", "inode", "size", "modified_ns"))),
+                            "part_key": item["part_key"],
+                            "quality_height": item["quality_height"],
                             "variant": optional_web_download_variant(item["variant"]),
                         }
                     )

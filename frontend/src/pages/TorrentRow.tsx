@@ -8,14 +8,7 @@ import { DownloadRecoveryActions } from './DownloadRecovery'
 import { t } from '../lib/i18n'
 import { LocalPlaybackLink } from '../components/WatchActions'
 
-const stageLabels: Record<TorrentStage, string> = {
-  queued: t('排队中'),
-  downloading: t('下载中'),
-  checking: t('校验中'),
-  paused: t('已暂停'),
-  completed: t('已完成'),
-  error: t('异常'),
-}
+import { torrentStages as stageLabels } from '../lib/taskSummary'
 
 function stageTone(stage: TorrentStage) {
   if (stage === 'completed') return 'success' as const

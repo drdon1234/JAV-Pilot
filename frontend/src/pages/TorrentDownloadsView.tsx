@@ -3,7 +3,7 @@ import { AdaptiveDisclosure } from '../components/AdaptiveDisclosure'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, RefreshCw, Search, Settings, X } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { useToast } from '../components/ToastProvider'
 import { Button, EmptyState, IconButton, InlineNotice, PageHeader, SkeletonRows, StatusBadge } from '../components/ui'
@@ -48,8 +48,9 @@ export function TorrentDownloadsView({
   const queryClient = useQueryClient()
   const [filter, setFilter] = useState('all')
   const [torrentPage, setTorrentPage] = useState(0)
-  const [torrentQueryInput, setTorrentQueryInput] = useState('')
-  const [torrentQuery, setTorrentQuery] = useState('')
+  const [routeParams] = useSearchParams()
+  const [torrentQueryInput, setTorrentQueryInput] = useState(routeParams.get('q') || '')
+  const [torrentQuery, setTorrentQuery] = useState(routeParams.get('q') || '')
   const [torrentQueryError, setTorrentQueryError] = useState('')
   const [deleteHash, setDeleteHash] = useState('')
   const [deleteFiles, setDeleteFiles] = useState(false)

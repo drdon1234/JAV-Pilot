@@ -3,7 +3,7 @@ import { AdaptiveDisclosure } from '../components/AdaptiveDisclosure'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, RefreshCw, RotateCcw, Search, Trash2, X } from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { useToast } from '../components/ToastProvider'
 import { Button, EmptyState, IconButton, InlineNotice, SkeletonRows, StatusBadge } from '../components/ui'
@@ -59,8 +59,9 @@ export function WebDownloadsView() {
   const [pendingJobActions, setPendingJobActions] = useState<Map<string, WebDownloadActionName>>(() => new Map())
   const [cleanupConfirming, setCleanupConfirming] = useState(false)
   const [historyFilter, setHistoryFilter] = useState('all')
-  const [historyQueryInput, setHistoryQueryInput] = useState('')
-  const [historyQuery, setHistoryQuery] = useState('')
+  const [routeParams] = useSearchParams()
+  const [historyQueryInput, setHistoryQueryInput] = useState(routeParams.get('q') || '')
+  const [historyQuery, setHistoryQuery] = useState(routeParams.get('q') || '')
   const [historyPage, setHistoryPage] = useState(0)
   const historyQueryError = catalogHistoryQueryError(historyQueryInput)
   const [draggingJobId, setDraggingJobId] = useState('')

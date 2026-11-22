@@ -18,17 +18,37 @@ from ..search.engine import search, default_indexers
 from .store import connection
 
 
+_INTENT_SCHEMA = """CREATE TABLE IF NOT EXISTS tracked_items (
+    id TEXT PRIMARY KEY, kind TEXT NOT NULL, identity TEXT NOT NULL, label TEXT NOT NULL,
+    aliases TEXT NOT NULL, variant TEXT NOT NULL, height INTEGER NOT NULL, UNIQUE(kind,identity))"""
+_CHECK_SCHEMA = """CREATE TABLE IF NOT EXISTS tracking_checks (
+    item_id TEXT PRIMARY KEY REFERENCES tracked_items(id) ON DELETE CASCADE,
+    checked REAL, due REAL NOT NULL DEFAULT 0, token TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'pending', results TEXT NOT NULL DEFAULT '[]')"""
+
+
 @contextmanager
 def collection():
     with connection() as db:
-        db.execute("""CREATE TABLE IF NOT EXISTS tracked_items (
-            id TEXT PRIMARY KEY, kind TEXT NOT NULL, identity TEXT NOT NULL,
-            label TEXT NOT NULL, aliases TEXT NOT NULL, variant TEXT NOT NULL,
-            height INTEGER NOT NULL, checked REAL, due REAL NOT NULL DEFAULT 0,
-            token TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'pending',
-            results TEXT NOT NULL DEFAULT '[]', UNIQUE(kind, identity))""")
-        db.execute("""CREATE TABLE IF NOT EXISTS tracking_alerts (
-            item_id TEXT NOT NULL, code TEXT NOT NULL, sent INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(item_id,code))""")
+        db.execute("PRAGMA foreign_keys=ON")
+        if not db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='tracking_checks'").fetchone():
+            with db:
+                db.execute("BEGIN IMMEDIATE")
+                columns = [r["name"] for r in db.execute("PRAGMA table_info(tracked_items)")]
+                legacy = "due" in columns
+                if legacy:
+                    db.execute("ALTER TABLE tracked_items RENAME TO saved_tracking")
+                db.execute(_INTENT_SCHEMA)
+                db.execute(_CHECK_SCHEMA)
+                if legacy:
+                    db.execute("""INSERT INTO tracked_items SELECT id,kind,identity,label,aliases,variant,height
+                                  FROM saved_tracking""")
+                    db.execute("""INSERT INTO tracking_checks SELECT id,checked,due,token,status,results
+                                  FROM saved_tracking""")
+                    db.execute("DROP TABLE saved_tracking")
+                db.execute("""CREATE TABLE IF NOT EXISTS tracking_alerts (
+                    item_id TEXT NOT NULL, code TEXT NOT NULL, sent INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(item_id,code))""")
+                db.execute("CREATE INDEX IF NOT EXISTS tracking_due ON tracking_checks(due,item_id)")
         yield db
 
 
@@ -40,7 +60,7 @@ def _text(value, limit):
 
 def items():
     with collection() as db:
-        rows = db.execute("SELECT * FROM tracked_items ORDER BY kind,label")
+        rows = db.execute("SELECT t.*,c.checked,c.status,c.results FROM tracked_items t JOIN tracking_checks c ON c.item_id=t.id ORDER BY kind,label")
         return [{**{key: row[key] for key in ('id','kind','label','variant','height','checked','status')},
                  'aliases': json.loads(row['aliases']), 'results': json.loads(row['results'])}
                 for row in rows]
@@ -56,7 +76,7 @@ def update(payload):
                 db.execute("DELETE FROM tracking_alerts WHERE item_id=?", (item_id,))
                 db.execute("DELETE FROM tracked_items WHERE id=?", (item_id,))
             else:
-                db.execute("UPDATE tracked_items SET due=0,token='' WHERE id=?", (item_id,))
+                db.execute("UPDATE tracking_checks SET due=0,token='' WHERE item_id=?", (item_id,))
             return
         if action != "save" or payload.get("kind") not in {"want","person"}:
             raise ValueError("追踪操作无效")
@@ -89,9 +109,10 @@ def update(payload):
             raise ValueError("追踪清单已满")
         db.execute("""INSERT INTO tracked_items(id,kind,identity,label,aliases,variant,height)
             VALUES(?,?,?,?,?,?,?) ON CONFLICT(kind,identity) DO UPDATE SET
-            aliases=excluded.aliases,variant=excluded.variant,height=excluded.height,
-            due=0,token='',status='pending',results='[]'""",
+            aliases=excluded.aliases,variant=excluded.variant,height=excluded.height""",
             (uuid.uuid4().hex,kind,identity,label,json.dumps(aliases),variant,height))
+        db.execute("""INSERT INTO tracking_checks(item_id) SELECT id FROM tracked_items WHERE kind=? AND identity=?
+                      ON CONFLICT(item_id) DO UPDATE SET due=0, token='', status='pending', results='[]'""", (kind,identity))
 
 
 def _matches(magnet, variant, height):
@@ -144,11 +165,11 @@ def check_one(stopped):
     now = time.time()
     with collection() as db:
         db.execute("BEGIN IMMEDIATE")
-        row = db.execute("SELECT * FROM tracked_items WHERE due<=? ORDER BY due,id LIMIT 1", (now,)).fetchone()
+        row = db.execute("SELECT t.* FROM tracking_checks c JOIN tracked_items t ON t.id=c.item_id WHERE c.due<=? ORDER BY c.due,c.item_id LIMIT 1", (now,)).fetchone()
         if row is None:
             return
         token = uuid.uuid4().hex
-        db.execute("UPDATE tracked_items SET token=?,due=? WHERE id=?", (token,now+1800,row["id"]))
+        db.execute("UPDATE tracking_checks SET token=?,due=? WHERE item_id=?", (token,now+1800,row["id"]))
     try:
         status, results = discover(row, stopped)
     except Exception:
@@ -156,8 +177,8 @@ def check_one(stopped):
     if stopped():
         return
     with collection() as db:
-        cursor = db.execute("""UPDATE tracked_items SET status=?,results=CASE WHEN ?='error' THEN results ELSE ? END,
-            checked=?,due=?,token='' WHERE id=? AND token=?""",
+        cursor = db.execute("""UPDATE tracking_checks SET status=?,results=CASE WHEN ?='error' THEN results ELSE ? END,
+            checked=?,due=?,token='' WHERE item_id=? AND token=?""",
             (status,status,json.dumps(results),now,now+(21600 if status=="error" else 86400),row["id"],token))
         if cursor.rowcount:
             db.executemany("INSERT OR IGNORE INTO tracking_alerts(item_id,code) VALUES(?,?)", ((row["id"], r["code"]) for r in results))

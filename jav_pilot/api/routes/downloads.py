@@ -242,6 +242,9 @@ class DownloadRoutes(CommonErrorResponses):
     def _handle_magnet_probe_get(self, query_string: str) -> None:
         try:
             params = query_params(query_string)
+            if single_param(params, "view") == "summary":
+                self._send_json({"items": state.MAGNET_PROBES.summaries()})
+                return
             probe_id = single_param(params, "probe_id").strip()
             if not probe_id:
                 raise ValueError("probe_id is required")

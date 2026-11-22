@@ -1764,6 +1764,9 @@ export interface MediaLibraryEntry {
   primary_media_path: string
   media_paths: string[]
   media_files: Array<{
+    identity: string
+    part_key: string | null
+    quality_height: number | null
     relative_path: string
     variant: WebDownloadVariant | null
   }>

@@ -22,11 +22,11 @@ interface LocalPlayback {
   subtitles?: SubtitleSource[]
 }
 
-export function LocalPlayer({ entry, file }: { entry: string; file: number }) {
+export function LocalPlayer({ entry, file, identity = '' }: { entry: string; file: number; identity?: string }) {
   const activity = usePlaybackActivity()
   const query = useQuery({
-    queryKey: ['local-playback', entry, file],
-    queryFn: async ({ signal }) => { await waitForPlaybackSaves(); return requestJson<LocalPlayback>(`/api/library/playback?${new URLSearchParams({ entry, file: String(file) })}`, { signal }) },
+    queryKey: ['local-playback', entry, file, identity],
+    queryFn: async ({ signal }) => { await waitForPlaybackSaves(); return requestJson<LocalPlayback>(`/api/library/playback?${new URLSearchParams({ entry, file: String(file), ...(identity && { identity }) })}`, { signal }) },
     staleTime: 0, gcTime: 0, refetchOnWindowFocus: false, retry: false,
   })
   return <section className="local-playback">

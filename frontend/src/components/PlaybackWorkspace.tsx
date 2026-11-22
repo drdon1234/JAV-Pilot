@@ -11,15 +11,15 @@ const SelectedWork = lazy(() => recoverableImport('src/pages/WatchPage.tsx', 'Wa
 const LocalPlayer = lazy(() => recoverableImport('src/components/LocalPlayer.tsx', 'LocalPlayer', () => import('./LocalPlayer')).then(module => ({ default: module.LocalPlayer })))
 const PlaybackStart = lazy(() => recoverableImport('src/components/PlaybackStart.tsx', 'PlaybackStart', () => import('./PlaybackStart')).then(module => ({ default: module.PlaybackStart })))
 
-type PlayingWork = { source: string; url: string; entry?: never; file?: never } | { entry: string; file: number; source?: never; url?: never }
-const workKey = (work: PlayingWork | null) => work ? work.entry ? `local:${work.entry}:${work.file}` : `online:${work.source}:${work.url}` : ''
+type PlayingWork = { source: string; url: string; entry?: never; file?: never } | { entry: string; file: number; identity?: string; source?: never; url?: never }
+const workKey = (work: PlayingWork | null) => work ? work.entry ? `local:${work.entry}:${work.file}:${work.identity || ''}` : `online:${work.source}:${work.url}` : ''
 
 export function readPlayingWork(value: unknown): PlayingWork | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const saved = value as Record<string, unknown>
   if (typeof saved.entry === 'string' && saved.entry.length > 0 && saved.entry.length <= 256
     && Number.isSafeInteger(saved.file) && (saved.file as number) >= 0) {
-    return { entry: saved.entry, file: saved.file as number }
+    return { entry: saved.entry, file: saved.file as number, ...(typeof saved.identity === 'string' && /^[a-f0-9]{64}$/.test(saved.identity) && {identity: saved.identity}) }
   }
   if (typeof saved.source === 'string' && /^[a-z0-9_-]{1,64}$/.test(saved.source)
     && typeof saved.url === 'string' && saved.url.length > 0 && saved.url.length <= 4096) {
@@ -40,7 +40,7 @@ export function PlaybackWorkspace() {
     const params = new URLSearchParams(location.search)
     const entry = params.get('entry'), source = params.get('source'), url = params.get('url')
     const file = Number(params.get('file') || 0)
-    return entry ? { entry, file: Number.isSafeInteger(file) && file >= 0 ? file : 0 } : source && url ? { source, url } : null
+    return entry ? { entry, identity: params.get('identity') || undefined, file: Number.isSafeInteger(file) && file >= 0 ? file : 0 } : source && url ? { source, url } : null
   }, [visible, location.search])
   const current = requested ?? work
   useEffect(() => {
@@ -81,6 +81,6 @@ function PlaybackSurface({ work, visible, fresh }: { work: PlayingWork; visible:
     return () => window.clearTimeout(timer)
   }, [visible])
   return <PlaybackSession.Provider value={session}><PlaybackActivity.Provider value={visible}>
-    {live ? work.entry ? <LocalPlayer entry={work.entry} file={work.file!} /> : <SelectedWork source={work.source!} url={work.url!} play onPlay={() => undefined} /> : <PlaybackPreview onResume={() => { autoplay.current = true; setLive(true) }} />}
+    {live ? work.entry ? <LocalPlayer entry={work.entry} file={work.file!} identity={work.identity} /> : <SelectedWork source={work.source!} url={work.url!} play onPlay={() => undefined} /> : <PlaybackPreview onResume={() => { autoplay.current = true; setLive(true) }} />}
   </PlaybackActivity.Provider></PlaybackSession.Provider>
 }

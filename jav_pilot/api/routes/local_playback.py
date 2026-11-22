@@ -18,7 +18,7 @@ from ..request import int_param, query_params, single_param
 from ..services.media import media_library_manager
 
 
-def indexed_file(entry_id: str, file_index: int):
+def indexed_file(entry_id: str, file_index: int, identity: str = ''):
     manager = media_library_manager()
     _, root_stat = regular_root(manager.index.root_path, MutableMetrics())
     published = manager.index.store.root(manager.index.root_key)
@@ -26,6 +26,8 @@ def indexed_file(entry_id: str, file_index: int):
         raise ValueError("Media library root changed")
     item = manager.index.store.get_entry(entry_id, root_key=manager.index.root_key)
     paths = item["media_paths"]
+    if identity:
+        file_index = next((i for i, f in enumerate(item["media_files"]) if f["identity"] == identity), -1)
     if item["presence"] != "present" or not 0 <= file_index < len(paths):
         raise ValueError("Local video is unavailable")
     return manager.index.root_path, item, paths[file_index]
@@ -37,8 +39,12 @@ class LocalPlaybackRoutes(BaseHandler):
             params = query_params(query_string)
             entry_id = single_param(params, "entry")
             index = int_param(params, "file", 0)
-            root, item, relative = indexed_file(entry_id, index)
+            expected = single_param(params, 'identity')
+            root, item, relative = indexed_file(entry_id, index, expected)
+            index = item['media_paths'].index(relative)
             with open_video(root, relative) as (_, size, identity):
+                if expected and expected != identity:
+                    raise ValueError('Local file changed')
                 position = read_progress(entry_id, identity)
             self._send_json({"ok": True, "entry": item, "file": index, "identity": identity,
                              "size": size, "position": position,
