@@ -71,7 +71,7 @@ export function WatchCardPreview({ entry, href, playHref, children }: { entry: W
       }
     }}
     onPointerLeave={event => { if (event.pointerType === 'mouse') stop() }}>
-    <Link className="watch-card-cover" to={href} tabIndex={-1} aria-hidden="true" draggable={false}
+    <Link data-focus-return-key={'cover:'+entry.url} className="watch-card-cover" to={href} tabIndex={-1} aria-hidden="true" draggable={false}
       onPointerDown={event => {
         touch.current = event.isPrimary && (event.pointerType === 'touch' || event.pointerType === 'pen')
       }}

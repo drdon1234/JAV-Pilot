@@ -178,7 +178,7 @@ function useRouteLifecycle(mainContentRef: RefObject<HTMLElement | null>): Route
   useEffect(() => {
     const pathChanged = previousPathnameRef.current !== location.pathname
     previousPathnameRef.current = location.pathname
-    if (!pathChanged || !mainContentRef.current) return
+    if ((!pathChanged && navigationType !== 'POP') || !mainContentRef.current) return
 
     const returnKey = navigationType === 'POP' ? focusReturnKeysRef.current.get(location.key) : undefined
     let announced = false
@@ -246,6 +246,7 @@ const navigationGroups: NavigationGroup[] = [
     label: t('观看'),
     icon: Film,
     items: [
+      { to: '/explore', label: t('馆藏探索'), icon: Compass },
       { to: '/library', label: t('媒体库'), icon: Library },
       { to: '/player', label: t('播放器'), icon: Film },
       { to: '/tracking', label: t('想要与关注'), icon: Bookmark },

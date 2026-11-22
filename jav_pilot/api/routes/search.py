@@ -998,7 +998,11 @@ class SearchRoutes(BaseHandler):
         # filter. A ranked/saved work must still discover other enabled sites.
         # Without a direct URL, preserve an explicitly selected search scope.
         selected_source = single_param(params, "source") or "all"
-        sources = source_list("all" if source_url else selected_source, settings)
+        retry_source = single_param(params, "retry_source") == "1"
+        sources = source_list("all" if source_url and not retry_source else selected_source, settings)
+        if retry_source and len(sources) != 1:
+            respond({"error": "select one source to retry"}, HTTPStatus.BAD_REQUEST)
+            return
         requested_title = single_param(params, "title").strip()[:500]
         linked_work = None
         if source_url:
@@ -1014,7 +1018,7 @@ class SearchRoutes(BaseHandler):
                 respond({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
                 return
         prefetched = None
-        if work_id:
+        if work_id and not retry_source:
             try:
                 prefetched = detail_prefetch_cached_result(work_id, sources)
             except (
@@ -1024,7 +1028,7 @@ class SearchRoutes(BaseHandler):
             ):
                 prefetched = None
         recent_work = (
-            state.WORK_CACHE.get(work_cache_key(work_id, sources)) if work_id else None
+            state.WORK_CACHE.get(work_cache_key(work_id, sources)) if work_id and not retry_source else None
         )
         if recent_work is None and prefetched is not None:
             recent_work = work_result_from_snapshot(prefetched)
@@ -1075,7 +1079,7 @@ class SearchRoutes(BaseHandler):
             sources,
             source_url,
         )
-        cached = state.SEARCH_CACHE.get(cache_key)
+        cached = None if retry_source else state.SEARCH_CACHE.get(cache_key)
         if cached is not None:
             payload = dict(cached)
             payload["cached"] = True

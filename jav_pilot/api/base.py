@@ -20,6 +20,7 @@ from ..core.observability import (
     reset_correlation_id,
     set_correlation_id,
 )
+from ..library.direct_playback import media_origins
 from ..security.auth import verify_session
 from .request import request_is_secure
 
@@ -92,7 +93,7 @@ class BaseHandler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header(
             "Content-Security-Policy",
-            CONTENT_SECURITY_POLICY,
+            CONTENT_SECURITY_POLICY.replace("media-src 'self' blob:", " ".join(["media-src 'self' blob:", *media_origins()])),
         )
         if request_is_secure(self):
             self.send_header(

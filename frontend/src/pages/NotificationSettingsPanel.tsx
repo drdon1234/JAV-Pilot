@@ -88,6 +88,8 @@ const siteLabels: Record<string, string> = {
 }
 
 const eventSourceLabels: Record<string, string> = {
+  person_updates: t('关注人物'),
+  wanted_resource: t('想要作品'),
   disk: t('磁盘监控'),
   manual: t('手动测试'),
   site: t('站点诊断'),

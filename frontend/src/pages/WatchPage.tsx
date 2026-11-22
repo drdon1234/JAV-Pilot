@@ -29,11 +29,11 @@ function EntryCard({ entry, sourceName, query }: { entry: WatchEntry; sourceName
     <div className="watch-card-body">
       <div className="watch-inline-actions"><strong>{entry.code || sourceName}</strong>{entry.editions.map(edition =>
         <StatusBadge key={edition} tone={edition === '原片' ? 'neutral' : 'info'}>{editionLabel(edition)}</StatusBadge>)}</div>
-      <h3><Link to={detailHref}>{entry.title}</Link></h3>
+      <h3><Link data-focus-return-key={'title:'+entry.url} to={detailHref}>{entry.title}</Link></h3>
       <span className="watch-help">{sourceName}</span>
     </div>
     <div className="watch-card-actions">
-      <Link className="button button-primary button-small" to={playHref}><Play aria-hidden="true" />{t('应用内播放')}</Link>
+      <Link data-focus-return-key={'play:'+entry.url} className="button button-primary button-small" to={playHref}><Play aria-hidden="true" />{t('应用内播放')}</Link>
       <LocalPlaybackLink code={entry.code} />
       <DownloadWork entry={entry} />
       <BookmarkButton entry={entry} kind="work" />

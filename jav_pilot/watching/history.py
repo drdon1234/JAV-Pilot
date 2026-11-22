@@ -31,6 +31,33 @@ def record(item: dict) -> None:
         db.execute("DELETE FROM history WHERE id IN (SELECT id FROM history ORDER BY updated_at DESC LIMIT -1 OFFSET 2000)")
 
 
+def resume_positions(files):
+    """Resolve saved positions against the files in the current index, including reordered parts."""
+    destinations = {
+        history_id("local", f"{entry}:{identity}"): (entry, index, identity)
+        for entry, index, identity in files
+    }
+    if not destinations:
+        return {}
+    result = {}
+    ids = list(destinations)
+    with progress_db() as db:
+        _table(db)
+        for start in range(0, len(ids), 400):
+            batch = ids[start:start + 400]
+            slots = ",".join("?" for _ in batch)
+            rows = db.execute(f"SELECT id,payload,updated_at FROM history WHERE id IN ({slots})", batch)
+            for item_id, payload, updated in rows:
+                item = json.loads(payload)
+                entry, index, identity = destinations[item_id]
+                if item.get("completed") or not item.get("position", 0) > 0:
+                    continue
+                if entry not in result or updated > result[entry]["updated_at"]:
+                    result[entry] = {"entry": entry, "file": index, "identity": identity,
+                                     "position": item["position"], "updated_at": updated}
+    return result
+
+
 def records() -> list[dict]:
     with progress_db() as db:
         _table(db)

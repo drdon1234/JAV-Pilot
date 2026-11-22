@@ -90,6 +90,11 @@ class MediaLibraryIndex:
         self.root_path = Path(library_root)
         if not self.root_path.is_absolute():
             raise MediaLibraryError("media library root must be absolute")
+        from .mounts import mounts
+        for remote in mounts().values():
+            indexed, mounted = self.root_path.resolve(), remote.resolve()
+            if mounted.is_relative_to(indexed) or indexed.is_relative_to(mounted):
+                raise MediaLibraryError("媒体库扫描目录与按需浏览挂载重叠，请分别指定目录")
         if store is None and database_path is None:
             raise MediaLibraryError("media library database path is required")
         self.store = store or MediaLibraryStore(Path(database_path), clock=clock)

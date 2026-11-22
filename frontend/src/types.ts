@@ -1971,6 +1971,7 @@ export interface DownloadHistoryItem {
   library: boolean
   library_path: string | null
   local_entries: string[]
+  resume?: {entry:string; file:number; identity:string; position:number} | null
   editions?: Pick<MediaLibraryEntry, 'entry_id' | 'variant' | 'quality_height' | 'nfo_status' | 'subtitle_status'>[]
   state: 'downloaded' | 'active' | 'none'
 }

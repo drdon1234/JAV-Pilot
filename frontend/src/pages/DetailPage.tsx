@@ -875,6 +875,39 @@ export function DetailPage() {
     document.getElementById(`work-source-tab-${nextSource.source_id}`)?.focus()
   }
 
+  const retrySource = useMutation({
+    mutationFn: async (source: WorkSource) => {
+      const params = new URLSearchParams(detailSearchParams)
+      params.set('source',source.source_id)
+      params.set('retry_source','1')
+      if (source.detail_url) params.set('detail_url',source.detail_url)
+      else params.delete('detail_url')
+      const next = await api.work(workId,params)
+      const recovered = next.sources.find(s=>s.source_id===source.source_id)
+      if (!recovered) throw new Error(t('该来源没有返回详情'))
+      return {source:recovered, magnets:next.magnets, ownerKey:detailKey, originalWork:work}
+    },
+    onSuccess: ({source,magnets,ownerKey,originalWork}) => {
+      queryClient.setQueryData<WorkResult>(ownerKey, previous=>{
+        const original = previous || originalWork
+        if (!original) return original
+        const combined = new Map<string, WorkMagnet>()
+        for (const magnet of original.magnets) {
+          const refs = magnet.source_refs.filter(ref=>ref.source_id!==source.source_id || source.magnet_error || source.error)
+          if (refs.length) combined.set(magnet.info_hash,{...magnet,source_refs:refs})
+        }
+        for (const magnet of magnets) {
+          const refs=magnet.source_refs.filter(ref=>ref.source_id===source.source_id)
+          if (!refs.length) continue
+          const existing=combined.get(magnet.info_hash)
+          combined.set(magnet.info_hash,{...(existing || magnet),source_refs:[...(existing?.source_refs || []).filter(ref=>ref.source_id!==source.source_id),...refs]})
+        }
+        return {...original,sources:original.sources.map(s=>s.source_id===source.source_id?source:s),magnets:[...combined.values()]}
+      })
+    },
+    onError: (err:Error)=>toast.push(err.message,'error'),
+  })
+
   function refreshDetail() {
     setImageRetry(current => current + 1)
     void workQuery.refetch()
@@ -914,7 +947,7 @@ export function DetailPage() {
         description={t('聚合作品详情')}
         actions={
           <>
-            <WatchLink code={displayCode} />
+            <WatchLink code={displayCode} resources="#work-magnets-title" />
             {work.code && <WantButton code={work.code} />}
             <BookmarkButton kind="detail" entry={{ source: '', url: location.pathname + location.search, code: displayCode, title: work.title, cover: cover?.url || '', editions: [] }} />
             {workQuery.isFetching ? (
@@ -1024,7 +1057,7 @@ export function DetailPage() {
             </div>
           ) : null}
           {hasWebDownloadCode ? (
-            <div className="work-web-download" role="group" aria-label={t('Web 视频下载')}>
+            <div id="work-web-download" className="work-web-download" role="group" aria-label={t('Web 视频下载')}>
               <div className="work-web-download-head">
                 <Download aria-hidden="true" />
                 <strong>{t('Web 下载')}</strong>
@@ -1188,7 +1221,7 @@ export function DetailPage() {
                     </a>
                   ) : null}
                 </div>
-                {activeSourceError ? <InlineNotice tone="warning">{serviceErrorMessage(activeSourceError, t('该来源的部分详情暂时无法加载'))}</InlineNotice> : null}
+                {activeSourceError ? <InlineNotice tone="warning">{serviceErrorMessage(activeSourceError, t('该来源的部分详情暂时无法加载'))} <Button disabled={retrySource.isPending || workQuery.isFetching} onClick={()=>activeSource && retrySource.mutate(activeSource)}>{t('仅重试此来源')}</Button></InlineNotice> : null}
                 {hasSourceDetails(activeSource.details) ? (
                   <SourceDetailsView
                     details={activeSource.details}
@@ -1261,6 +1294,7 @@ export function DetailPage() {
           onDownload={(magnet) => void addDownload(magnet)}
           onOpenDownloads={() => navigate('/downloads')}
         />}
+        {!workQuery.isFetching && work.code && !work.magnets.length && <div className="watch-inline-actions"><WantButton code={work.code}/>{hasWebDownloadCode && <a className="button button-secondary button-small" href="#work-web-download">{t('改用 Web 下载')}</a>}</div>}
       </section>
     </div>
   )

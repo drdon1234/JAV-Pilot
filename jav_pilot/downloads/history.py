@@ -9,6 +9,7 @@ never downloads a work twice by accident.
 from __future__ import annotations
 
 import re
+import sqlite3
 import unicodedata
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -59,6 +60,8 @@ class CodeHistory:
     library: list[str] = field(default_factory=list)
     local_entries: list[str] = field(default_factory=list)
 
+    files: list[tuple[str, int, str]] = field(default_factory=list)
+    resume: dict | None = None
     editions: list[dict[str, object]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, object]:
@@ -74,6 +77,7 @@ class CodeHistory:
             "library_path": self.library[0] if self.library else None,
             "local_entries": list(dict.fromkeys(self.local_entries)),
             "editions": self.editions,
+            "resume": self.resume,
             "state": "downloaded" if downloaded else "active" if active else "none",
         }
 
@@ -164,9 +168,21 @@ def lookup_download_history(
                         history.library.append(str(row.get("primary_media_path") or ""))
                         if row.get("presence") == "present" and row.get("media_paths") and row.get("entry_id"):
                             history.local_entries.append(str(row["entry_id"]))
+                            history.files.extend((str(row["entry_id"]), index, f["identity"])
+                                                 for index, f in enumerate(row.get("media_files") or [])
+                                                 if f.get("identity"))
                             history.editions.append({key:row.get(key) for key in (
                                 "entry_id","variant","quality_height","nfo_status","subtitle_status"
                             )})
         except Exception:  # noqa: BLE001 - reported as unavailable, never as "not downloaded".
             unavailable.append(source)
+    from ..watching.history import resume_positions
+    try:
+        resumes = resume_positions(file for history in histories for file in history.files)
+    except (OSError, sqlite3.Error, ValueError):
+        # A missing playback database must not hide download or inventory facts.
+        resumes = {}
+    for history in histories:
+        history.resume = max((resumes[e] for e in history.local_entries if e in resumes),
+                             key=lambda item: item["updated_at"], default=None)
     return [history.to_dict() for history in histories], unavailable

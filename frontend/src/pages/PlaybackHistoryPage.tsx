@@ -10,7 +10,7 @@ import { t } from '../lib/i18n'
 import { LocalPlaybackLink } from '../components/WatchActions'
 import { useSelection, SelectionTools, SelectionCheck, RemoveSelection } from '../components/SelectionTools'
 
-export interface PlaybackRecord { id: string; kind: 'local' | 'online'; title: string; code: string; cover: string; source: string; url: string; entry: string; file: number; position: number; duration: number; completed: boolean; updated_at: number }
+export interface PlaybackRecord { id: string; kind: 'local' | 'online'; title: string; code: string; cover: string; source: string; url: string; entry: string; file: number; identity?: string; position: number; duration: number; completed: boolean; updated_at: number }
 
 export function PlaybackHistoryPage() {
   const client = useQueryClient()
@@ -24,7 +24,7 @@ export function PlaybackHistoryPage() {
     <SelectionTools selection={selection} ids={history.data?.items.map(item => item.id) ?? []} busy={bulk.isPending}><RemoveSelection count={selection.selected.size} busy={bulk.isPending} onRemove={() => bulk.mutate([...selection.selected])} /></SelectionTools>
     {history.isPending ? <SkeletonRows count={3} /> : history.isError ? <InlineNotice tone="danger">{t('无法加载播放记录，请重试。')} <Button onClick={() => void history.refetch()}>{t('重试')}</Button></InlineNotice> : history.data.items.length ? <div className="playback-history-list">
       {history.data.items.map(item => {
-        const target = `/player?${new URLSearchParams(item.kind === 'local' ? { entry: item.entry, file: String(item.file) } : { source: item.source, url: item.url })}`
+        const target = `/player?${new URLSearchParams(item.kind === 'local' ? { entry: item.entry, file: String(item.file), ...(item.identity && {identity:item.identity}) } : { source: item.source, url: item.url })}`
         return <article key={item.id} className={`playback-history-row${selection.managing ? ' selection-row' : ''}`}>
           <SelectionCheck selection={selection} id={item.id} name={item.title || item.code} disabled={bulk.isPending} />
           <Link to={target} className="playback-history-cover" aria-label={item.title}>{item.cover ? <img src={coverImageUrl(item.source, item.cover)} alt="" loading="lazy" referrerPolicy="no-referrer" onError={event => {

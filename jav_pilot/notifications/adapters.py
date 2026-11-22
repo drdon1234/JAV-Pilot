@@ -754,6 +754,10 @@ def _json_headers(event_id: str) -> dict[str, str]:
 
 
 def _event_title(event: NotificationEvent) -> str:
+    if event.source == "person_updates":
+        return "JAV Pilot · New title from a followed person"
+    if event.source == "wanted_resource":
+        return "JAV Pilot · Wishlist match found"
     labels = {
         "completed": "JAV Pilot completed",
         "failed": "JAV Pilot failed",

@@ -49,20 +49,20 @@ export function SearchResultCard({
 
   return (
     <article className="result-row">
-      <Link className="result-poster result-detail-content" to={detailHref} state={detailState} tabIndex={-1}>
+      <Link data-focus-return-key={'poster:'+result.work_id} className="result-poster result-detail-content" to={detailHref} state={detailState} tabIndex={-1}>
         <StableImage src={coverUrl} alt={t('{code} 封面', { code })} referrerPolicy="no-referrer" />
       </Link>
       <header className="result-heading">
         <div>
           <div className="result-code-line">
-            <strong><Link className="result-detail-content" to={detailHref} state={detailState} tabIndex={-1}>{code}</Link></strong>
+            <strong><Link data-focus-return-key={'code:'+result.work_id} className="result-detail-content" to={detailHref} state={detailState} tabIndex={-1}>{code}</Link></strong>
             {result.code && <InventoryStatus code={result.code}/>}
             {result.sources.map((source) => <StatusBadge key={source.source_id}>{sourceName(source.source_id, sites)}</StatusBadge>)}
           </div>
-          <h3><Link className="result-detail-content" to={detailHref} state={detailState} tabIndex={-1}>{titleContent ?? result.title}</Link></h3>
+          <h3><Link data-focus-return-key={'title:'+result.work_id} className="result-detail-content" to={detailHref} state={detailState} tabIndex={-1}>{titleContent ?? result.title}</Link></h3>
         </div>
         <div className="result-actions">
-          {result.code || result.canonical_code ? <WatchLink code={result.code || result.canonical_code || ''} /> : null}
+          {result.code || result.canonical_code ? <WatchLink resources={detailHref} code={result.code || result.canonical_code || ''} /> : null}
           {actions}
           <Link
             className="button button-secondary button-small result-detail-link"
@@ -75,7 +75,7 @@ export function SearchResultCard({
           </Link>
         </div>
       </header>
-      <Link className="result-meta result-detail-content" to={detailHref} state={detailState} tabIndex={-1}>
+      <Link data-focus-return-key={'meta:'+result.work_id} className="result-meta result-detail-content" to={detailHref} state={detailState} tabIndex={-1}>
         <span>{result.release_date || t('日期未知')}</span>
         <span>
           {result.magnets.length

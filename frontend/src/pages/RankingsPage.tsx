@@ -14,6 +14,7 @@ import { useTranslationPreferences, useTranslations } from '../lib/translation'
 import { useAiTranslations } from '../lib/aiTranslation'
 import { AiTranslateButton, AiTranslationLine } from '../components/AiTranslation'
 import type { DetailPrefetchItemStatus, RankingBoard, RankingBoardsPayload, RankingGroup, RankingItem, RankingOption } from '../types'
+import { WatchLink } from '../components/WatchActions'
 import { QuickWebDownload } from './QuickWebDownload'
 import { StableImage } from './WorkUi'
 import { InventoryStatus } from '../components/WorkStatus'
@@ -450,10 +451,11 @@ export function RankingsPage() {
                   </div>
                   <div className="ranking-actions">
                     {board.item_kind === 'actor' ? (
-                      <Link className="button button-secondary button-small" to={searchHref(item.title, 'actor')}>
+                      <><Link className="button button-secondary button-small" to={searchHref(item.title,'actor')}>{t('搜索')}</Link>
+                      <Link data-focus-return-key={viewKey+':actor:'+item.rank} className="button button-secondary button-small" to={'/tracking?person='+encodeURIComponent(item.title)}>
                         <Search aria-hidden="true" />
-                        {t('搜索')}
-                      </Link>
+                        {t('人物详情')}
+                      </Link></>
                     ) : null}
                     {detailUrl ? (
                       <a className="button button-ghost button-small" href={detailUrl} target="_blank" rel="noopener noreferrer" aria-label={openLabel}>
@@ -472,14 +474,14 @@ export function RankingsPage() {
                 <span className="ranking-rank"><span className="sr-only">{t('第 {rank} 名', { rank: item.rank })}</span><span aria-hidden="true">{item.rank}</span></span>
                 <div className="ranking-cover">
                   {detailLink ? (
-                    <Link to={detailLink} state={{ returnTo: '/rankings' }} aria-label={t('查看 {code} 详情', { code: item.code ?? item.title })}>
+                    <Link data-focus-return-key={viewKey+':cover:'+item.rank} to={detailLink} state={{ returnTo: '/rankings' }} aria-label={t('查看 {code} 详情', { code: item.code ?? item.title })}>
                       <StableImage src={cover} alt={t('{value} 封面', { value: item.code ?? item.title })} referrerPolicy="no-referrer" />
                     </Link>
                   ) : <StableImage src={cover} alt={item.title} referrerPolicy="no-referrer" />}
                 </div>
                 <div className="ranking-main">
                   <span className="ranking-code-line">
-                    <strong>{detailLink ? <Link to={detailLink} state={{ returnTo: '/rankings' }}>{item.code ?? t('详情')}</Link> : item.code ?? t('未知番号')}</strong>
+                    <strong>{detailLink ? <Link data-focus-return-key={viewKey+':code:'+item.rank} to={detailLink} state={{ returnTo: '/rankings' }}>{item.code ?? t('详情')}</Link> : item.code ?? t('未知番号')}</strong>
                     {item.code && <InventoryStatus code={item.code}/>}
                     {prefetchStatus ? <StatusBadge tone={PREFETCH_STATUS[prefetchStatus].tone}>{PREFETCH_STATUS[prefetchStatus].label}</StatusBadge> : null}
                   </span>
@@ -494,11 +496,12 @@ export function RankingsPage() {
                 </div>
                 <div className="ranking-actions">
                   {detailLink ? (
-                    <Link className="button button-secondary button-small" to={detailLink} state={{ returnTo: '/rankings' }} aria-label={t('查看 {code} 详情', { code: item.code ?? item.title })}>
+                    <Link data-focus-return-key={viewKey+':detail:'+item.rank} className="button button-secondary button-small" to={detailLink} state={{ returnTo: '/rankings' }} aria-label={t('查看 {code} 详情', { code: item.code ?? item.title })}>
                       <FileText aria-hidden="true" />
                       {t('详情')}
                     </Link>
                   ) : null}
+                  {item.code && <WatchLink code={item.code} resources={detailLink || undefined} />}
                   {item.code && webConfigured ? <QuickWebDownload code={item.code} /> : null}
                   {detailUrl ? (
                     <a className="button button-ghost button-small" href={detailUrl} target="_blank" rel="noopener noreferrer" aria-label={openLabel}>

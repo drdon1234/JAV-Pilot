@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { requestJson } from '../lib/api'
+import { browserImportScript } from '../lib/browserImport'
 import { saveBlob } from '../lib/saveBlob'
 import { t } from '../lib/i18n'
 import { useToast } from './ToastProvider'
@@ -90,7 +91,9 @@ export function ExplorePage() {
     return (
       <div className="page">
         <PageHeader title={intake} />
-        <QuickWebDownload code={intake} />
+        <div data-browser-import-code={intake}>
+          <QuickWebDownload code={intake} />
+        </div>
       </div>
     )
   return (
@@ -148,7 +151,17 @@ export function ExplorePage() {
                 <Link to={'/library?entry=' + entry.entry_id}>
                   {entry.code} {entry.title || t('本地媒体')}
                 </Link>{' '}
-                <Link to={'/player?' + new URLSearchParams({entry:entry.entry_id,...(view==='playlist'?{playlist:name}:{})})}>{t('播放')}</Link>
+                <Link
+                  to={
+                    '/player?' +
+                    new URLSearchParams({
+                      entry: entry.entry_id,
+                      ...(view === 'playlist' ? { playlist: name } : {}),
+                    })
+                  }
+                >
+                  {t('播放')}
+                </Link>
                 {view === 'playlist' && (
                   <Button
                     size="small"
@@ -205,24 +218,7 @@ function SourceSettings() {
     onError: (e: Error) => toast.push(e.message, 'error'),
   })
   function install() {
-    const contents = [
-      '// ==UserScript==',
-      '// @name JAV Pilot 浏览器入库',
-      '// @namespace jav-pilot',
-      '// @version 1',
-      ...['javdb.com', 'www.javbus.com', 'missav.ws', 'missav.ai', 'jable.tv', '123av.com'].map(
-        (host) => '// @match https://' + host + '/*',
-      ),
-      '// @grant GM_registerMenuCommand',
-      '// ==/UserScript==',
-      "GM_registerMenuCommand('加入 JAV Pilot', () => {",
-      '  const selected = window.getSelection()?.toString().trim();',
-      "  const found = (selected || document.querySelector('h1')?.textContent || document.title).match(/(?:FC2[- ]?(?:PPV[- ]?)?\\d{3,9}|[a-z]{2,12}[-_]\\d{2,8})/i);",
-      "  if (!found) { alert('请先选中作品番号'); return; }",
-      '  const url = new URL(' + JSON.stringify(location.origin + '/explore') + ');',
-      "  url.searchParams.set('code',found[0]); window.open(url,'_blank','noopener');",
-      '});',
-    ].join('\n')
+    const contents = browserImportScript(location.origin)
     saveBlob(new Blob([contents], { type: 'text/javascript' }), 'jav-pilot.user.js')
   }
   return (
@@ -268,7 +264,10 @@ function StorageBrowser() {
   const selected = params.get('video') || ''
   const q = useQuery({
     queryKey: ['storage-sources'],
-    queryFn: () => requestJson<{ mounts: string[]; cloud: boolean }>('/api/library/storage'),
+    queryFn: () =>
+      requestJson<{ mounts: string[]; cloud: boolean; fnos: boolean; direct: string[] }>(
+        '/api/library/storage',
+      ),
   })
   const files = useQuery({
     queryKey: ['mounted-dir', mount, path, offset],
@@ -282,7 +281,6 @@ function StorageBrowser() {
   function navigate(values: Record<string, string>) {
     set({ view: 'mounts', mount, path, ...values })
   }
-  const videoUrl = '/api/library/mounted-media?' + new URLSearchParams({ mount, path: selected })
   return (
     <section>
       <nav className="watch-inline-actions">
@@ -332,10 +330,126 @@ function StorageBrowser() {
           {files.data?.next != null && (
             <Button onClick={() => navigate({ offset: String(files.data?.next ?? 0) })}>{t('下一页')}</Button>
           )}
-          {selected && <video key={videoUrl} src={videoUrl} controls playsInline style={{ width: '100%' }} />}
+          {selected && q.data && (
+            <MountedPlayer
+              key={mount + '/' + selected}
+              mount={mount}
+              path={selected}
+              direct={q.data.direct.includes(mount)}
+            />
+          )}
         </>
       )}
+      {q.data?.fnos && <NasDownload />}
       {q.data?.cloud && <CloudTasks />}
+    </section>
+  )
+}
+
+export function MountedPlayer({ mount, path, direct }: { mount: string; path: string; direct: boolean }) {
+  const [mode, setMode] = useState<'direct' | 'proxy'>(direct ? 'direct' : 'proxy')
+  const [failed, setFailed] = useState(false)
+  const position = useRef(0)
+  const video = useRef<HTMLVideoElement>(null)
+  const params = new URLSearchParams({ mount, path })
+  const link = useQuery({
+    queryKey: ['mounted-direct', mount, path],
+    enabled: mode === 'direct' && direct,
+    queryFn: () => requestJson<{ url: string }>('/api/library/storage?' + params + '&mode=direct'),
+    retry: false,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  })
+  const src = mode === 'direct' ? link.data?.url : '/api/library/mounted-media?' + params
+  function change(next: 'direct' | 'proxy') {
+    if (video.current?.currentTime) position.current = video.current.currentTime
+    setFailed(false)
+    setMode(next)
+  }
+  return (
+    <section className="library-detail-files">
+      <h3>{t('播放方式')}</h3>
+      <div className="watch-inline-actions" role="group" aria-label={t('播放方式')}>
+        <Button disabled={!direct} aria-pressed={mode === 'direct'} onClick={() => change('direct')}>
+          {t('网盘直连播放')}
+        </Button>
+        <Button aria-pressed={mode === 'proxy'} onClick={() => change('proxy')}>
+          {t('NAS 代理播放')}
+        </Button>
+      </div>
+      <p>
+        {mode === 'direct'
+          ? t('视频由网盘直接发送到当前设备。')
+          : t('NAS 从挂载读取视频，再发送到当前设备。')}
+      </p>
+      {!direct && <p>{t('此挂载尚未配置直链服务。')}</p>}
+      {mode === 'direct' && link.isPending && <p role="status">{t('正在获取直链')}</p>}
+      {(failed || (mode === 'direct' && link.isError)) && (
+        <InlineNotice tone="warning">
+          {t('播放失败')}
+          {mode === 'direct' ? (
+            <Button onClick={() => change('proxy')}>{t('切换 NAS 代理播放')}</Button>
+          ) : (
+            <Button
+              onClick={() => {
+                setFailed(false)
+                video.current?.load()
+              }}
+            >
+              {t('重试')}
+            </Button>
+          )}
+        </InlineNotice>
+      )}
+      {src && (
+        <video
+          key={mode + src}
+          ref={video}
+          src={src}
+          controls
+          playsInline
+          preload="metadata"
+          style={{ width: '100%' }}
+          onLoadedMetadata={(e) => {
+            if (position.current && position.current < e.currentTarget.duration)
+              e.currentTarget.currentTime = position.current
+          }}
+          onTimeUpdate={(e) => {
+            if (e.currentTarget.currentTime > 0) position.current = e.currentTarget.currentTime
+          }}
+          onError={() => setFailed(true)}
+        />
+      )}
+    </section>
+  )
+}
+
+function NasDownload() {
+  const add = useMutation({
+    mutationFn: (magnet: string) =>
+      requestJson<{ ids: number[] }>('/api/library/cloud-download', {
+        method: 'POST',
+        body: JSON.stringify({ provider: 'fnos', magnet }),
+      }),
+  })
+  return (
+    <section>
+      <h2>{t('飞牛下载中心')}</h2>
+      <form
+        className="watch-inline-actions"
+        onSubmit={(e) => {
+          e.preventDefault()
+          add.mutate(String(new FormData(e.currentTarget).get('magnet')))
+        }}
+      >
+        <input name="magnet" required aria-label={t('磁链')} placeholder="magnet:?" />
+        <Button type="submit" disabled={add.isPending}>
+          {t('提交到 NAS')}
+        </Button>
+      </form>
+      {add.isError && <p role="alert">{add.error.message}</p>}
+      {add.data && <p role="status">{t('飞牛下载任务编号 {ids}', { ids: add.data.ids.join(', ') })}</p>}
     </section>
   )
 }

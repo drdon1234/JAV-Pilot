@@ -13,11 +13,15 @@ from ...watching.personal import playlists, edit
 
 class CollectionRoutes(BaseHandler):
     def _handle_storage(self, query_string):
-        from ...library import mounts, cloud_download
+        from ...library import mounts, cloud_download, direct_playback, fnos_download
 
         try:
             params = query_params(query_string)
             name = single_param(params, "mount")
+            if name and single_param(params, "mode") == "direct":
+                url = direct_playback.resolve(name, single_param(params, "path"), self.headers.get("User-Agent", ""))
+                self._send_json({"url": url})
+                return
             if name:
                 payload = mounts.browse(
                     name, single_param(params, "path"), int_param(params, "offset", 0)
@@ -28,16 +32,23 @@ class CollectionRoutes(BaseHandler):
                 payload = {
                     "mounts": list(mounts.mounts()),
                     "cloud": cloud_download.available(),
+                    "fnos": bool(fnos_download.configuration()),
+                    "direct": list(direct_playback.sources()),
                 }
             self._send_json(payload)
         except (ValueError, OSError, sqlite3.Error, MediaLibraryError):
             self._send_json({"error": "无法读取指定的存储或云任务"}, 400)
 
     def _handle_cloud_submit(self):
-        from ...library.cloud_download import submit
+        from ...library import cloud_download, fnos_download
 
         try:
-            self._send_json(submit(str(self._read_json_body(2048).get("magnet", ""))))
+            body = self._read_json_body(2048)
+            provider = body.get("provider", "115")
+            if provider not in ("115", "fnos"):
+                raise ValueError("下载服务无效")
+            service = fnos_download if provider == "fnos" else cloud_download
+            self._send_json(service.submit(str(body.get("magnet", ""))))
         except (ValueError, OSError) as exc:
             self._send_json(
                 {

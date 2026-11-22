@@ -2,7 +2,6 @@
 
 import hashlib
 import hmac
-import os
 import re
 import secrets
 import shutil
@@ -55,7 +54,6 @@ def compatible_stream(stream):
         raise ValueError("转码任务已满，请稍后重试")
     try:
         # The fd protocol can seek in the already verified local file (including MP4 with a trailing moov atom).
-        input_url = "fd:" if os.name == "posix" else "pipe:0"
         process = subprocess.Popen(
             [
                 executable,
@@ -69,7 +67,7 @@ def compatible_stream(stream):
                 "-format_whitelist",
                 "mov,matroska,webm,avi,mpegts,mpeg,asf,flv",
                 "-i",
-                input_url,
+                "fd:",
                 "-map",
                 "0:v:0",
                 "-map",
