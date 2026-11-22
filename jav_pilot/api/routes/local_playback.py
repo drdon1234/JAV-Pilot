@@ -58,12 +58,66 @@ class LocalPlaybackRoutes(BaseHandler):
         except (ValueError, QueryError, MediaLibraryError, OSError, sqlite3.Error):
             self._send_json({"ok": False, "error": "Subtitle is unavailable"}, 404)
 
+    def _handle_external_grant(self) -> None:
+        from ...library.external import grant
+        try:
+            body = self._read_json_body(2048)
+            entry, index = str(body.get("entry", "")), body.get("file", 0)
+            if type(index) is not int:
+                raise ValueError("文件序号无效")
+            root, _, relative = indexed_file(entry, index)
+            with open_video(root, relative) as (_, _, identity):
+                self._send_json({"url": grant(entry,index,identity)})
+        except (ValueError, MediaLibraryError, OSError, sqlite3.Error):
+            self._send_json({"error": "无法打开该文件"}, 404)
+
+    def _handle_external_media(self, query_string: str) -> None:
+        from ...library.external import verify
+        try:
+            params = query_params(query_string)
+            valid = verify(single_param(params,"entry"),int_param(params,"file",0),
+                           single_param(params,"identity"),int_param(params,"expires",0),
+                           single_param(params,"token"))
+        except (ValueError, QueryError):
+            valid = False
+        if not valid:
+            self._send_json({"error":"播放链接已失效"}, 403)
+            return
+        self._handle_local_media(query_string)
+
+    def _handle_compatible_media(self, query_string: str) -> None:
+        from ...library.external import compatible_stream
+        try:
+            params = query_params(query_string)
+            root, _, relative = indexed_file(single_param(params, "entry"), int_param(params,"file",0))
+            with open_video(root,relative) as (stream,_,_), compatible_stream(stream) as output:
+                first = output.read(8192)
+                if not first:
+                    raise ValueError("此文件无法转码")
+                self.send_response(200)
+                self.send_header("Content-Type","video/mp4")
+                self.send_header("Cache-Control","no-store")
+                self.send_header("Connection","close")
+                self.end_headers()
+                self.close_connection = True
+                self.wfile.write(first)
+                while block := output.read(65536):
+                    self.wfile.write(block)
+        except (OSError, ValueError, QueryError, MediaLibraryError, sqlite3.Error) as exc:
+            if not self._response_started:
+                self._send_json({"error":str(exc) if isinstance(exc,ValueError) else "播放不可用"}, 503)
+
     def _handle_local_media(self, query_string: str) -> None:
         try:
             params = query_params(query_string)
-            root, _, relative = indexed_file(single_param(params, "entry"), int_param(params, "file", 0))
+            from ...library.mounts import mount_root
+            mounted = self.path.split("?",1)[0]=="/api/library/mounted-media"
+            if mounted:
+                root, relative = mount_root(single_param(params,"mount")), single_param(params,"path")
+            else:
+                root, _, relative = indexed_file(single_param(params, "entry"), int_param(params, "file", 0))
             with open_video(root, relative) as (stream, size, identity):
-                if single_param(params, "identity") != identity:
+                if not mounted and single_param(params, "identity") != identity:
                     self._send_json({"ok": False, "error": "Media file changed; reopen playback"}, 409)
                     return
                 try:

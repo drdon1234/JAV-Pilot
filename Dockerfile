@@ -27,7 +27,7 @@ RUN --mount=type=cache,id=jav-pilot-ffmpeg-apt,target=/var/cache/apt,sharing=loc
     rm -f /etc/apt/apt.conf.d/docker-clean; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-        build-essential ca-certificates curl nasm xz-utils zlib1g-dev; \
+        build-essential ca-certificates curl nasm xz-utils zlib1g-dev libx264-dev pkg-config; \
     curl --fail --location --proto '=https' --tlsv1.2 \
         --retry 5 --retry-all-errors --connect-timeout 15 \
         "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" \
@@ -37,6 +37,8 @@ RUN --mount=type=cache,id=jav-pilot-ffmpeg-apt,target=/var/cache/apt,sharing=loc
     tar --extract --xz --file /tmp/ffmpeg.tar.xz \
         --strip-components=1 --directory /tmp/ffmpeg-source; \
     cd /tmp/ffmpeg-source; \
+    mkdir -p /opt/static-codecs; \
+    ln -s /usr/lib/x86_64-linux-gnu/libx264.a /opt/static-codecs/libx264.a; \
     ./configure \
         --prefix=/opt/ffmpeg \
         --cpu=generic \
@@ -55,15 +57,16 @@ RUN --mount=type=cache,id=jav-pilot-ffmpeg-apt,target=/var/cache/apt,sharing=loc
         --disable-protocols \
         --disable-shared \
         --enable-demuxer=asf,avi,flv,matroska,mov,mpegps,mpegvideo,mpegts,rm \
-        --enable-encoder=mjpeg \
+        --enable-gpl --enable-libx264 \
+        --enable-encoder=mjpeg,libx264,aac \
         --enable-muxer=image2,mov,mp4 \
-        --enable-protocol=file \
+        --enable-protocol=file,pipe,fd \
         --enable-pthreads \
         --enable-small \
         --enable-static \
         --enable-zlib \
         --extra-cflags='-O2 -fstack-protector-strong -fstack-clash-protection -fcf-protection -D_FORTIFY_SOURCE=3' \
-        --extra-ldflags='-Wl,-z,relro,-z,now'; \
+        --extra-ldflags='-L/opt/static-codecs -Wl,-z,relro,-z,now'; \
     make -j2; \
     make install; \
     strip /opt/ffmpeg/bin/ffmpeg /opt/ffmpeg/bin/ffprobe; \

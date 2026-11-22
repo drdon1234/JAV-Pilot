@@ -11,7 +11,7 @@ from ...config.source_catalog import METADATA_CATALOG, METADATA_PROFILES
 from ..publish import _RegularFileIdentity
 
 SCHEMA_COMPONENT = "media_metadata_review"
-CURRENT_SCHEMA_VERSION = 6
+CURRENT_SCHEMA_VERSION = 7
 REFETCH_RESTART_ERROR_CODE = "service_restarted"
 REFETCH_CONFLICT_ERROR_CODE = "revision_conflict"
 DEFAULT_PREVIEW_SECONDS = 10.0 * 60.0
@@ -46,8 +46,8 @@ LIST_FIELDS = frozenset(
 )
 TEXT_FIELDS = frozenset({"title", "original_title", "release_date", "description"})
 IMAGE_KINDS = frozenset({"portrait", "landscape"})
-SNAPSHOT_SOURCES = METADATA_PROFILES | {"nfo", "missav"}
-REMOTE_SOURCES = METADATA_PROFILES | {"missav"}
+SNAPSHOT_SOURCES = METADATA_PROFILES | {"nfo", "missav", "custom"}
+REMOTE_SOURCES = METADATA_PROFILES | {"missav","custom"}
 IMAGE_SOURCES = METADATA_PROFILES | {"nfo", "manual"}
 NON_DESCRIPTION_FIELDS = frozenset(METADATA_FIELDS) - {"description"}
 SOURCE_FIELDS = {
@@ -55,6 +55,7 @@ SOURCE_FIELDS = {
     "javbus": NON_DESCRIPTION_FIELDS,
     "javdb": NON_DESCRIPTION_FIELDS,
     "fc2": NON_DESCRIPTION_FIELDS,
+    "custom": frozenset(METADATA_FIELDS),
     "missav": frozenset({"description"}),
     **{source: frozenset(METADATA_FIELDS) for source in METADATA_CATALOG},
 }

@@ -57,7 +57,7 @@ qB 与 Web 下载使用分开的暂存根。归档限制在配置媒体根内，
 | `detail_prefetch` | 2 |
 | `metadata_search_sessions` | 3 |
 | `media_metadata` | 3 |
-| `media_metadata_review` | 6 |
+| `media_metadata_review` | 7 |
 | `notifications` | 3 |
 | `site_diagnostics` | 1 |
 | `media_library` | 9 |

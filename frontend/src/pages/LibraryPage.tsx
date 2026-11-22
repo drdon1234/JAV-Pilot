@@ -259,6 +259,7 @@ function LibraryBrowser() {
           </IconButton>
         )}
       />
+      <Link className="button button-secondary" to="/explore">{t('馆藏探索')}</Link>
       {!group && !ingestedSort ? (
         <Link className="button button-secondary library-latest-link" to="/library?sort=ingested">
           <Clock3 aria-hidden="true" />

@@ -40,12 +40,14 @@ const FIELD_DEFINITIONS: Array<{
 ]
 
 const SOURCE_DEFINITIONS: Array<{ id: MediaMetadataReviewSource; label: string }> = [
+  { id: 'custom', label:t('自定义资料源') },
   { id: 'nfo', label: t('当前 NFO') },
   ...METADATA_PROFILES.map((id) => ({ id, label: id === 'fc2' ? 'FC2' : PROFILE_LABELS[id] })),
   { id: 'missav', label: 'MissAV' },
 ]
 
 const REMOTE_SOURCES = [
+  {id:'custom' as const,label:t('自定义资料源')},
   ...METADATA_PROFILES.map((id) => ({ id, label: id === 'fc2' ? 'FC2' : PROFILE_LABELS[id] })),
   { id: 'missav' as const, label: 'MissAV' },
 ]

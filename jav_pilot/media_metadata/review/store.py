@@ -60,6 +60,7 @@ from .models import (
 from .schema import (
     create_schema,
     migrate_catalog_sources,
+    migrate_custom_source,
     migrate_schema_v2,
     migrate_schema_v3,
     migrate_schema_v4,
@@ -713,6 +714,7 @@ class MediaMetadataReviewStore:
                     SQLiteMigration(4, migrate_schema_v4, verify_schema),
                     SQLiteMigration(5, migrate_schema_v5, verify_schema_v5),
                     SQLiteMigration(6, migrate_catalog_sources, verify_catalog_sources),
+                    SQLiteMigration(7, migrate_custom_source, verify_catalog_sources),
                 ),
                 clock=self._clock,
                 verify_current=verify_catalog_sources,

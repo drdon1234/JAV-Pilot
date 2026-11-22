@@ -11,6 +11,7 @@ import { SearchSessionProvider } from './lib/searchSessions'
 import { t } from './lib/i18n'
 import { loginUrl } from './lib/loginDestination'
 
+const ExplorePage = lazy(() => recoverableImport('src/components/MediaCollection.tsx', 'ExplorePage', () => import('./components/MediaCollection')).then(module => ({default:module.ExplorePage})))
 const TrackingPage = lazy(() => recoverableImport('src/components/CollectionTracking.tsx', 'TrackingPage', () => import('./components/CollectionTracking')).then(module => ({default:module.TrackingPage})))
 const DownloadsPage = lazy(() => recoverableImport('src/pages/DownloadsPage.tsx', 'DownloadsPage', () => import('./pages/DownloadsPage')).then((module) => ({ default: module.DownloadsPage })))
 const DetailPage = lazy(() => recoverableImport('src/pages/DetailPage.tsx', 'DetailPage', () => import('./pages/DetailPage')).then((module) => ({ default: module.DetailPage })))
@@ -126,6 +127,7 @@ export default function App() {
             <Route path="/search-history" element={lazyRoute(<SearchHistoryPage />)} />
             <Route path="/rankings" element={lazyRoute(<RankingsPage />)} />
             <Route path="/watch" element={lazyRoute(<WatchPage />)} />
+            <Route path="/explore" element={lazyRoute(<ExplorePage />)} />
             <Route path="/tracking" element={lazyRoute(<TrackingPage />)} />
             <Route path="/favorites" element={lazyRoute(<FavoritesPage />)} />
             <Route path="/downloads" element={lazyRoute(<DownloadsPage />)} />

@@ -7,6 +7,7 @@ from http import HTTPStatus
 from urllib.parse import urlsplit
 
 from .request import request_has_https_origin, request_peer_host, same_origin_request
+from .routes.collection import CollectionRoutes
 from .routes.assets import AssetRoutes
 from .routes.auth import AuthRoutes
 from .routes.downloads import DownloadRoutes
@@ -36,6 +37,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 class JavPilotHandler(
+    CollectionRoutes,
     LocalPlaybackRoutes,
     PlaybackHistoryRoutes,
     WatchingRoutes,

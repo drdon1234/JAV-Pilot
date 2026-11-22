@@ -403,7 +403,13 @@ def migrate_schema_v5(connection: sqlite3.Connection) -> None:
     )
 
 
-def migrate_catalog_sources(connection: sqlite3.Connection) -> None:
+def migrate_custom_source(connection: sqlite3.Connection) -> None:
+    sql = connection.execute("SELECT sql FROM sqlite_master WHERE name='media_metadata_review_snapshots'").fetchone()[0]
+    if "'custom'" not in sql:
+        migrate_catalog_sources(connection, snapshots_only=True)
+
+
+def migrate_catalog_sources(connection: sqlite3.Connection, *, snapshots_only: bool = False) -> None:
     """Expand source CHECKs transactionally, retaining IDs, row order and BLOBs."""
     source_sets = {
         "media_metadata_review_snapshots": SNAPSHOT_SOURCES,
@@ -411,6 +417,8 @@ def migrate_catalog_sources(connection: sqlite3.Connection) -> None:
     }
     tables = ("media_metadata_review_snapshots", "media_metadata_review_values",
               "media_metadata_review_images")
+    if snapshots_only:
+        tables = tables[:2]
     replacements = {table: f"{table}_source_migration" for table in tables}
     schema_objects = []
     for table in tables:
@@ -439,7 +447,7 @@ def migrate_catalog_sources(connection: sqlite3.Connection) -> None:
             "AND type IN ('index', 'trigger') AND sql IS NOT NULL ORDER BY type, name", (table,)
         ).fetchall())
     # Only values references snapshots. Drop child first with foreign keys enabled.
-    for table in (tables[1], tables[0], tables[2]):
+    for table in (tables[1], tables[0], *tables[2:]):
         connection.execute(f"DROP TABLE {table}")
     for table in tables:
         connection.execute(f"ALTER TABLE {replacements[table]} RENAME TO {table}")

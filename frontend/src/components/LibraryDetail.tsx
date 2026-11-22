@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation } from 'react-router-dom'
 import { Captions, FileImage, Film, Play } from 'lucide-react'
+import { PlaylistEditor } from './MediaCollection'
+import { PlaybackOptions } from './PlaybackOptions'
 import { WorkEditions } from './CollectionTracking'
 import { BackLink } from './BackLink'
 import { requestJson } from '../lib/api'
@@ -49,6 +51,7 @@ export function LibraryDetail({ entryId }: { entryId: string }) {
             <Button disabled={!entry.code || entry.presence !== 'present'} onClick={() => setSubtitle({ kind: 'entry', entryId: entry.entry_id, code: entry.code || '' })}><Captions aria-hidden="true" />{t('字幕')}</Button>
           </div>
           {entry.presence !== 'present' ? <InlineNotice tone="warning">{t('本地文件不可用，请检查存储连接后重试。')}</InlineNotice> : null}
+          <PlaylistEditor entry={entry.entry_id} />
           <dl className="library-detail-facts">
             <Fact label={t('发行日期')} values={entry.release_date ? [entry.release_date] : []} />
             <Fact label={t('演员')} values={entry.actors} filter="actor" />
@@ -64,6 +67,7 @@ export function LibraryDetail({ entryId }: { entryId: string }) {
       <section className="library-detail-files"><h2>{t('视频文件')}</h2>
         {entry.media_paths.map((path, index) => <div className="library-detail-file" key={path}><div><strong>{t('视频文件')} {index + 1}</strong><code>{path}</code></div>
           {entry.presence === 'present' ? <Link className="button button-secondary" to={`/player?${new URLSearchParams({ entry: entry.entry_id, file: String(index) })}`}><Play aria-hidden="true" />{t('播放')}</Link> : null}
+          {entry.presence === 'present' && <PlaybackOptions entry={entry.entry_id} file={index} />}
         </div>)}
         <div className="watch-inline-actions">{[
           ['NFO', entry.nfo_status], [t('竖图'), entry.portrait_status], [t('横图'), entry.landscape_status], [t('字幕'), entry.subtitle_status],

@@ -420,6 +420,19 @@ def _execute_media_metadata_review_refetch(
                 candidates.extend(snapshot.image_candidates)
             public_sources.append(snapshot.public_dict())
 
+    if "custom" in requested_sources:
+        from ...media_metadata.custom_source import fetch_fields
+        from ...net.http_client import FetchError
+        try:
+            selected = {key:value for key,value in fetch_fields(review["code"]).items() if key in requested_fields}
+        except (ValueError, FetchError, OSError) as exc:
+            raise MediaMetadataReviewValidationError("自定义资料源读取失败，请检查接口与字段映射") from exc
+        if selected:
+            manager.capture_source_snapshot(review["review_id"], "custom", selected, deduplicate=True, expected_revision=current_revision)
+            review = manager.get_review(review["review_id"])
+            current_revision = int(review["revision"])
+            satisfied_fields.update(selected)
+
     if "missav" in requested_sources and "description" in requested_fields:
         description = discover_optional_description(str(review["code"]))
         if description:

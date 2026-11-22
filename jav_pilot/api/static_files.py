@@ -11,6 +11,7 @@ APP_ROUTES = {
     "/watch",
     "/favorites",
     "/tracking",
+    "/explore",
     "/login",
     "/search",
     "/search-history",

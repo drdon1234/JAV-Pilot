@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 import time
 import uuid
@@ -938,6 +939,46 @@ class MediaLibraryStore:
         if row is None:
             return None
         return str(row[0]), str(row[1])
+
+    def explore(self, root_key, *, seen, view, name="", offset=0, playlist=()):
+        """Browse files by personal history or mounted top-level directory."""
+        if view not in {"unseen","recommended","storage","playlist"}:
+            raise ValueError("馆藏视图无效")
+        start = bounded_int(offset,"offset",minimum=0,maximum=10_000_000)
+        base = """ FROM media_library_entries e JOIN media_library_roots r ON r.root_key=e.root_key
+            WHERE e.root_key=? AND r.state='available' AND e.retired_generation_id IS NULL AND e.presence='present'"""
+        directory = "CASE WHEN instr(e.primary_media_path,'/')=0 THEN '.' ELSE substr(e.primary_media_path,1,instr(e.primary_media_path,'/')-1) END"
+        with self._connect() as db:
+            counts = db.execute("SELECT COUNT(*),COUNT(DISTINCT e.code_key)"+base,(root_key,)).fetchone()
+            locations = db.execute("SELECT "+directory+" AS folder,COUNT(*) AS total"+base+" GROUP BY folder ORDER BY folder",(root_key,)).fetchall()
+            select = "SELECT e.entry_id,e.code,e.title"
+            params = [root_key]
+            where = base
+            order = " ORDER BY e.code,e.entry_id"
+            if view in {"unseen","recommended"}:
+                where += " AND e.entry_id NOT IN (SELECT value FROM json_each(?))"
+                params.append(json.dumps(seen))
+            if view == "recommended":
+                select += """,(SELECT COUNT(DISTINCT t.kind || ':' || t.value_key) FROM media_library_terms t
+                    JOIN media_library_terms p ON p.root_key=t.root_key AND p.kind=t.kind AND p.value_key=t.value_key
+                    JOIN media_library_entries watched ON watched.root_key=p.root_key AND watched.entry_id=p.entry_id
+                      AND watched.created_generation_id=p.entry_generation_id AND watched.retired_generation_id IS NULL
+                    WHERE t.root_key=e.root_key AND t.entry_id=e.entry_id AND t.entry_generation_id=e.created_generation_id
+                      AND t.kind IN ('actor','tag') AND p.entry_id IN (SELECT value FROM json_each(?))) AS matches"""
+                params.insert(0,json.dumps(seen))
+                where += " AND matches>0"
+                order = " ORDER BY matches DESC,e.code,e.entry_id"
+            if view=="storage" and name:
+                where += " AND "+directory+"=?"
+                params.append(name)
+            if view=="playlist":
+                where += " AND e.entry_id IN (SELECT value FROM json_each(?))"
+                params.append(json.dumps(playlist))
+                order = " ORDER BY (SELECT key FROM json_each(?) WHERE value=e.entry_id)"
+                params.append(json.dumps(playlist))
+            rows = db.execute(select+where+order+" LIMIT 51 OFFSET ?", (*params,start)).fetchall()
+        return {"entries":[dict(r) for r in rows[:50]],"has_more":len(rows)>50,"assets":counts[0],
+                "works":counts[1],"locations":[dict(r) for r in locations]}
 
     def list_entries(
         self,

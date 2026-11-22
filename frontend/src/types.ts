@@ -1594,7 +1594,7 @@ export type MediaMetadataReviewFieldName =
   | 'description'
 
 export type MetadataSourceId = 'javbus' | 'javdb' | 'fc2' | 'fanza' | 'mgs' | 'avbase' | 'fc2db'
-export type MediaMetadataReviewSource = 'nfo' | MetadataSourceId | 'missav'
+export type MediaMetadataReviewSource = 'nfo' | MetadataSourceId | 'missav' | 'custom'
 export type MediaMetadataReviewImageKind = 'portrait' | 'landscape'
 export type MediaMetadataReviewValue = string | number | string[] | null
 
@@ -1665,7 +1665,7 @@ export interface MediaMetadataReviewDraftRequest {
 export interface MediaMetadataReviewRefetchRequest {
   review_id: string
   expected_revision: number
-  sources: Array<MetadataSourceId | 'missav'>
+  sources: Array<MetadataSourceId | 'missav' | 'custom'>
   fields: MediaMetadataReviewFieldName[]
   images: MediaMetadataReviewImageKind[]
 }
