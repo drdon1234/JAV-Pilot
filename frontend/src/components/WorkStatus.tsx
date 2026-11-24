@@ -12,7 +12,7 @@ import { metadataJobLabels } from '../lib/metadataStatus'
 
 export function InventoryStatus({ code }: { code: string }) {
   const q = useLocalPlayback(code)
-  if (q.isError) return <StatusBadge tone="warning">{t('馆藏状态暂不可用')}</StatusBadge>
+  if (q.isError) return <StatusBadge tone="warning">{t('媒体库状态暂不可用')}</StatusBadge>
   if (!q.data) return null
   const labels = (q.data.editions || [])
     .map((e) =>
@@ -105,7 +105,6 @@ export function WorkProgress({ code }: { code: string }) {
   return (
     <section className="library-detail-files">
       <h2>{t('作品处理进度')}</h2>
-      <Link to={'/tasks?q='+encodeURIComponent(code)}>{t('任务总览')}</Link>
       <dl className="library-detail-facts">
         {rows.map(([label, value, to]) => (
           <div key={label}>

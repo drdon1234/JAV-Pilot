@@ -2,9 +2,11 @@ import { SelectionBatches, useSubmitSelection } from '../components/SelectionBat
 import '../styles/library.css'
 import { useMutation, useInfiniteQuery } from '@tanstack/react-query'
 import {
+  ArrowLeft,
   ChevronDown,
   Clock3,
   Filter,
+  HardDrive,
   Library,
   RefreshCw,
   Search,
@@ -24,6 +26,7 @@ import type {
 import { t } from '../lib/i18n'
 import { LibraryDetail, LibraryPoster } from '../components/LibraryDetail'
 import { LibraryFolder, folderLabel } from '../components/LibraryFolder'
+import { StorageBrowser, useStorageSources } from '../components/RemoteStorage'
 import { BackLink } from '../components/BackLink'
 import { useSelection, SelectionTools, SelectionCheck } from '../components/SelectionTools'
 
@@ -139,10 +142,22 @@ function libraryErrorMessage(error: unknown): string {
 
 export function LibraryPage() {
   const [params] = useSearchParams()
+  if (params.get('view') === 'mounts') {
+    return (
+      <div className="page library-page">
+        <div className="page-back">
+          <Link className="button button-ghost" to="/library"><ArrowLeft aria-hidden="true" />{t('媒体库')}</Link>
+        </div>
+        <PageHeader title={t('远程挂载与云下载')} />
+        <StorageBrowser />
+      </div>
+    )
+  }
   return params.get('entry') ? <LibraryDetail entryId={params.get('entry')!} /> : <LibraryBrowser />
 }
 
 function LibraryBrowser() {
+  const storage = useStorageSources()
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const routeKey = searchParams.toString()
@@ -259,19 +274,19 @@ function LibraryBrowser() {
           </IconButton>
         )}
       />
-      <Link className="button button-secondary" to="/explore">{t('馆藏探索')}</Link>
-      {!group && !ingestedSort ? (
-        <Link className="button button-secondary library-latest-link" to="/library?sort=ingested">
-          <Clock3 aria-hidden="true" />
-          {t('按入库顺序查看')}
-        </Link>
-      ) : null}
-      {!group && ingestedSort ? (
-        <Link className="button button-secondary library-latest-link" to="/library">
-          <Library aria-hidden="true" />
-          {t('返回默认排序')}
-        </Link>
-      ) : null}
+      {!group && (
+        <div className="library-view-actions">
+          <Link className="button button-secondary" to={ingestedSort ? '/library' : '/library?sort=ingested'}>
+            {ingestedSort ? <Library aria-hidden="true" /> : <Clock3 aria-hidden="true" />}
+            {ingestedSort ? t('返回默认排序') : t('按入库顺序查看')}
+          </Link>
+          {storage.data && (storage.data.mounts.length > 0 || storage.data.fnos || storage.data.cloud) && (
+            <Link className="button button-secondary" to="/library?view=mounts">
+              <HardDrive aria-hidden="true" />{t('远程挂载与云下载')}
+            </Link>
+          )}
+        </div>
+      )}
       <SelectionTools selection={selection} ids={items.map(entry => !group && !ingestedSort ? entry.group_key! : entry.entry_id)} busy={batch.isPending}>
         <Button size="small" disabled={!selection.selected.size || batch.isPending} onClick={() => batch.mutate('subtitles')}>{t('获取字幕')}</Button>
         <Button size="small" disabled={!selection.selected.size || batch.isPending} onClick={() => batch.mutate('metadata')}>{t('补全所选番号')}</Button>
@@ -381,7 +396,7 @@ function LibraryBrowser() {
               <Library aria-hidden="true" />
               {indexUnknown ? t('索引待确认') : t('本地索引')}
             </StatusBadge>
-            <span>{library.data?.ok ? group ? t('找到 {count} 部作品', { count }) : t('共 {count} 个目录', { count }) : library.isLoading ? t('正在读取媒体库') : t('媒体库状态不可用')}</span>
+            <span>{library.data?.ok ? group || ingestedSort ? t('找到 {count} 部作品', { count }) : t('共 {count} 个目录', { count }) : library.isLoading ? t('正在读取媒体库') : t('媒体库状态不可用')}</span>
           </div>
           {library.isFetching && library.data ? <span className="polling-label">{t('正在刷新')}</span> : null}
         </div>

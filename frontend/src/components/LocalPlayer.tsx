@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { PlaybackOptions } from './PlaybackOptions'
 import { useQuery } from '@tanstack/react-query'
 import { requestJson } from '../lib/api'
@@ -38,26 +38,6 @@ export function LocalPlayer({ entry, file, identity = '' }: { entry: string; fil
 
 function LocalVideo({ playback }: { playback: LocalPlayback }) {
   const activity = usePlaybackActivity()
-  const [params] = useSearchParams()
-  const navigate = useNavigate()
-  const playlist = params.get('playlist')
-  async function nextInPlaylist() {
-    if (!playlist) return
-    const key = window.location.href
-    const local = playback.entry
-    let next: string | null = local.entry_id
-    let file = playback.file + 1
-    if (file >= local.media_paths.length) {
-      try {
-        const response = await requestJson<{next:string|null}>('/api/library/explore?'+new URLSearchParams({view:'playlist',name:playlist,after:local.entry_id}))
-        next = response.next
-        file = 0
-      } catch {
-        return
-      }
-    }
-    if (next && window.location.href===key) navigate('/player?'+new URLSearchParams({entry:next,file:String(file),playlist}))
-  }
   const video = useRef<HTMLVideoElement>(null)
   const ready = useRef(false)
   const [error, setError] = useState(false)
@@ -107,7 +87,7 @@ function LocalVideo({ playback }: { playback: LocalPlayback }) {
   return <>
     <section className="watch-player" aria-label={t('本地播放')}>
       <VideoControls video={video} subtitles={playback.subtitles} resolution={entry.quality_height ? <span className="video-resolution">{entry.quality_height}p</span> : undefined}>
-      <video ref={video} onEnded={()=>void nextInPlaylist()} src={media_url} poster={activity.snapshot?.image || undefined} controls={false} playsInline preload="auto" aria-label={entry.code || t('本地播放')}
+      <video ref={video} src={media_url} poster={activity.snapshot?.image || undefined} controls={false} playsInline preload="auto" aria-label={entry.code || t('本地播放')}
         onLoadedMetadata={() => {
           const element = video.current!
           if (ready.current) return

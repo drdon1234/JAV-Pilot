@@ -1,6 +1,6 @@
 import '../styles/settings.css'
 import { useIsFetching, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { BellRing, KeyRound, LogOut, RefreshCw, Save, ServerCog, Wrench } from 'lucide-react'
+import { BellRing, Database, KeyRound, LogOut, RefreshCw, Save, ServerCog, Wrench } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
@@ -10,6 +10,7 @@ import { api } from '../lib/api'
 import { clearAuthenticatedDetailPrefetchBatch } from '../lib/detailPrefetchSession'
 import { serviceErrorMessage } from '../lib/presentation'
 import { useSearchSessions } from '../lib/searchSessions'
+import { SourceSettings } from './SourceSettings'
 import { HistoryMaintenancePanel } from './HistoryMaintenancePanel'
 import { NotificationSettingsPanel } from './NotificationSettingsPanel'
 import { t } from '../lib/i18n'
@@ -41,6 +42,7 @@ const emptyQbForm: QbForm = {
 
 const settingsSections = [
   { id: 'qbittorrent-settings', label: t('下载器'), icon: ServerCog },
+  { id: 'source-settings', label: t('资料源'), icon: Database },
   { id: 'access-settings', label: t('访问控制'), icon: KeyRound },
   { id: 'notification-settings', label: t('通知'), icon: BellRing },
   { id: 'maintenance', label: t('维护'), icon: Wrench },
@@ -238,7 +240,7 @@ export function SettingsPage() {
         title={t('系统设置')}
         description={t('下载器、访问控制、通知与系统维护')}
         actions={
-            <><Link className="button button-secondary" to="/explore?view=settings">{t('资料与浏览器接入')}</Link><Link className="button button-secondary" to="/workflow-defaults">{t('工作流默认参数')}</Link>{auth.data?.enabled ? (
+            <><Link className="button button-secondary" to="/workflow-defaults">{t('工作流默认参数')}</Link>{auth.data?.enabled ? (
             <Button variant="ghost" onClick={() => void logout()} disabled={loggingOut} aria-busy={loggingOut}>
               <LogOut aria-hidden="true" />
               {loggingOut ? t('正在退出') : t('退出登录')}
@@ -367,6 +369,10 @@ export function SettingsPage() {
             </form>
           </section>
 
+          <section className="settings-section" id="source-settings" role="tabpanel"
+            aria-labelledby="settings-tab-source-settings" hidden={activeSection !== 'source-settings'}>
+            {activeSection === 'source-settings' && <SourceSettings />}
+          </section>
           <section
             className="settings-section"
             id="access-settings"

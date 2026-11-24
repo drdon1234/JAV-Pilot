@@ -8,7 +8,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'reac
 import { useToast } from '../components/ToastProvider'
 import { BookmarkButton, WatchLink } from '../components/WatchActions'
 import { WorkProgress, InventoryStatus } from '../components/WorkStatus'
-import { WantButton, WorkEditions } from '../components/CollectionTracking'
+import { WorkEditions } from '../components/WorkEditions'
 import { Button, EmptyState, InlineNotice, PageHeader, ProgressBar, SkeletonRows, StatusBadge } from '../components/ui'
 import { api, workRecoveryScope } from '../lib/api'
 import { externalHttpUrl, formatBytes, formatEta } from '../lib/format'
@@ -948,7 +948,6 @@ export function DetailPage() {
         actions={
           <>
             <WatchLink code={displayCode} resources="#work-magnets-title" />
-            {work.code && <WantButton code={work.code} />}
             <BookmarkButton kind="detail" entry={{ source: '', url: location.pathname + location.search, code: displayCode, title: work.title, cover: cover?.url || '', editions: [] }} />
             {workQuery.isFetching ? (
               <StatusBadge tone="info">
@@ -1044,7 +1043,7 @@ export function DetailPage() {
             <div className="work-terms" role="group" aria-label={t('演员')}>
               {work.actors.map((actor) => {
                 const item = relatedRefForLabel('actor', actor)
-                return <span className="watch-inline-actions" key={actor}><Link to={'/tracking?person='+encodeURIComponent(actor)}>{actor}</Link><Link to={relatedSearchHref(item)}>{t('搜索作品')}</Link></span>
+                return <Link key={actor} to={relatedSearchHref(item)}>{actor}</Link>
               })}
             </div>
           ) : null}
@@ -1294,7 +1293,7 @@ export function DetailPage() {
           onDownload={(magnet) => void addDownload(magnet)}
           onOpenDownloads={() => navigate('/downloads')}
         />}
-        {!workQuery.isFetching && work.code && !work.magnets.length && <div className="watch-inline-actions"><WantButton code={work.code}/>{hasWebDownloadCode && <a className="button button-secondary button-small" href="#work-web-download">{t('改用 Web 下载')}</a>}</div>}
+        {!workQuery.isFetching && work.code && !work.magnets.length && hasWebDownloadCode && <a className="button button-secondary button-small" href="#work-web-download">{t('改用 Web 下载')}</a>}
       </section>
     </div>
   )

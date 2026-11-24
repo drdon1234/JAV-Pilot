@@ -451,11 +451,10 @@ export function RankingsPage() {
                   </div>
                   <div className="ranking-actions">
                     {board.item_kind === 'actor' ? (
-                      <><Link className="button button-secondary button-small" to={searchHref(item.title,'actor')}>{t('搜索')}</Link>
-                      <Link data-focus-return-key={viewKey+':actor:'+item.rank} className="button button-secondary button-small" to={'/tracking?person='+encodeURIComponent(item.title)}>
+                      <Link data-focus-return-key={viewKey+':actor:'+item.rank} className="button button-secondary button-small" to={searchHref(item.title, 'actor')}>
                         <Search aria-hidden="true" />
-                        {t('人物详情')}
-                      </Link></>
+                        {t('搜索作品')}
+                      </Link>
                     ) : null}
                     {detailUrl ? (
                       <a className="button button-ghost button-small" href={detailUrl} target="_blank" rel="noopener noreferrer" aria-label={openLabel}>
@@ -501,7 +500,7 @@ export function RankingsPage() {
                       {t('详情')}
                     </Link>
                   ) : null}
-                  {item.code && <WatchLink code={item.code} resources={detailLink || undefined} />}
+                  {item.code && <WatchLink code={item.code} />}
                   {item.code && webConfigured ? <QuickWebDownload code={item.code} /> : null}
                   {detailUrl ? (
                     <a className="button button-ghost button-small" href={detailUrl} target="_blank" rel="noopener noreferrer" aria-label={openLabel}>

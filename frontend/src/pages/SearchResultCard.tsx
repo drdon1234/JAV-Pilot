@@ -62,7 +62,7 @@ export function SearchResultCard({
           <h3><Link data-focus-return-key={'title:'+result.work_id} className="result-detail-content" to={detailHref} state={detailState} tabIndex={-1}>{titleContent ?? result.title}</Link></h3>
         </div>
         <div className="result-actions">
-          {result.code || result.canonical_code ? <WatchLink resources={detailHref} code={result.code || result.canonical_code || ''} /> : null}
+          {result.code || result.canonical_code ? <WatchLink code={result.code || result.canonical_code || ''} /> : null}
           {actions}
           <Link
             className="button button-secondary button-small result-detail-link"

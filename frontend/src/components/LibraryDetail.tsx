@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useLocation } from 'react-router-dom'
 import { Captions, FileImage, Film, Play } from 'lucide-react'
-import { PlaylistEditor } from './MediaCollection'
 import { PlaybackOptions } from './PlaybackOptions'
-import { WorkEditions } from './CollectionTracking'
+import { WorkEditions } from './WorkEditions'
 import { BackLink } from './BackLink'
 import { requestJson } from '../lib/api'
 import { t } from '../lib/i18n'
@@ -51,7 +50,6 @@ export function LibraryDetail({ entryId }: { entryId: string }) {
             <Button disabled={!entry.code || entry.presence !== 'present'} onClick={() => setSubtitle({ kind: 'entry', entryId: entry.entry_id, code: entry.code || '' })}><Captions aria-hidden="true" />{t('字幕')}</Button>
           </div>
           {entry.presence !== 'present' ? <InlineNotice tone="warning">{t('本地文件不可用，请检查存储连接后重试。')}</InlineNotice> : null}
-          <PlaylistEditor entry={entry.entry_id} />
           <dl className="library-detail-facts">
             <Fact label={t('发行日期')} values={entry.release_date ? [entry.release_date] : []} />
             <Fact label={t('演员')} values={entry.actors} filter="actor" />

@@ -2,10 +2,51 @@
   min-width: 0;
 }
 
-.library-latest-link {
+.library-view-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 12px;
-  text-decoration: none;
 }
+
+.remote-storage {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.remote-storage .storage-path,
+.storage-download h2 {
+  margin: 0;
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+.storage-entries {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.storage-entries li + li { border-top: 1px solid var(--border); }
+.storage-entries .button {
+  justify-content: flex-start;
+  min-height: 44px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.storage-entries .button:hover { background: var(--surface-muted); }
+.storage-download {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+.storage-download form { width: 100%; }
+.storage-download input { flex: 1 1 18rem; min-width: 0; }
 
 .library-filter-form {
   display: grid;

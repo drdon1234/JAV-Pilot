@@ -246,10 +246,8 @@ const navigationGroups: NavigationGroup[] = [
     label: t('观看'),
     icon: Film,
     items: [
-      { to: '/explore', label: t('馆藏探索'), icon: Compass },
       { to: '/library', label: t('媒体库'), icon: Library },
       { to: '/player', label: t('播放器'), icon: Film },
-      { to: '/tracking', label: t('想要与关注'), icon: Bookmark },
       { to: '/favorites', label: t('收藏'), icon: Bookmark },
       { to: '/history', label: t('历史记录'), icon: ListRestart },
     ],

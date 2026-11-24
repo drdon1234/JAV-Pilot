@@ -8,6 +8,7 @@ import { recoverableImport } from '../lib/recoverableImport'
 import { TorrentDownloadsView } from './TorrentDownloadsView'
 import { t } from '../lib/i18n'
 
+import { QuickWebDownload } from './QuickWebDownload'
 import '../styles/downloads.css'
 
 const WebDownloadsView = lazy(() => recoverableImport('src/pages/WebDownloadsView.tsx', 'WebDownloadsView', () => import('./WebDownloadsView')).then((module) => ({
@@ -29,6 +30,7 @@ type DownloadView = typeof downloadViews[number]['id']
 export function DownloadsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const pendingTabFocus = useRef<DownloadView | null>(null)
+  const intakeCode = searchParams.get('code') || ''
   const requestedView = searchParams.get('view')
   const downloadView: DownloadView = requestedView === 'web' || requestedView === 'archive'
     ? requestedView
@@ -93,6 +95,11 @@ export function DownloadsPage() {
         <>
           <PageHeader title={t('下载任务')} description={t('BT、Web 下载队列与失败任务归档')} />
           {navigation}
+          {/^(?:FC2[- ]?(?:PPV[- ]?)?\d{3,9}|[a-z]{2,12}[-_]\d{2,8})$/i.test(intakeCode) && (
+            <div className="watch-inline-actions" data-browser-import-code={intakeCode}>
+              <strong>{intakeCode}</strong><QuickWebDownload key={intakeCode} code={intakeCode} />
+            </div>
+          )}
           <Suspense
             fallback={(
               <div id="web-download-panel" role="tabpanel" aria-labelledby="download-view-web" tabIndex={0}>

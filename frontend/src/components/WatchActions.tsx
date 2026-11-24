@@ -16,7 +16,7 @@ export function workAction(code: string, item?: DownloadHistoryItem | null) {
     return {to:'/player?'+new URLSearchParams({entry,file:String(file),identity}),label:t('继续播放')}
   }
   const entries = item?.local_entries || []
-  if (entries.length) return {to:entries.length===1 ? '/player?entry='+encodeURIComponent(entries[0]) : '/library?q='+q,label:entries.length===1 ? t('本地播放') : t('选择馆藏版本')}
+  if (entries.length) return {to:entries.length===1 ? '/player?entry='+encodeURIComponent(entries[0]) : '/library?sort=ingested&q='+q,label:entries.length===1 ? t('本地播放') : t('选择本地版本')}
   if (item && (item.state==='active' || item.web==='active' || item.torrent==='downloading' || item.torrent==='paused')) return {to:'/downloads?view='+(item.web==='active'?'web':'bt')+'&q='+q,label:t('查看下载任务')}
   return {to:'/watch?q='+q,label:t('找资源')}
 }
@@ -33,10 +33,10 @@ export function WatchLink({ code, resources }: { code: string; resources?: strin
   const availability = useLocalPlayback(code)
   const action = workAction(code, availability.data)
   const fallback = action.to.startsWith('/watch?')
-  const primary = fallback ? resources || '/results?'+new URLSearchParams({q:code,kind:'code',match:'exact'}) : action.to
-  return <>{primary.startsWith('#')
+  const primary = fallback ? resources : action.to
+  return <>{primary && (primary.startsWith('#')
     ? <a className="button button-primary button-small" href={primary}>{action.label}</a>
-    : <Link className="button button-primary button-small" data-focus-return-key={'action:'+code} to={primary}><Play aria-hidden="true" />{action.label}</Link>}
+    : <Link className="button button-primary button-small" data-focus-return-key={'action:'+code} to={primary}><Play aria-hidden="true" />{action.label}</Link>)}
     <Link className="button button-secondary button-small" data-focus-return-key={'online:'+code} to={'/watch?q='+encodeURIComponent(code)}>{t('在线观看')}</Link></>
 }
 

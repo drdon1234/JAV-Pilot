@@ -109,6 +109,12 @@
   font-size: 12px;
 }
 
+.source-browser-install {
+  margin: 20px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
 .settings-section-actions {
   display: flex;
   align-items: center;
@@ -243,7 +249,11 @@
 
 @media (max-width: 560px) {
 
-  /* Keeps the four tabs on one line at common phone widths. */
+  #source-settings .field {
+    grid-column: 1 / -1;
+  }
+
+  /* Keep the tab labels compact on phones. */
   .settings-index a {
     gap: 6px;
     padding: 0 8px;
